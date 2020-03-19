@@ -127,3 +127,235 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# ------------------------------ C++ --------------------------------------
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# ------------------------------ C --------------------------------------
+# Prerequisites
+*.d
+
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Linker output
+*.ilk
+*.map
+*.exp
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Kernel Module Compile Results
+*.mod*
+*.cmd
+.tmp_versions/
+modules.order
+Module.symvers
+Mkfile.old
+dkms.conf
+
+# ------------------------------ Django --------------------------------------
+# Created by https://www.gitignore.io
+
+### OSX ###
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Icon must end with two \r
+Icon
+
+
+# Thumbnails
+._*
+
+# Files that might appear on external disk
+.Spotlight-V100
+.Trashes
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+
+### Python ###
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.cache
+nosetests.xml
+coverage.xml
+
+# Translations
+*.mo
+*.pot
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+
+### Django ###
+*.log
+*.pot
+*.pyc
+__pycache__/
+local_settings.py
+
+.env
+db.sqlite3
+
+# ------------------------------ Zephyr --------------------------------------
+*.o
+*.a
+*.d
+*.cmd
+*.log
+*.pyc
+*.swp
+*.swo
+*~
+build*/
+!doc/guides/build
+cscope.*
+.dir
+
+/*.patch
+
+# The .cache directory will be used to cache toolchain capabilities if
+# no suitable out-of-tree directory is found.
+.cache
+
+outdir
+outdir-*
+scripts/basic/fixdep
+scripts/gen_idt/gen_idt
+doc/_build
+doc/doxygen
+doc/xml
+doc/html
+doc/boards
+doc/samples
+doc/latex
+doc/themes/zephyr-docs-theme
+sanity-out*
+bsim_bt_out
+scripts/grub
+doc/reference/kconfig/*.rst
+doc/doc.warnings
+.*project
+.settings
+.envrc
+.vscode
+hide-defaults-note
+
+# Tag files
+GPATH
+GRTAGS
+GTAGS
+TAGS
+tags
+
+.idea
