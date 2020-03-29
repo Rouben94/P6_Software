@@ -1,0 +1,46 @@
+device:
+    -   alias: light1
+        eui64: 0x0017880103ac9128
+        ep: 11
+        subscribe:
+        - home/light1/on_off/state
+        - home/light1/lvl_ctrl/lvl
+        - home/light1/color_ctrl/r
+        - home/light1/color_ctrl/g
+        - home/light1/color_ctrl/b
+    -   alias: light2
+        eui64: 0x0b010e4a5e527ad8
+        ep: 10
+        subscribe:
+        - home/light2/on_off/state
+        - home/light2/lvl_ctrl/lvl
+        - home/light2/color_ctrl/r
+        - home/light2/color_ctrl/g
+        - home/light2/color_ctrl/b
+    -   alias: light3
+        eui64: 0x0b010e4a5e527ad8
+        ep: 11
+        subscribe:
+        - home/light3/on_off/state
+        - home/light3/lvl_ctrl/lvl
+        - home/light3/color_ctrl/r
+        - home/light3/color_ctrl/g
+        - home/light3/color_ctrl/b
+    -   alias: door_lock1
+        eui64: 0x0b010ef209de6659
+        ep: 8
+        subscribe:
+        - home/door_lock1/door_lock/lock_state
+MQTTClient:
+    BROKER_ADDRESS: '127.0.0.1'
+    BROKER_PORT: 1883
+    BIND_ADDRESS: ''
+    MQTT_CLIENT_NAME: 'MQTT Zigbee gateway'
+    MQTT_CLIENT_PASSWD: ''
+    MQTT_RECONNECT_TRIES: 10
+CLIDevice:
+    channels: [20, 24]
+    role: 'zr'
+    segger: '000000000'
+    cdc_serial: 'EF0000000000'
+    com_port: 'COM00'
