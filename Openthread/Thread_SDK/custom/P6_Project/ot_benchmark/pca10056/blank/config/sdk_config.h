@@ -46,9 +46,566 @@
 #ifdef USE_APP_CONFIG
 #include "app_config.h"
 #endif
+// <h> OpenThread 
+
+//==========================================================
+// <h> openthread - OpenThread stack
+
+//==========================================================
+// <o> THREAD_PANID - 802.15.4 PAN ID used by Thread  <0-65535> 
+
+
+// <i> 802.15.4 PAN ID used by Thread. Defaults to 0xABCD.
+
+#ifndef THREAD_PANID
+#define THREAD_PANID 43981
+#endif
+
+// <o> THREAD_CHANNEL - 802.15.4 channel used by Thread  <11-26> 
+
+
+// <i> 802.15.4 channel used by Thread. Defaults to 11.
+
+#ifndef THREAD_CHANNEL
+#define THREAD_CHANNEL 11
+#endif
+
+// </h> 
+//==========================================================
+
+// </h> 
+//==========================================================
+
+// <h> nRF_Drivers 
+
+//==========================================================
+// <e> GPIOTE_ENABLED - nrf_drv_gpiote - GPIOTE peripheral driver - legacy layer
+//==========================================================
+#ifndef GPIOTE_ENABLED
+#define GPIOTE_ENABLED 1
+#endif
+// <o> GPIOTE_CONFIG_NUM_OF_LOW_POWER_EVENTS - Number of lower power input pins 
+#ifndef GPIOTE_CONFIG_NUM_OF_LOW_POWER_EVENTS
+#define GPIOTE_CONFIG_NUM_OF_LOW_POWER_EVENTS 4
+#endif
+
+// <o> GPIOTE_CONFIG_IRQ_PRIORITY  - Interrupt priority
+ 
+
+// <i> Priorities 0,2 (nRF51) and 0,1,4,5 (nRF52) are reserved for SoftDevice
+// <0=> 0 (highest) 
+// <1=> 1 
+// <2=> 2 
+// <3=> 3 
+// <4=> 4 
+// <5=> 5 
+// <6=> 6 
+// <7=> 7 
+
+#ifndef GPIOTE_CONFIG_IRQ_PRIORITY
+#define GPIOTE_CONFIG_IRQ_PRIORITY 6
+#endif
+
+// </e>
+
+// <e> NRFX_CLOCK_ENABLED - nrfx_clock - CLOCK peripheral driver
+//==========================================================
+#ifndef NRFX_CLOCK_ENABLED
+#define NRFX_CLOCK_ENABLED 1
+#endif
+// <o> NRFX_CLOCK_CONFIG_LF_SRC  - LF Clock Source
+ 
+// <0=> RC 
+// <1=> XTAL 
+// <2=> Synth 
+// <131073=> External Low Swing 
+// <196609=> External Full Swing 
+
+#ifndef NRFX_CLOCK_CONFIG_LF_SRC
+#define NRFX_CLOCK_CONFIG_LF_SRC 1
+#endif
+
+// <o> NRFX_CLOCK_CONFIG_IRQ_PRIORITY  - Interrupt priority
+ 
+// <0=> 0 (highest) 
+// <1=> 1 
+// <2=> 2 
+// <3=> 3 
+// <4=> 4 
+// <5=> 5 
+// <6=> 6 
+// <7=> 7 
+
+#ifndef NRFX_CLOCK_CONFIG_IRQ_PRIORITY
+#define NRFX_CLOCK_CONFIG_IRQ_PRIORITY 6
+#endif
+
+// <e> NRFX_CLOCK_CONFIG_LOG_ENABLED - Enables logging in the module.
+//==========================================================
+#ifndef NRFX_CLOCK_CONFIG_LOG_ENABLED
+#define NRFX_CLOCK_CONFIG_LOG_ENABLED 0
+#endif
+// <o> NRFX_CLOCK_CONFIG_LOG_LEVEL  - Default Severity level
+ 
+// <0=> Off 
+// <1=> Error 
+// <2=> Warning 
+// <3=> Info 
+// <4=> Debug 
+
+#ifndef NRFX_CLOCK_CONFIG_LOG_LEVEL
+#define NRFX_CLOCK_CONFIG_LOG_LEVEL 3
+#endif
+
+// <o> NRFX_CLOCK_CONFIG_INFO_COLOR  - ANSI escape code prefix.
+ 
+// <0=> Default 
+// <1=> Black 
+// <2=> Red 
+// <3=> Green 
+// <4=> Yellow 
+// <5=> Blue 
+// <6=> Magenta 
+// <7=> Cyan 
+// <8=> White 
+
+#ifndef NRFX_CLOCK_CONFIG_INFO_COLOR
+#define NRFX_CLOCK_CONFIG_INFO_COLOR 0
+#endif
+
+// <o> NRFX_CLOCK_CONFIG_DEBUG_COLOR  - ANSI escape code prefix.
+ 
+// <0=> Default 
+// <1=> Black 
+// <2=> Red 
+// <3=> Green 
+// <4=> Yellow 
+// <5=> Blue 
+// <6=> Magenta 
+// <7=> Cyan 
+// <8=> White 
+
+#ifndef NRFX_CLOCK_CONFIG_DEBUG_COLOR
+#define NRFX_CLOCK_CONFIG_DEBUG_COLOR 0
+#endif
+
+// </e>
+
+// </e>
+
+// <e> NRFX_GPIOTE_ENABLED - nrfx_gpiote - GPIOTE peripheral driver
+//==========================================================
+#ifndef NRFX_GPIOTE_ENABLED
+#define NRFX_GPIOTE_ENABLED 1
+#endif
+// <o> NRFX_GPIOTE_CONFIG_NUM_OF_LOW_POWER_EVENTS - Number of lower power input pins 
+#ifndef NRFX_GPIOTE_CONFIG_NUM_OF_LOW_POWER_EVENTS
+#define NRFX_GPIOTE_CONFIG_NUM_OF_LOW_POWER_EVENTS 1
+#endif
+
+// <o> NRFX_GPIOTE_CONFIG_IRQ_PRIORITY  - Interrupt priority
+ 
+// <0=> 0 (highest) 
+// <1=> 1 
+// <2=> 2 
+// <3=> 3 
+// <4=> 4 
+// <5=> 5 
+// <6=> 6 
+// <7=> 7 
+
+#ifndef NRFX_GPIOTE_CONFIG_IRQ_PRIORITY
+#define NRFX_GPIOTE_CONFIG_IRQ_PRIORITY 6
+#endif
+
+// <e> NRFX_GPIOTE_CONFIG_LOG_ENABLED - Enables logging in the module.
+//==========================================================
+#ifndef NRFX_GPIOTE_CONFIG_LOG_ENABLED
+#define NRFX_GPIOTE_CONFIG_LOG_ENABLED 0
+#endif
+// <o> NRFX_GPIOTE_CONFIG_LOG_LEVEL  - Default Severity level
+ 
+// <0=> Off 
+// <1=> Error 
+// <2=> Warning 
+// <3=> Info 
+// <4=> Debug 
+
+#ifndef NRFX_GPIOTE_CONFIG_LOG_LEVEL
+#define NRFX_GPIOTE_CONFIG_LOG_LEVEL 3
+#endif
+
+// <o> NRFX_GPIOTE_CONFIG_INFO_COLOR  - ANSI escape code prefix.
+ 
+// <0=> Default 
+// <1=> Black 
+// <2=> Red 
+// <3=> Green 
+// <4=> Yellow 
+// <5=> Blue 
+// <6=> Magenta 
+// <7=> Cyan 
+// <8=> White 
+
+#ifndef NRFX_GPIOTE_CONFIG_INFO_COLOR
+#define NRFX_GPIOTE_CONFIG_INFO_COLOR 0
+#endif
+
+// <o> NRFX_GPIOTE_CONFIG_DEBUG_COLOR  - ANSI escape code prefix.
+ 
+// <0=> Default 
+// <1=> Black 
+// <2=> Red 
+// <3=> Green 
+// <4=> Yellow 
+// <5=> Blue 
+// <6=> Magenta 
+// <7=> Cyan 
+// <8=> White 
+
+#ifndef NRFX_GPIOTE_CONFIG_DEBUG_COLOR
+#define NRFX_GPIOTE_CONFIG_DEBUG_COLOR 0
+#endif
+
+// </e>
+
+// </e>
+
+// <q> NRFX_NVMC_ENABLED  - nrfx_nvmc - Non-volatile Memory Controller (NVMC) driver
+ 
+
+#ifndef NRFX_NVMC_ENABLED
+#define NRFX_NVMC_ENABLED 1
+#endif
+
+// <e> NRF_CLOCK_ENABLED - nrf_drv_clock - CLOCK peripheral driver - legacy layer
+//==========================================================
+#ifndef NRF_CLOCK_ENABLED
+#define NRF_CLOCK_ENABLED 1
+#endif
+// <o> CLOCK_CONFIG_LF_SRC  - LF Clock Source
+ 
+// <0=> RC 
+// <1=> XTAL 
+// <2=> Synth 
+// <131073=> External Low Swing 
+// <196609=> External Full Swing 
+
+#ifndef CLOCK_CONFIG_LF_SRC
+#define CLOCK_CONFIG_LF_SRC 1
+#endif
+
+// <q> CLOCK_CONFIG_LF_CAL_ENABLED  - Calibration enable for LF Clock Source
+ 
+
+#ifndef CLOCK_CONFIG_LF_CAL_ENABLED
+#define CLOCK_CONFIG_LF_CAL_ENABLED 0
+#endif
+
+// <o> CLOCK_CONFIG_IRQ_PRIORITY  - Interrupt priority
+ 
+
+// <i> Priorities 0,2 (nRF51) and 0,1,4,5 (nRF52) are reserved for SoftDevice
+// <0=> 0 (highest) 
+// <1=> 1 
+// <2=> 2 
+// <3=> 3 
+// <4=> 4 
+// <5=> 5 
+// <6=> 6 
+// <7=> 7 
+
+#ifndef CLOCK_CONFIG_IRQ_PRIORITY
+#define CLOCK_CONFIG_IRQ_PRIORITY 6
+#endif
+
+// </e>
+
+// </h> 
+//==========================================================
+
 // <h> nRF_Libraries 
 
 //==========================================================
+// <e> APP_SCHEDULER_ENABLED - app_scheduler - Events scheduler
+//==========================================================
+#ifndef APP_SCHEDULER_ENABLED
+#define APP_SCHEDULER_ENABLED 1
+#endif
+// <q> APP_SCHEDULER_WITH_PAUSE  - Enabling pause feature
+ 
+
+#ifndef APP_SCHEDULER_WITH_PAUSE
+#define APP_SCHEDULER_WITH_PAUSE 0
+#endif
+
+// <q> APP_SCHEDULER_WITH_PROFILER  - Enabling scheduler profiling
+ 
+
+#ifndef APP_SCHEDULER_WITH_PROFILER
+#define APP_SCHEDULER_WITH_PROFILER 0
+#endif
+
+// </e>
+
+// <e> APP_TIMER_ENABLED - app_timer - Application timer functionality
+//==========================================================
+#ifndef APP_TIMER_ENABLED
+#define APP_TIMER_ENABLED 1
+#endif
+// <o> APP_TIMER_CONFIG_RTC_FREQUENCY  - Configure RTC prescaler.
+ 
+// <0=> 32768 Hz 
+// <1=> 16384 Hz 
+// <3=> 8192 Hz 
+// <7=> 4096 Hz 
+// <15=> 2048 Hz 
+// <31=> 1024 Hz 
+
+#ifndef APP_TIMER_CONFIG_RTC_FREQUENCY
+#define APP_TIMER_CONFIG_RTC_FREQUENCY 1
+#endif
+
+// <o> APP_TIMER_CONFIG_IRQ_PRIORITY  - Interrupt priority
+ 
+
+// <i> Priorities 0,2 (nRF51) and 0,1,4,5 (nRF52) are reserved for SoftDevice
+// <0=> 0 (highest) 
+// <1=> 1 
+// <2=> 2 
+// <3=> 3 
+// <4=> 4 
+// <5=> 5 
+// <6=> 6 
+// <7=> 7 
+
+#ifndef APP_TIMER_CONFIG_IRQ_PRIORITY
+#define APP_TIMER_CONFIG_IRQ_PRIORITY 6
+#endif
+
+// <o> APP_TIMER_CONFIG_OP_QUEUE_SIZE - Capacity of timer requests queue. 
+// <i> Size of the queue depends on how many timers are used
+// <i> in the system, how often timers are started and overall
+// <i> system latency. If queue size is too small app_timer calls
+// <i> will fail.
+
+#ifndef APP_TIMER_CONFIG_OP_QUEUE_SIZE
+#define APP_TIMER_CONFIG_OP_QUEUE_SIZE 10
+#endif
+
+// <q> APP_TIMER_CONFIG_USE_SCHEDULER  - Enable scheduling app_timer events to app_scheduler
+ 
+
+#ifndef APP_TIMER_CONFIG_USE_SCHEDULER
+#define APP_TIMER_CONFIG_USE_SCHEDULER 1
+#endif
+
+// <q> APP_TIMER_KEEPS_RTC_ACTIVE  - Enable RTC always on
+ 
+
+// <i> If option is enabled RTC is kept running even if there is no active timers.
+// <i> This option can be used when app_timer is used for timestamping.
+
+#ifndef APP_TIMER_KEEPS_RTC_ACTIVE
+#define APP_TIMER_KEEPS_RTC_ACTIVE 0
+#endif
+
+// <o> APP_TIMER_SAFE_WINDOW_MS - Maximum possible latency (in milliseconds) of handling app_timer event. 
+// <i> Maximum possible timeout that can be set is reduced by safe window.
+// <i> Example: RTC frequency 16384 Hz, maximum possible timeout 1024 seconds - APP_TIMER_SAFE_WINDOW_MS.
+// <i> Since RTC is not stopped when processor is halted in debugging session, this value
+// <i> must cover it if debugging is needed. It is possible to halt processor for APP_TIMER_SAFE_WINDOW_MS
+// <i> without corrupting app_timer behavior.
+
+#ifndef APP_TIMER_SAFE_WINDOW_MS
+#define APP_TIMER_SAFE_WINDOW_MS 300000
+#endif
+
+// <h> App Timer Legacy configuration - Legacy configuration.
+
+//==========================================================
+// <q> APP_TIMER_WITH_PROFILER  - Enable app_timer profiling
+ 
+
+#ifndef APP_TIMER_WITH_PROFILER
+#define APP_TIMER_WITH_PROFILER 0
+#endif
+
+// <q> APP_TIMER_CONFIG_SWI_NUMBER  - Configure SWI instance used.
+ 
+
+#ifndef APP_TIMER_CONFIG_SWI_NUMBER
+#define APP_TIMER_CONFIG_SWI_NUMBER 0
+#endif
+
+// </h> 
+//==========================================================
+
+// </e>
+
+// <e> MEM_MANAGER_ENABLED - mem_manager - Dynamic memory allocator
+//==========================================================
+#ifndef MEM_MANAGER_ENABLED
+#define MEM_MANAGER_ENABLED 1
+#endif
+// <o> MEMORY_MANAGER_SMALL_BLOCK_COUNT - Size of each memory blocks identified as 'small' block.  <0-255> 
+
+
+#ifndef MEMORY_MANAGER_SMALL_BLOCK_COUNT
+#define MEMORY_MANAGER_SMALL_BLOCK_COUNT 64
+#endif
+
+// <o> MEMORY_MANAGER_SMALL_BLOCK_SIZE -  Size of each memory blocks identified as 'small' block. 
+// <i>  Size of each memory blocks identified as 'small' block. Memory block are recommended to be word-sized.
+
+#ifndef MEMORY_MANAGER_SMALL_BLOCK_SIZE
+#define MEMORY_MANAGER_SMALL_BLOCK_SIZE 64
+#endif
+
+// <o> MEMORY_MANAGER_MEDIUM_BLOCK_COUNT - Size of each memory blocks identified as 'medium' block.  <0-255> 
+
+
+#ifndef MEMORY_MANAGER_MEDIUM_BLOCK_COUNT
+#define MEMORY_MANAGER_MEDIUM_BLOCK_COUNT 16
+#endif
+
+// <o> MEMORY_MANAGER_MEDIUM_BLOCK_SIZE -  Size of each memory blocks identified as 'medium' block. 
+// <i>  Size of each memory blocks identified as 'medium' block. Memory block are recommended to be word-sized.
+
+#ifndef MEMORY_MANAGER_MEDIUM_BLOCK_SIZE
+#define MEMORY_MANAGER_MEDIUM_BLOCK_SIZE 256
+#endif
+
+// <o> MEMORY_MANAGER_LARGE_BLOCK_COUNT - Size of each memory blocks identified as 'large' block.  <0-255> 
+
+
+#ifndef MEMORY_MANAGER_LARGE_BLOCK_COUNT
+#define MEMORY_MANAGER_LARGE_BLOCK_COUNT 4
+#endif
+
+// <o> MEMORY_MANAGER_LARGE_BLOCK_SIZE -  Size of each memory blocks identified as 'large' block. 
+// <i>  Size of each memory blocks identified as 'large' block. Memory block are recommended to be word-sized.
+
+#ifndef MEMORY_MANAGER_LARGE_BLOCK_SIZE
+#define MEMORY_MANAGER_LARGE_BLOCK_SIZE 512
+#endif
+
+// <o> MEMORY_MANAGER_XLARGE_BLOCK_COUNT - Size of each memory blocks identified as 'extra large' block.  <0-255> 
+
+
+#ifndef MEMORY_MANAGER_XLARGE_BLOCK_COUNT
+#define MEMORY_MANAGER_XLARGE_BLOCK_COUNT 5
+#endif
+
+// <o> MEMORY_MANAGER_XLARGE_BLOCK_SIZE -  Size of each memory blocks identified as 'extra large' block. 
+// <i>  Size of each memory blocks identified as 'extra large' block. Memory block are recommended to be word-sized.
+
+#ifndef MEMORY_MANAGER_XLARGE_BLOCK_SIZE
+#define MEMORY_MANAGER_XLARGE_BLOCK_SIZE 2816
+#endif
+
+// <o> MEMORY_MANAGER_XXLARGE_BLOCK_COUNT - Size of each memory blocks identified as 'extra extra large' block.  <0-255> 
+
+
+#ifndef MEMORY_MANAGER_XXLARGE_BLOCK_COUNT
+#define MEMORY_MANAGER_XXLARGE_BLOCK_COUNT 0
+#endif
+
+// <o> MEMORY_MANAGER_XXLARGE_BLOCK_SIZE -  Size of each memory blocks identified as 'extra extra large' block. 
+// <i>  Size of each memory blocks identified as 'extra extra large' block. Memory block are recommended to be word-sized.
+
+#ifndef MEMORY_MANAGER_XXLARGE_BLOCK_SIZE
+#define MEMORY_MANAGER_XXLARGE_BLOCK_SIZE 3444
+#endif
+
+// <o> MEMORY_MANAGER_XSMALL_BLOCK_COUNT - Size of each memory blocks identified as 'extra small' block.  <0-255> 
+
+
+#ifndef MEMORY_MANAGER_XSMALL_BLOCK_COUNT
+#define MEMORY_MANAGER_XSMALL_BLOCK_COUNT 0
+#endif
+
+// <o> MEMORY_MANAGER_XSMALL_BLOCK_SIZE -  Size of each memory blocks identified as 'extra small' block. 
+// <i>  Size of each memory blocks identified as 'extra large' block. Memory block are recommended to be word-sized.
+
+#ifndef MEMORY_MANAGER_XSMALL_BLOCK_SIZE
+#define MEMORY_MANAGER_XSMALL_BLOCK_SIZE 64
+#endif
+
+// <o> MEMORY_MANAGER_XXSMALL_BLOCK_COUNT - Size of each memory blocks identified as 'extra extra small' block.  <0-255> 
+
+
+#ifndef MEMORY_MANAGER_XXSMALL_BLOCK_COUNT
+#define MEMORY_MANAGER_XXSMALL_BLOCK_COUNT 0
+#endif
+
+// <o> MEMORY_MANAGER_XXSMALL_BLOCK_SIZE -  Size of each memory blocks identified as 'extra extra small' block. 
+// <i>  Size of each memory blocks identified as 'extra extra small' block. Memory block are recommended to be word-sized.
+
+#ifndef MEMORY_MANAGER_XXSMALL_BLOCK_SIZE
+#define MEMORY_MANAGER_XXSMALL_BLOCK_SIZE 32
+#endif
+
+// <e> MEM_MANAGER_CONFIG_LOG_ENABLED - Enables logging in the module.
+//==========================================================
+#ifndef MEM_MANAGER_CONFIG_LOG_ENABLED
+#define MEM_MANAGER_CONFIG_LOG_ENABLED 0
+#endif
+// <o> MEM_MANAGER_CONFIG_LOG_LEVEL  - Default Severity level
+ 
+// <0=> Off 
+// <1=> Error 
+// <2=> Warning 
+// <3=> Info 
+// <4=> Debug 
+
+#ifndef MEM_MANAGER_CONFIG_LOG_LEVEL
+#define MEM_MANAGER_CONFIG_LOG_LEVEL 3
+#endif
+
+// <o> MEM_MANAGER_CONFIG_INFO_COLOR  - ANSI escape code prefix.
+ 
+// <0=> Default 
+// <1=> Black 
+// <2=> Red 
+// <3=> Green 
+// <4=> Yellow 
+// <5=> Blue 
+// <6=> Magenta 
+// <7=> Cyan 
+// <8=> White 
+
+#ifndef MEM_MANAGER_CONFIG_INFO_COLOR
+#define MEM_MANAGER_CONFIG_INFO_COLOR 0
+#endif
+
+// <o> MEM_MANAGER_CONFIG_DEBUG_COLOR  - ANSI escape code prefix.
+ 
+// <0=> Default 
+// <1=> Black 
+// <2=> Red 
+// <3=> Green 
+// <4=> Yellow 
+// <5=> Blue 
+// <6=> Magenta 
+// <7=> Cyan 
+// <8=> White 
+
+#ifndef MEM_MANAGER_CONFIG_DEBUG_COLOR
+#define MEM_MANAGER_CONFIG_DEBUG_COLOR 0
+#endif
+
+// </e>
+
+// <q> MEM_MANAGER_DISABLE_API_PARAM_CHECK  - Disable API parameter checks in the module.
+ 
+
+#ifndef MEM_MANAGER_DISABLE_API_PARAM_CHECK
+#define MEM_MANAGER_DISABLE_API_PARAM_CHECK 0
+#endif
+
+// </e>
+
 // <e> NRF_BALLOC_ENABLED - nrf_balloc - Block allocator module
 //==========================================================
 #ifndef NRF_BALLOC_ENABLED
@@ -112,12 +669,169 @@
 #define NRF_MEMOBJ_ENABLED 1
 #endif
 
+// <e> NRF_PWR_MGMT_ENABLED - nrf_pwr_mgmt - Power management module
+//==========================================================
+#ifndef NRF_PWR_MGMT_ENABLED
+#define NRF_PWR_MGMT_ENABLED 1
+#endif
+// <e> NRF_PWR_MGMT_CONFIG_DEBUG_PIN_ENABLED - Enables pin debug in the module.
+
+// <i> Selected pin will be set when CPU is in sleep mode.
+//==========================================================
+#ifndef NRF_PWR_MGMT_CONFIG_DEBUG_PIN_ENABLED
+#define NRF_PWR_MGMT_CONFIG_DEBUG_PIN_ENABLED 0
+#endif
+// <o> NRF_PWR_MGMT_SLEEP_DEBUG_PIN  - Pin number
+ 
+// <0=> 0 (P0.0) 
+// <1=> 1 (P0.1) 
+// <2=> 2 (P0.2) 
+// <3=> 3 (P0.3) 
+// <4=> 4 (P0.4) 
+// <5=> 5 (P0.5) 
+// <6=> 6 (P0.6) 
+// <7=> 7 (P0.7) 
+// <8=> 8 (P0.8) 
+// <9=> 9 (P0.9) 
+// <10=> 10 (P0.10) 
+// <11=> 11 (P0.11) 
+// <12=> 12 (P0.12) 
+// <13=> 13 (P0.13) 
+// <14=> 14 (P0.14) 
+// <15=> 15 (P0.15) 
+// <16=> 16 (P0.16) 
+// <17=> 17 (P0.17) 
+// <18=> 18 (P0.18) 
+// <19=> 19 (P0.19) 
+// <20=> 20 (P0.20) 
+// <21=> 21 (P0.21) 
+// <22=> 22 (P0.22) 
+// <23=> 23 (P0.23) 
+// <24=> 24 (P0.24) 
+// <25=> 25 (P0.25) 
+// <26=> 26 (P0.26) 
+// <27=> 27 (P0.27) 
+// <28=> 28 (P0.28) 
+// <29=> 29 (P0.29) 
+// <30=> 30 (P0.30) 
+// <31=> 31 (P0.31) 
+// <32=> 32 (P1.0) 
+// <33=> 33 (P1.1) 
+// <34=> 34 (P1.2) 
+// <35=> 35 (P1.3) 
+// <36=> 36 (P1.4) 
+// <37=> 37 (P1.5) 
+// <38=> 38 (P1.6) 
+// <39=> 39 (P1.7) 
+// <40=> 40 (P1.8) 
+// <41=> 41 (P1.9) 
+// <42=> 42 (P1.10) 
+// <43=> 43 (P1.11) 
+// <44=> 44 (P1.12) 
+// <45=> 45 (P1.13) 
+// <46=> 46 (P1.14) 
+// <47=> 47 (P1.15) 
+// <4294967295=> Not connected 
+
+#ifndef NRF_PWR_MGMT_SLEEP_DEBUG_PIN
+#define NRF_PWR_MGMT_SLEEP_DEBUG_PIN 31
+#endif
+
+// </e>
+
+// <q> NRF_PWR_MGMT_CONFIG_CPU_USAGE_MONITOR_ENABLED  - Enables CPU usage monitor.
+ 
+
+// <i> Module will trace percentage of CPU usage in one second intervals.
+
+#ifndef NRF_PWR_MGMT_CONFIG_CPU_USAGE_MONITOR_ENABLED
+#define NRF_PWR_MGMT_CONFIG_CPU_USAGE_MONITOR_ENABLED 0
+#endif
+
+// <e> NRF_PWR_MGMT_CONFIG_STANDBY_TIMEOUT_ENABLED - Enable standby timeout.
+//==========================================================
+#ifndef NRF_PWR_MGMT_CONFIG_STANDBY_TIMEOUT_ENABLED
+#define NRF_PWR_MGMT_CONFIG_STANDBY_TIMEOUT_ENABLED 0
+#endif
+// <o> NRF_PWR_MGMT_CONFIG_STANDBY_TIMEOUT_S - Standby timeout (in seconds). 
+// <i> Shutdown procedure will begin no earlier than after this number of seconds.
+
+#ifndef NRF_PWR_MGMT_CONFIG_STANDBY_TIMEOUT_S
+#define NRF_PWR_MGMT_CONFIG_STANDBY_TIMEOUT_S 3
+#endif
+
+// </e>
+
+// <q> NRF_PWR_MGMT_CONFIG_FPU_SUPPORT_ENABLED  - Enables FPU event cleaning.
+ 
+
+#ifndef NRF_PWR_MGMT_CONFIG_FPU_SUPPORT_ENABLED
+#define NRF_PWR_MGMT_CONFIG_FPU_SUPPORT_ENABLED 1
+#endif
+
+// <q> NRF_PWR_MGMT_CONFIG_AUTO_SHUTDOWN_RETRY  - Blocked shutdown procedure will be retried every second.
+ 
+
+#ifndef NRF_PWR_MGMT_CONFIG_AUTO_SHUTDOWN_RETRY
+#define NRF_PWR_MGMT_CONFIG_AUTO_SHUTDOWN_RETRY 0
+#endif
+
+// <q> NRF_PWR_MGMT_CONFIG_USE_SCHEDULER  - Module will use @ref app_scheduler.
+ 
+
+#ifndef NRF_PWR_MGMT_CONFIG_USE_SCHEDULER
+#define NRF_PWR_MGMT_CONFIG_USE_SCHEDULER 0
+#endif
+
+// <o> NRF_PWR_MGMT_CONFIG_HANDLER_PRIORITY_COUNT - The number of priorities for module handlers. 
+// <i> The number of stages of the shutdown process.
+
+#ifndef NRF_PWR_MGMT_CONFIG_HANDLER_PRIORITY_COUNT
+#define NRF_PWR_MGMT_CONFIG_HANDLER_PRIORITY_COUNT 3
+#endif
+
+// </e>
+
+// <q> NRF_SECTION_ITER_ENABLED  - nrf_section_iter - Section iterator
+ 
+
+#ifndef NRF_SECTION_ITER_ENABLED
+#define NRF_SECTION_ITER_ENABLED 1
+#endif
+
+// <q> NRF_SORTLIST_ENABLED  - nrf_sortlist - Sorted list
+ 
+
+#ifndef NRF_SORTLIST_ENABLED
+#define NRF_SORTLIST_ENABLED 1
+#endif
+
 // <q> NRF_STRERROR_ENABLED  - nrf_strerror - Library for converting error code to string.
  
 
 #ifndef NRF_STRERROR_ENABLED
 #define NRF_STRERROR_ENABLED 1
 #endif
+
+// <h> app_button - buttons handling module
+
+//==========================================================
+// <q> BUTTON_ENABLED  - Enables Button module
+ 
+
+#ifndef BUTTON_ENABLED
+#define BUTTON_ENABLED 1
+#endif
+
+// <q> BUTTON_HIGH_ACCURACY_ENABLED  - Enables GPIOTE high accuracy for buttons
+ 
+
+#ifndef BUTTON_HIGH_ACCURACY_ENABLED
+#define BUTTON_HIGH_ACCURACY_ENABLED 0
+#endif
+
+// </h> 
+//==========================================================
 
 // <h> nrf_fprintf - fprintf function.
 
@@ -152,10 +866,43 @@
 // <h> nRF_Log 
 
 //==========================================================
+// <e> NRF_LOG_BACKEND_RTT_ENABLED - nrf_log_backend_rtt - Log RTT backend
+//==========================================================
+#ifndef NRF_LOG_BACKEND_RTT_ENABLED
+#define NRF_LOG_BACKEND_RTT_ENABLED 1
+#endif
+// <o> NRF_LOG_BACKEND_RTT_TEMP_BUFFER_SIZE - Size of buffer for partially processed strings. 
+// <i> Size of the buffer is a trade-off between RAM usage and processing.
+// <i> if buffer is smaller then strings will often be fragmented.
+// <i> It is recommended to use size which will fit typical log and only the
+// <i> longer one will be fragmented.
+
+#ifndef NRF_LOG_BACKEND_RTT_TEMP_BUFFER_SIZE
+#define NRF_LOG_BACKEND_RTT_TEMP_BUFFER_SIZE 64
+#endif
+
+// <o> NRF_LOG_BACKEND_RTT_TX_RETRY_DELAY_MS - Period before retrying writing to RTT 
+#ifndef NRF_LOG_BACKEND_RTT_TX_RETRY_DELAY_MS
+#define NRF_LOG_BACKEND_RTT_TX_RETRY_DELAY_MS 1
+#endif
+
+// <o> NRF_LOG_BACKEND_RTT_TX_RETRY_CNT - Writing to RTT retries. 
+// <i> If RTT fails to accept any new data after retries
+// <i> module assumes that host is not active and on next
+// <i> request it will perform only one write attempt.
+// <i> On successful writing, module assumes that host is active
+// <i> and scheme with retry is applied again.
+
+#ifndef NRF_LOG_BACKEND_RTT_TX_RETRY_CNT
+#define NRF_LOG_BACKEND_RTT_TX_RETRY_CNT 3
+#endif
+
+// </e>
+
 // <e> NRF_LOG_ENABLED - nrf_log - Logger
 //==========================================================
 #ifndef NRF_LOG_ENABLED
-#define NRF_LOG_ENABLED 0
+#define NRF_LOG_ENABLED 1
 #endif
 // <h> Log message pool - Configuration of log message pool
 
@@ -3108,6 +3855,120 @@
 #ifndef NRF_LOG_STR_FORMATTER_TIMESTAMP_FORMAT_ENABLED
 #define NRF_LOG_STR_FORMATTER_TIMESTAMP_FORMAT_ENABLED 1
 #endif
+
+// </h> 
+//==========================================================
+
+// <h> nRF_Segger_RTT 
+
+//==========================================================
+// <h> segger_rtt - SEGGER RTT
+
+//==========================================================
+// <o> SEGGER_RTT_CONFIG_BUFFER_SIZE_UP - Size of upstream buffer. 
+// <i> Note that either @ref NRF_LOG_BACKEND_RTT_OUTPUT_BUFFER_SIZE
+// <i> or this value is actually used. It depends on which one is bigger.
+
+#ifndef SEGGER_RTT_CONFIG_BUFFER_SIZE_UP
+#define SEGGER_RTT_CONFIG_BUFFER_SIZE_UP 512
+#endif
+
+// <o> SEGGER_RTT_CONFIG_MAX_NUM_UP_BUFFERS - Maximum number of upstream buffers. 
+#ifndef SEGGER_RTT_CONFIG_MAX_NUM_UP_BUFFERS
+#define SEGGER_RTT_CONFIG_MAX_NUM_UP_BUFFERS 2
+#endif
+
+// <o> SEGGER_RTT_CONFIG_BUFFER_SIZE_DOWN - Size of downstream buffer. 
+#ifndef SEGGER_RTT_CONFIG_BUFFER_SIZE_DOWN
+#define SEGGER_RTT_CONFIG_BUFFER_SIZE_DOWN 16
+#endif
+
+// <o> SEGGER_RTT_CONFIG_MAX_NUM_DOWN_BUFFERS - Maximum number of downstream buffers. 
+#ifndef SEGGER_RTT_CONFIG_MAX_NUM_DOWN_BUFFERS
+#define SEGGER_RTT_CONFIG_MAX_NUM_DOWN_BUFFERS 2
+#endif
+
+// <o> SEGGER_RTT_CONFIG_DEFAULT_MODE  - RTT behavior if the buffer is full.
+ 
+
+// <i> The following modes are supported:
+// <i> - SKIP  - Do not block, output nothing.
+// <i> - TRIM  - Do not block, output as much as fits.
+// <i> - BLOCK - Wait until there is space in the buffer.
+// <0=> SKIP 
+// <1=> TRIM 
+// <2=> BLOCK_IF_FIFO_FULL 
+
+#ifndef SEGGER_RTT_CONFIG_DEFAULT_MODE
+#define SEGGER_RTT_CONFIG_DEFAULT_MODE 0
+#endif
+
+// </h> 
+//==========================================================
+
+// </h> 
+//==========================================================
+
+// <h> nRF_drv_radio_802_15_4 
+
+//==========================================================
+// <h> nrf_fem_config - nRF 21540 FEM configuration options
+
+//==========================================================
+// <o> FEM_CONTROL_DEFAULT_PA_PIN - Pin number, controlling Power Amplifier of the FEM module 
+#ifndef FEM_CONTROL_DEFAULT_PA_PIN
+#define FEM_CONTROL_DEFAULT_PA_PIN 22
+#endif
+
+// <o> FEM_CONTROL_DEFAULT_LNA_PIN - Pin number, controlling Low Noise Amplifier of the FEM module 
+#ifndef FEM_CONTROL_DEFAULT_LNA_PIN
+#define FEM_CONTROL_DEFAULT_LNA_PIN 19
+#endif
+
+// <o> FEM_CONTROL_DEFAULT_PDN_PIN - Pin number, controlling Power Down pin of the FEM module 
+#ifndef FEM_CONTROL_DEFAULT_PDN_PIN
+#define FEM_CONTROL_DEFAULT_PDN_PIN 23
+#endif
+
+// <o> FEM_CONTROL_DEFAULT_MODE_PIN - Pin number, selecting Mode of the FEM module 
+#ifndef FEM_CONTROL_DEFAULT_MODE_PIN
+#define FEM_CONTROL_DEFAULT_MODE_PIN 17
+#endif
+
+// <o> FEM_CONTROL_DEFAULT_ANTSEL_PIN - Pin number, selecting Antenna output of the FEM module 
+#ifndef FEM_CONTROL_DEFAULT_ANTSEL_PIN
+#define FEM_CONTROL_DEFAULT_ANTSEL_PIN 20
+#endif
+
+// <o> FEM_CONTROL_DEFAULT_MOSI_PIN - Pin number, attached to MOSI pin of the FEM module 
+#ifndef FEM_CONTROL_DEFAULT_MOSI_PIN
+#define FEM_CONTROL_DEFAULT_MOSI_PIN 45
+#endif
+
+// <o> FEM_CONTROL_DEFAULT_MISO_PIN - Pin number, attached to MISO pin of the FEM module 
+#ifndef FEM_CONTROL_DEFAULT_MISO_PIN
+#define FEM_CONTROL_DEFAULT_MISO_PIN 46
+#endif
+
+// <o> FEM_CONTROL_DEFAULT_CLK_PIN - Pin number, attached to CLK pin of the FEM module 
+#ifndef FEM_CONTROL_DEFAULT_CLK_PIN
+#define FEM_CONTROL_DEFAULT_CLK_PIN 47
+#endif
+
+// <o> FEM_CONTROL_DEFAULT_CSN_PIN - Pin number, attached to CS pin of the FEM module 
+#ifndef FEM_CONTROL_DEFAULT_CSN_PIN
+#define FEM_CONTROL_DEFAULT_CSN_PIN 21
+#endif
+
+// <q> FEM_CONTROL_DEFAULT_ENABLE  - Enables FEM control on GPIO pins by default
+ 
+
+#ifndef FEM_CONTROL_DEFAULT_ENABLE
+#define FEM_CONTROL_DEFAULT_ENABLE 0
+#endif
+
+// </h> 
+//==========================================================
 
 // </h> 
 //==========================================================

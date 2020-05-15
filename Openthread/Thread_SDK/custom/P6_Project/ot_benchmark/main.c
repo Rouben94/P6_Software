@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014 - 2020, Nordic Semiconductor ASA
+ * Copyright (c) 2017 - 2020, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -39,37 +39,157 @@
  */
 /** @file
  *
- * @defgroup blinky_example_main main.c
+ * @defgroup simple_coap_client_example_main main.c
  * @{
- * @ingroup blinky_example
- * @brief Blinky Example Application main file.
+ * @ingroup simple_coap_client_example_example
+ * @brief Simple CoAP Client Example Application main file.
  *
- * This file contains the source code for a sample application to blink LEDs.
+ * @details This example demonstrates a CoAP client application that enables to control BSP_LED_0
+ *          on a board with related Simple CoAP Server application via CoAP messages.
  *
  */
 
-#include <stdbool.h>
-#include <stdint.h>
-#include "nrf_delay.h"
-#include "boards.h"
+#include "app_scheduler.h"
+#include "app_timer.h"
+#include "bsp_thread.h"
+#include "nrf_log.h"
+#include "nrf_log_ctrl.h"
+#include "nrf_log_default_backends.h"
 
-/**
- * @brief Function for application main entry.
- */
-int main(void)
-{
-    /* Configure board. */
-    bsp_board_init(BSP_INIT_LEDS);
+#include "thread_coap_utils.h"
+#include "thread_utils.h"
 
-    /* Toggle LEDs. */
-    while (true)
-    {
-        for (int i = 0; i < LEDS_NUMBER; i++)
-        {
-            bsp_board_led_invert(i);
-            nrf_delay_ms(500);
-        }
+#include "board_support_config.h"
+
+
+#include <openthread/instance.h>
+#include <openthread/network_time.h>
+#include <openthread/platform/time.h>
+#include <openthread/thread.h>
+
+#define SCHED_QUEUE_SIZE 32                                   /**< Maximum number of events in the scheduler queue. */
+#define SCHED_EVENT_DATA_SIZE APP_TIMER_SCHED_EVENT_DATA_SIZE /**< Maximum app_scheduler event size. */
+
+
+static thread_coap_utils_light_command_t m_command = THREAD_COAP_UTILS_LIGHT_CMD_OFF; /**< This variable stores command that has been most recently used. */
+
+/***************************************************************************************************
+ * @section Buttons
+ **************************************************************************************************/
+
+static void bsp_event_handler(bsp_event_t event) {
+  switch (event) {
+  case BSP_EVENT_KEY_0:
+    NRF_LOG_INFO("Button short");
+    break;
+
+  case BSP_EVENT_KEY_0_LONG:
+    NRF_LOG_INFO("Button long");
+    break;
+
+  default:
+    return; // no implementation needed
+  }
+}
+
+/***************************************************************************************************
+ * @section Callbacks
+ **************************************************************************************************/
+
+static void thread_state_changed_callback(uint32_t flags, void *p_context) {
+  if (flags & OT_CHANGED_THREAD_ROLE) {
+    switch (otThreadGetDeviceRole(p_context)) {
+    case OT_DEVICE_ROLE_CHILD:
+    case OT_DEVICE_ROLE_ROUTER:
+    case OT_DEVICE_ROLE_LEADER:
+      break;
+
+    case OT_DEVICE_ROLE_DISABLED:
+    case OT_DEVICE_ROLE_DETACHED:
+    default:
+      thread_coap_utils_peer_addr_clear();
+      break;
     }
+  }
+
+  NRF_LOG_INFO("State changed! Flags: 0x%08x Current role: %d\r\n",
+      flags,
+      otThreadGetDeviceRole(p_context));
+}
+
+/***************************************************************************************************
+ * @section Initialization
+ **************************************************************************************************/
+
+/**@brief Function for initializing the Thread Board Support Package
+ */
+static void thread_bsp_init(void) {
+  uint32_t error_code = bsp_init(BSP_INIT_LEDS | BSP_INIT_BUTTONS, bsp_event_handler);
+  APP_ERROR_CHECK(error_code);
+
+  error_code = bsp_thread_init(thread_ot_instance_get());
+  APP_ERROR_CHECK(error_code);
+}
+
+/**@brief Function for initializing the Application Timer Module
+ */
+static void timer_init(void) {
+  uint32_t error_code = app_timer_init();
+  APP_ERROR_CHECK(error_code);
+}
+
+/**@brief Function for initializing the nrf log module.
+ */
+static void log_init(void) {
+  ret_code_t err_code = NRF_LOG_INIT(NULL);
+  APP_ERROR_CHECK(err_code);
+
+  NRF_LOG_DEFAULT_BACKENDS_INIT();
+}
+
+/**@brief Function for initializing the Thread Stack
+ */
+static void thread_instance_init(void) {
+  thread_configuration_t thread_configuration =
+      {
+          .radio_mode = THREAD_RADIO_MODE_RX_ON_WHEN_IDLE,
+          .autocommissioning = true,
+      };
+
+  thread_init(&thread_configuration);
+//  thread_cli_init();
+  thread_state_changed_callback_set(thread_state_changed_callback);
+}
+
+
+/**@brief Function for initializing scheduler module.
+ */
+static void scheduler_init(void) {
+  APP_SCHED_INIT(SCHED_EVENT_DATA_SIZE, SCHED_QUEUE_SIZE);
+}
+
+/***************************************************************************************************
+ * @section Main
+ **************************************************************************************************/
+
+int main(int argc, char *argv[]) {
+  log_init();
+  scheduler_init();
+  timer_init();
+
+  NRF_LOG_INFO("Start APP");
+
+  thread_instance_init();
+  thread_bsp_init();
+
+  while (true) {
+    thread_process();
+    app_sched_execute();
+
+    if (NRF_LOG_PROCESS() == false) {
+      thread_sleep();
+    }
+  }
 }
 
 /**

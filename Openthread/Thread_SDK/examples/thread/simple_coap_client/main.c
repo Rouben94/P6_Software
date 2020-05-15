@@ -59,6 +59,8 @@
 #include "thread_coap_utils.h"
 #include "thread_utils.h"
 
+#include "bsp_config.h"
+
 
 
 #include <openthread/instance.h>

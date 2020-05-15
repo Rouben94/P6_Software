@@ -44,8 +44,8 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "board_support.h"
-#include "board_support_config.h"
+#include "bsp.h"
+#include "bsp_config.h"
 #include "nrf_assert.h"
 
 #include <openthread/instance.h>
