@@ -56,65 +56,160 @@
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
 
+#include "fds.h"
+
 #include "thread_coap_utils.h"
 #include "thread_utils.h"
 
 #include "board_support_config.h"
-
 
 #include <openthread/instance.h>
 #include <openthread/network_time.h>
 #include <openthread/platform/time.h>
 #include <openthread/thread.h>
 
-#define SCHED_QUEUE_SIZE 32                                   /**< Maximum number of events in the scheduler queue. */
-#define SCHED_EVENT_DATA_SIZE APP_TIMER_SCHED_EVENT_DATA_SIZE /**< Maximum app_scheduler event size. */
+#define SCHED_QUEUE_SIZE 32 /**< Maximum number of events in the scheduler queue. */
+#define SCHED_EVENT_DATA_SIZE                                                                      \
+    APP_TIMER_SCHED_EVENT_DATA_SIZE /**< Maximum app_scheduler event size. */
 
 
-static thread_coap_utils_light_command_t m_command = THREAD_COAP_UTILS_LIGHT_CMD_OFF; /**< This variable stores command that has been most recently used. */
+/* Flag to check fds initialization. */
+static bool volatile m_fds_initialized;
+
+#define FILE_ID 0x0001      /* The ID of the file to write the records into. */
+#define RECORD_KEY_1 0x1111 /* A key for the first record. */
+#define RECORD_KEY_2 0x2222 /* A key for the second record. */
+#define RECORD_KEY  0x2222
+
+static uint32_t const m_deadbeef = 0xDEADBEEF;
+static char const m_hello[] = "Hello, world!";
+
+fds_record_t record;
+fds_flash_record_t flash_record;
+fds_record_desc_t record_desc;
+fds_find_token_t ftok;
+
+
+static thread_coap_utils_light_command_t m_command =
+    THREAD_COAP_UTILS_LIGHT_CMD_OFF; /**< This variable stores command that has been most recently
+                                        used. */
+void test2(void)
+{
+    /* It is required to zero the token before first use. */
+    memset(&ftok, 0x00, sizeof(fds_find_token_t));
+
+    /* Loop until all records with the given key and file ID have been found. */
+    while (fds_record_find(FILE_ID, RECORD_KEY, &record_desc, &ftok) == NRF_SUCCESS)
+    {
+        if (fds_record_open(&record_desc, &flash_record) != NRF_SUCCESS)
+        {
+            /* Handle error. */
+        }
+        /* Access the record through the flash_record structure. */
+        NRF_LOG_INFO("Item: %s", flash_record.p_data);
+        /* Close the record when done. */
+        if (fds_record_close(&record_desc) != NRF_SUCCESS)
+        {
+            /* Handle error. */
+        }
+        
+    }
+}
+
+void test(void)
+{
+    // Set up record.
+    record.file_id = FILE_ID;
+    record.key = RECORD_KEY_1;
+    record.data.p_data = &m_deadbeef;
+    record.data.length_words = 1; /* one word is four bytes. */
+    ret_code_t rc;
+    rc = fds_record_write(&record_desc, &record);
+    if (rc != NRF_SUCCESS)
+    {
+        NRF_LOG_INFO("Error: 0x%x", rc);
+        NRF_LOG_INFO("write fail");
+    }
+    // Set up record.
+    record.file_id = FILE_ID;
+    record.key = RECORD_KEY_2;
+    record.data.p_data = &m_hello;
+    /* The following calculation takes into account any eventual remainder of the division. */
+    record.data.length_words = (sizeof(m_hello) + 3) / 4;
+    rc = fds_record_write(&record_desc, &record);
+    if (rc != NRF_SUCCESS)
+    {
+        NRF_LOG_INFO("Error: 0x%x", rc);
+        NRF_LOG_INFO("write fail");
+    }
+    NRF_LOG_INFO("write success");
+}
+
 
 /***************************************************************************************************
  * @section Buttons
  **************************************************************************************************/
 
-static void bsp_event_handler(bsp_event_t event) {
-  switch (event) {
-  case BSP_EVENT_KEY_0:
-    NRF_LOG_INFO("Button short");
-    break;
+static void bsp_event_handler(bsp_event_t event)
+{
+    switch (event)
+    {
+        case BSP_EVENT_KEY_0:
+            NRF_LOG_INFO("Button short");
+            test();
+            break;
 
-  case BSP_EVENT_KEY_0_LONG:
-    NRF_LOG_INFO("Button long");
-    break;
+        case BSP_EVENT_KEY_0_LONG:
+            NRF_LOG_INFO("Button long");
+            test2();
+            break;
 
-  default:
-    return; // no implementation needed
-  }
+        default:
+            return; // no implementation needed
+    }
 }
 
 /***************************************************************************************************
  * @section Callbacks
  **************************************************************************************************/
 
-static void thread_state_changed_callback(uint32_t flags, void *p_context) {
-  if (flags & OT_CHANGED_THREAD_ROLE) {
-    switch (otThreadGetDeviceRole(p_context)) {
-    case OT_DEVICE_ROLE_CHILD:
-    case OT_DEVICE_ROLE_ROUTER:
-    case OT_DEVICE_ROLE_LEADER:
-      break;
+static void thread_state_changed_callback(uint32_t flags, void * p_context)
+{
+    if (flags & OT_CHANGED_THREAD_ROLE)
+    {
+        switch (otThreadGetDeviceRole(p_context))
+        {
+            case OT_DEVICE_ROLE_CHILD:
+            case OT_DEVICE_ROLE_ROUTER:
+            case OT_DEVICE_ROLE_LEADER:
+                break;
 
-    case OT_DEVICE_ROLE_DISABLED:
-    case OT_DEVICE_ROLE_DETACHED:
-    default:
-      thread_coap_utils_peer_addr_clear();
-      break;
+            case OT_DEVICE_ROLE_DISABLED:
+            case OT_DEVICE_ROLE_DETACHED:
+            default:
+                thread_coap_utils_peer_addr_clear();
+                break;
+        }
     }
-  }
 
-  NRF_LOG_INFO("State changed! Flags: 0x%08x Current role: %d\r\n",
-      flags,
-      otThreadGetDeviceRole(p_context));
+    NRF_LOG_INFO("State changed! Flags: 0x%08x Current role: %d\r\n", flags,
+        otThreadGetDeviceRole(p_context));
+}
+
+// Simple event handler to handle errors during initialization.
+static void fds_evt_handler(fds_evt_t const * p_fds_evt)
+{
+    switch (p_fds_evt->id)
+    {
+        case FDS_EVT_INIT:
+            if (p_fds_evt->result == NRF_SUCCESS)
+            {
+                m_fds_initialized = true;
+            }
+            break;
+        default:
+            break;
+    }
 }
 
 /***************************************************************************************************
@@ -123,73 +218,105 @@ static void thread_state_changed_callback(uint32_t flags, void *p_context) {
 
 /**@brief Function for initializing the Thread Board Support Package
  */
-static void thread_bsp_init(void) {
-  uint32_t error_code = bsp_init(BSP_INIT_LEDS | BSP_INIT_BUTTONS, bsp_event_handler);
-  APP_ERROR_CHECK(error_code);
+static void thread_bsp_init(void)
+{
+    uint32_t error_code = bsp_init(BSP_INIT_LEDS | BSP_INIT_BUTTONS, bsp_event_handler);
+    APP_ERROR_CHECK(error_code);
 
-  error_code = bsp_thread_init(thread_ot_instance_get());
-  APP_ERROR_CHECK(error_code);
+    error_code = bsp_thread_init(thread_ot_instance_get());
+    APP_ERROR_CHECK(error_code);
 }
 
 /**@brief Function for initializing the Application Timer Module
  */
-static void timer_init(void) {
-  uint32_t error_code = app_timer_init();
-  APP_ERROR_CHECK(error_code);
+static void timer_init(void)
+{
+    uint32_t error_code = app_timer_init();
+    APP_ERROR_CHECK(error_code);
 }
 
 /**@brief Function for initializing the nrf log module.
  */
-static void log_init(void) {
-  ret_code_t err_code = NRF_LOG_INIT(NULL);
-  APP_ERROR_CHECK(err_code);
+static void log_init(void)
+{
+    ret_code_t err_code = NRF_LOG_INIT(NULL);
+    APP_ERROR_CHECK(err_code);
 
-  NRF_LOG_DEFAULT_BACKENDS_INIT();
+    NRF_LOG_DEFAULT_BACKENDS_INIT();
 }
 
 /**@brief Function for initializing the Thread Stack
  */
-static void thread_instance_init(void) {
-  thread_configuration_t thread_configuration =
-      {
-          .radio_mode = THREAD_RADIO_MODE_RX_ON_WHEN_IDLE,
-          .autocommissioning = true,
-      };
+static void thread_instance_init(void)
+{
+    thread_configuration_t thread_configuration = {
+        .radio_mode = THREAD_RADIO_MODE_RX_ON_WHEN_IDLE,
+        .autocommissioning = true,
+    };
 
-  thread_init(&thread_configuration);
-//  thread_cli_init();
-  thread_state_changed_callback_set(thread_state_changed_callback);
+    thread_init(&thread_configuration);
+    thread_state_changed_callback_set(thread_state_changed_callback);
 }
-
 
 /**@brief Function for initializing scheduler module.
  */
-static void scheduler_init(void) {
-  APP_SCHED_INIT(SCHED_EVENT_DATA_SIZE, SCHED_QUEUE_SIZE);
+static void scheduler_init(void) { APP_SCHED_INIT(SCHED_EVENT_DATA_SIZE, SCHED_QUEUE_SIZE); }
+
+
+/**@brief   Wait for fds to initialize. */
+static void wait_for_fds_ready(void)
+{
+    while (!m_fds_initialized)
+    {
+        __WFE();
+    }
 }
 
 /***************************************************************************************************
  * @section Main
  **************************************************************************************************/
 
-int main(int argc, char *argv[]) {
-  log_init();
-  scheduler_init();
-  timer_init();
+int main(int argc, char * argv[])
+{
+    log_init();
+    scheduler_init();
+    timer_init();
 
-  NRF_LOG_INFO("Start APP");
+    NRF_LOG_INFO("Start APP");
 
-  thread_instance_init();
-  thread_bsp_init();
-
-  while (true) {
-    thread_process();
-    app_sched_execute();
-
-    if (NRF_LOG_PROCESS() == false) {
-      thread_sleep();
+    ret_code_t ret = fds_register(fds_evt_handler);
+    if (ret != NRF_SUCCESS)
+    {
+        NRF_LOG_INFO("FDS Callback register failed");
     }
-  }
+    ret = fds_init();
+    if (ret != NRF_SUCCESS)
+    {
+        NRF_LOG_INFO("Error: 0x%x", ret);
+        NRF_LOG_INFO("FDS Init failed");
+        APP_ERROR_CHECK(ret);
+    }
+
+    thread_instance_init();
+    thread_bsp_init();
+
+        
+
+
+    /* Wait for fds to initialize. */
+    //wait_for_fds_ready();
+
+
+    while (true)
+    {
+        thread_process();
+        app_sched_execute();
+
+        if (NRF_LOG_PROCESS() == false)
+        {
+            thread_sleep();
+        }
+    }
 }
 
 /**
