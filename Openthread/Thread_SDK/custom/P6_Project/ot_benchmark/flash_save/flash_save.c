@@ -73,6 +73,10 @@ void flash_read(void)
         if (rc != NRF_SUCCESS)
         {
             NRF_LOG_INFO("FDS open record error: 0x%x", rc);
+            if (rc != FDS_ERR_NO_SPACE_IN_FLASH)
+            {
+                fds_gc();
+            }
         }
 
         measure = (Measurement *)flash_record.p_data;
@@ -82,6 +86,10 @@ void flash_read(void)
         if (rc != NRF_SUCCESS)
         {
             NRF_LOG_INFO("FDS close record error: 0x%x", rc);
+            if (rc != FDS_ERR_NO_SPACE_IN_FLASH)
+            {
+                fds_gc();
+            }
         }
     }
 }
@@ -101,6 +109,10 @@ void flash_write(Measurement measure)
     if (rc != NRF_SUCCESS)
     {
         NRF_LOG_INFO("FDS write error: 0x%x", rc);
+        if (rc != FDS_ERR_NO_SPACE_IN_FLASH)
+        {
+            fds_gc();
+        }
     }
 }
 
@@ -119,6 +131,10 @@ void flash_delete(void)
         if (rc != NRF_SUCCESS)
         {
             NRF_LOG_INFO("FDS delete error: 0x%x", rc);
+            if (rc != FDS_ERR_NO_SPACE_IN_FLASH)
+            {
+                fds_gc();
+            }
         }
     }
 }

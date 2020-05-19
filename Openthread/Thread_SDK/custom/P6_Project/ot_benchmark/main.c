@@ -91,10 +91,7 @@ static void thread_state_changed_callback(uint32_t flags, void * p_context)
         otThreadGetDeviceRole(p_context));
 }
 
-static void my_event_cb(Measurement *data)
-{
-    NRF_LOG_INFO("Item: %d", data->MAC);
-}
+static void my_event_cb(Measurement * data) { NRF_LOG_INFO("Item: %d", data->MAC); }
 
 /***************************************************************************************************
  * @section Initialization
