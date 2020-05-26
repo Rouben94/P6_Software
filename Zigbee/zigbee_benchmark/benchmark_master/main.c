@@ -77,6 +77,7 @@
 
 #define IEEE_CHANNEL_MASK                   (1l << ZIGBEE_CHANNEL)              /**< Scan only one, predefined channel to find the coordinator. */
 #define ERASE_PERSISTENT_CONFIG             ZB_TRUE                             /**< Do not erase NVRAM to save the network parameters after device reboot or power-off. NOTE: If this option is set to ZB_TRUE then do full device erase for all network devices before running other samples. */
+#define MAX_CHILDREN                        10                                    /**< The maximum amount of connected devices. Setting this value to 0 disables association to this device.  */
 #define ZIGBEE_NETWORK_STATE_LED            BSP_BOARD_LED_2                     /**< LED indicating that light switch successfully joind Zigbee network. */
 
 #if !defined ZB_ROUTER_ROLE
@@ -195,6 +196,10 @@ int main(void)
     /* Set device address to the value read from FICR registers. */
     zb_osif_get_ieee_eui64(ieee_addr);
     zb_set_long_address(ieee_addr);
+
+    /* Set channels on which the coordinator will try to create a new network. */
+    zb_set_network_coordinator_role(IEEE_CHANNEL_MASK);
+    zb_set_max_children(MAX_CHILDREN);
 
     zb_set_bdb_primary_channel_set(IEEE_CHANNEL_MASK);
     zigbee_erase_persistent_storage(ERASE_PERSISTENT_CONFIG);
