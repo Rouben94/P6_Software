@@ -152,10 +152,9 @@ dmypy.json
 *.smod
 
 # Compiled Static libraries
-#*.lai
-#*.la
-#*.a
-#*.lib
+*.lai
+*.la
+*.lib
 
 # Executables
 *.exe
@@ -303,7 +302,6 @@ db.sqlite3
 
 # ------------------------------ Zephyr --------------------------------------
 *.o
-*.a
 *.d
 *.cmd
 *.log
