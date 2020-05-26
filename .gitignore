@@ -14,7 +14,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -151,12 +150,6 @@ dmypy.json
 *.mod
 *.smod
 
-# Compiled Static libraries
-#*.lai
-#*.la
-#*.a
-#*.lib
-
 # Executables
 *.exe
 *.out
@@ -180,12 +173,6 @@ dmypy.json
 # Precompiled Headers
 *.gch
 *.pch
-
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
 
 # Shared objects (inc. Windows DLLs)
 *.dll
@@ -259,7 +246,6 @@ develop-eggs/
 dist/
 downloads/
 eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -309,7 +295,6 @@ db.sqlite3
 
 # ------------------------------ Zephyr --------------------------------------
 *.o
-*.a
 *.d
 *.cmd
 *.log
