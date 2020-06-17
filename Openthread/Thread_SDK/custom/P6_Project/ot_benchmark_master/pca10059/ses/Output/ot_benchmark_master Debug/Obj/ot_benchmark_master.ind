@@ -5,6 +5,7 @@
 "Output/ot_benchmark_master Debug/Obj/nrf_log_frontend.o"
 "Output/ot_benchmark_master Debug/Obj/nrf_log_str_formatter.o"
 "Output/ot_benchmark_master Debug/Obj/boards.o"
+"Output/ot_benchmark_master Debug/Obj/coap.o"
 "Output/ot_benchmark_master Debug/Obj/ses_startup_nrf52840.o"
 "Output/ot_benchmark_master Debug/Obj/ses_startup_nrf_common.o"
 "Output/ot_benchmark_master Debug/Obj/system_nrf52840.o"
