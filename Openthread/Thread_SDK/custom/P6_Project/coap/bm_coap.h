@@ -151,20 +151,11 @@ void thread_coap_utils_unicast_light_request_send(uint8_t command);
 
 /**@brief Function for sending the light request comamnd to the multicast IPv6 address.
  *
- * @param[in] command  Light command.
+ * @param[in] message  message struct with benchmark start / Ip6 address from master node / benchmark time.
  * @param[in] scope    IPv6 multicast address scope.
  *
  */
 void bm_coap_multicast_start_request_send(bm_master_message message, thread_coap_utils_multicast_scope_t scope);
 
-
-/**@brief Function for sending the light request comamnd to the multicast IPv6 address.
- *
- * @param[in] command  Light command.
- * @param[in] scope    IPv6 multicast address scope.
- *
- */
-void thread_coap_utils_multicast_light_request_send(uint8_t                             command,
-                                                    thread_coap_utils_multicast_scope_t scope);
 
 #endif /* THREAD_COAP_UTILS_H__ */

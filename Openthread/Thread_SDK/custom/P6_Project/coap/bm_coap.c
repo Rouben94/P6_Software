@@ -584,68 +584,6 @@ void bm_coap_multicast_start_request_send(bm_master_message message, thread_coap
     }
 }
 
-void thread_coap_utils_multicast_light_request_send(uint8_t                             command,
-                                                    thread_coap_utils_multicast_scope_t scope)
-{
-    otError       error = OT_ERROR_NONE;
-    otMessage   * p_request;
-    otMessageInfo message_info;
-    const char  * p_scope = NULL;
-    otInstance  * p_instance = thread_ot_instance_get();
-
-    do
-    {
-        p_request = otCoapNewMessage(p_instance, NULL);
-        if (p_request == NULL)
-        {
-            NRF_LOG_INFO("Failed to allocate message for CoAP Request\r\n");
-            break;
-        }
-
-        otCoapMessageInit(p_request, OT_COAP_TYPE_NON_CONFIRMABLE, OT_COAP_CODE_PUT);
-
-        error = otCoapMessageAppendUriPathOptions(p_request, "light");
-        ASSERT(error == OT_ERROR_NONE);
-
-        error = otCoapMessageSetPayloadMarker(p_request);
-        ASSERT(error == OT_ERROR_NONE);
-
-        error = otMessageAppend(p_request, &command, sizeof(command));
-        if (error != OT_ERROR_NONE)
-        {
-            break;
-        }
-
-        switch (scope)
-        {
-        case THREAD_COAP_UTILS_MULTICAST_LINK_LOCAL:
-            p_scope = "ff02::1";
-            break;
-
-        case THREAD_COAP_UTILS_MULTICAST_REALM_LOCAL:
-            p_scope = "ff03::1";
-            break;
-
-        default:
-            ASSERT(false);
-        }
-
-        memset(&message_info, 0, sizeof(message_info));
-        message_info.mPeerPort = OT_DEFAULT_COAP_PORT;
-
-        error = otIp6AddressFromString(p_scope, &message_info.mPeerAddr);
-        ASSERT(error == OT_ERROR_NONE);
-
-        error = otCoapSendRequest(p_instance, p_request, &message_info, NULL, NULL);
-    } while (false);
-
-    if (error != OT_ERROR_NONE && p_request != NULL)
-    {
-        NRF_LOG_INFO("Failed to send CoAP Request: %d\r\n", error);
-        otMessageFree(p_request);
-    }
-}
-
 static void provisioning_response_handler(void                * p_context,
                                           otMessage           * p_message,
                                           const otMessageInfo * p_message_info,

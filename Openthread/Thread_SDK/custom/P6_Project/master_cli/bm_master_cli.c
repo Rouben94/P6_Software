@@ -24,11 +24,11 @@ static thread_coap_utils_light_command_t m_command = THREAD_COAP_UTILS_LIGHT_CMD
 
 void bm_cli_benchmark_start(uint8_t aArgsLength, char *aArgs[]) {
     NRF_LOG_INFO("Benchmark start");
-    NRF_LOG_INFO("Argument: %s", aArgs);
+    NRF_LOG_INFO("Argument: %s", aArgs[0]);
 
     master_message.bm_status = true;
     master_message.bm_master_ip6_address = otThreadGetMeshLocalEid(thread_ot_instance_get());
-    master_message.bm_time = 10;
+    master_message.bm_time = (uint32_t)atoi(aArgs[0]);
 
     bm_coap_multicast_start_request_send(master_message, THREAD_COAP_UTILS_MULTICAST_REALM_LOCAL);
 
@@ -37,10 +37,9 @@ void bm_cli_benchmark_start(uint8_t aArgsLength, char *aArgs[]) {
 
 void bm_cli_benchmark_stop(uint8_t aArgsLength, char *aArgs[]) {
     NRF_LOG_INFO("Benchmark stop");
-
-    m_command = ((m_command == THREAD_COAP_UTILS_LIGHT_CMD_OFF) ? THREAD_COAP_UTILS_LIGHT_CMD_ON : THREAD_COAP_UTILS_LIGHT_CMD_OFF);
-    thread_coap_utils_multicast_light_request_send(m_command,
-        THREAD_COAP_UTILS_MULTICAST_REALM_LOCAL);
+    
+    master_message.bm_status = false;
+    bm_coap_multicast_start_request_send(master_message, THREAD_COAP_UTILS_MULTICAST_REALM_LOCAL);
 
     otCliOutput("done \r\n", sizeof("done \r\n"));
 }
