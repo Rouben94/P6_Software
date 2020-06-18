@@ -172,7 +172,7 @@ static void thread_coap_init(void)
     {
         .coap_server_enabled               = true,
         .coap_client_enabled               = false,
-        .configurable_led_blinking_enabled = false,
+        .configurable_led_blinking_enabled  = false,
     };
 
     thread_coap_utils_init(&thread_coap_configuration);

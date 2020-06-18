@@ -53,35 +53,20 @@
 #include "nrf_log.h"
 #include "nrf_log_default_backends.h"
 
-#include "coap.h"
+#include "bm_coap.h"
+#include "bm_master_cli.h"
 #include "thread_utils.h"
 #include "board_support_config.h"
 
 #include <openthread/instance.h>
 #include <openthread/thread.h>
-#include <openthread/cli.h>
+
 
 #define SCHED_QUEUE_SIZE      32                              /**< Maximum number of events in the scheduler queue. */
 #define SCHED_EVENT_DATA_SIZE APP_TIMER_SCHED_EVENT_DATA_SIZE /**< Maximum app_scheduler event size. */
 
 //otThreadGetMeshLocalEid(p_instance) %Get local Ip6 address
-static thread_coap_utils_light_command_t m_command = THREAD_COAP_UTILS_LIGHT_CMD_OFF; /**< This variable stores command that has been most recently used. */
 
-const char *cli_name = "test";
-const char *done = "done'\n'";
-void cli_test(uint8_t aArgsLength, char *aArgs[]);
-
-otCliCommand Test[1];
-
-void cli_test(uint8_t aArgsLength, char *aArgs[]) {
-    NRF_LOG_INFO("CLI Test");
-
-    m_command = ((m_command == THREAD_COAP_UTILS_LIGHT_CMD_OFF) ? THREAD_COAP_UTILS_LIGHT_CMD_ON : THREAD_COAP_UTILS_LIGHT_CMD_OFF);
-    thread_coap_utils_multicast_light_request_send(m_command,
-        THREAD_COAP_UTILS_MULTICAST_REALM_LOCAL);
-
-    otCliOutput("done \r\n", sizeof("done \r\n"));
-}
 
 /***************************************************************************************************
  * @section Buttons
@@ -219,11 +204,7 @@ int main(int argc, char *argv[])
     thread_instance_init();
     thread_coap_init();
     thread_bsp_init();
-
-    Test[0].mName = cli_name;
-    Test[0].mCommand = cli_test;
-
-    otCliSetUserCommands(Test, sizeof(Test));
+    bm_custom_cli_init();
 
     while (true)
     {
