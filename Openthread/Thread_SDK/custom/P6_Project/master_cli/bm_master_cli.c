@@ -6,6 +6,8 @@
 #include "nrf_log_default_backends.h"
 
 #include <openthread/cli.h>
+#include <openthread/ip6.h>
+#include <openthread/thread.h>
 
 
 void bm_cli_benchmark_start(uint8_t aArgsLength, char *aArgs[]);
@@ -22,16 +24,13 @@ static thread_coap_utils_light_command_t m_command = THREAD_COAP_UTILS_LIGHT_CMD
 
 void bm_cli_benchmark_start(uint8_t aArgsLength, char *aArgs[]) {
     NRF_LOG_INFO("Benchmark start");
+    NRF_LOG_INFO("Argument: %s", aArgs);
 
     master_message.bm_status = true;
-//    master_message.bm_master_ip6_address = NULL;
+    master_message.bm_master_ip6_address = otThreadGetMeshLocalEid(thread_ot_instance_get());
     master_message.bm_time = 10;
 
-    //m_command = ((m_command == THREAD_COAP_UTILS_LIGHT_CMD_OFF) ? THREAD_COAP_UTILS_LIGHT_CMD_ON : THREAD_COAP_UTILS_LIGHT_CMD_OFF);
-
     bm_coap_multicast_start_request_send(master_message, THREAD_COAP_UTILS_MULTICAST_REALM_LOCAL);
-//    thread_coap_utils_multicast_light_request_send(m_command,
-//        THREAD_COAP_UTILS_MULTICAST_REALM_LOCAL);
 
     otCliOutput("done \r\n", sizeof("done \r\n"));
 }

@@ -49,9 +49,9 @@
 /**@brief Benchmark configuration structure. */
 typedef struct
 {
-  bool bm_status;                       /**<  Indicates if the benchmark should start or stop*/
-  otIp6Address bm_master_ip6_address;   /**<  Tells the slave node which Ip6 address the master node has*/
-  uint32_t bm_time;                     /**<  Tells the slave node how long the benchmark does take*/
+  bool bm_status;                               /**<  Indicates if the benchmark should start or stop*/
+  const otIp6Address * bm_master_ip6_address;   /**<  Tells the slave node which Ip6 address the master node has*/
+  uint32_t bm_time;                             /**<  Tells the slave node how long the benchmark does take*/
 } bm_master_message;
 
 /**@brief Thread CoAP utils configuration structure. */

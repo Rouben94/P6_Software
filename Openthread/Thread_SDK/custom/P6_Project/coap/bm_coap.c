@@ -572,7 +572,7 @@ void bm_coap_multicast_start_request_send(bm_master_message message, thread_coap
         message_info.mPeerPort = OT_DEFAULT_COAP_PORT;
 
         error = otIp6AddressFromString(p_scope, &message_info.mPeerAddr);
-        ASSERT(error = OT_ERROR_NONE);
+        ASSERT(error == OT_ERROR_NONE);
 
         error = otCoapSendRequest(p_instance, p_request, &message_info, NULL, NULL);
     } while (false);
