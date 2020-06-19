@@ -105,7 +105,7 @@ static void thread_state_changed_callback(uint32_t flags, void * p_context)
             case OT_DEVICE_ROLE_DISABLED:
             case OT_DEVICE_ROLE_DETACHED:
             default:
-            thread_coap_utils_peer_addr_clear();
+                thread_coap_utils_peer_addr_clear();
                 break;
         }
     }
@@ -168,7 +168,8 @@ static void thread_instance_init(void)
 
 /**@brief Function for initializing the Constrained Application Protocol Module
  */
-static void thread_coap_init(void) {
+static void thread_coap_init(void) 
+{
   thread_coap_utils_configuration_t thread_coap_configuration =
       {
           .coap_server_enabled = false,

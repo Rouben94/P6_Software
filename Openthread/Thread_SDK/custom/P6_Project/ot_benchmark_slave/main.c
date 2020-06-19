@@ -1,43 +1,77 @@
+/**
+ * Copyright (c) 2017 - 2020, Nordic Semiconductor ASA
+ *
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form, except as embedded into a Nordic
+ *    Semiconductor ASA integrated circuit in a product or a software update for
+ *    such product, must reproduce the above copyright notice, this list of
+ *    conditions and the following disclaimer in the documentation and/or other
+ *    materials provided with the distribution.
+ *
+ * 3. Neither the name of Nordic Semiconductor ASA nor the names of its
+ *    contributors may be used to endorse or promote products derived from this
+ *    software without specific prior written permission.
+ *
+ * 4. This software, with or without modification, must only be used with a
+ *    Nordic Semiconductor ASA integrated circuit.
+ *
+ * 5. Any software provided in binary form under this license must not be reverse
+ *    engineered, decompiled, modified and/or disassembled.
+ *
+ * THIS SOFTWARE IS PROVIDED BY NORDIC SEMICONDUCTOR ASA "AS IS" AND ANY EXPRESS
+ * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY, NONINFRINGEMENT, AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL NORDIC SEMICONDUCTOR ASA OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
 /** @file
  *
- * @defgroup ot_benchmark main.c
+ * @defgroup simple_coap_client_example_main main.c
  * @{
- * @ingroup ot_benchmark
- * @brief OpenThread benchmark Application main file.
+ * @ingroup simple_coap_client_example_example
+ * @brief Simple CoAP Client Example Application main file.
  *
- * @details This application tests a openthread network.
+ * @details This example demonstrates a CoAP client application that enables to control BSP_LED_0
+ *          on a board with related Simple CoAP Server application via CoAP messages.
  *
  */
 
 #include "app_scheduler.h"
 #include "app_timer.h"
 #include "board_support_thread.h"
-#include "nrf_log.h"
 #include "nrf_log_ctrl.h"
+#include "nrf_log.h"
 #include "nrf_log_default_backends.h"
 
-#include "flash_save.h"
-
-#include "coap.h"
+#include "bm_coap.h"
 #include "thread_utils.h"
-
 #include "board_support_config.h"
+
 
 #include <openthread/instance.h>
 #include <openthread/network_time.h>
 #include <openthread/platform/time.h>
 #include <openthread/thread.h>
 
-#define SCHED_QUEUE_SIZE 32 /**< Maximum number of events in the scheduler queue. */
-#define SCHED_EVENT_DATA_SIZE                                                                      \
-    APP_TIMER_SCHED_EVENT_DATA_SIZE /**< Maximum app_scheduler event size. */
+#define SCHED_QUEUE_SIZE 32                                   /**< Maximum number of events in the scheduler queue. */
+#define SCHED_EVENT_DATA_SIZE APP_TIMER_SCHED_EVENT_DATA_SIZE /**< Maximum app_scheduler event size. */
 
-
-Measurement measure_1;
-
-static thread_coap_utils_light_command_t m_command =
-    THREAD_COAP_UTILS_LIGHT_CMD_OFF; /**< This variable stores command that has been most recently
-                                        used. */
+APP_TIMER_DEF(m_time_sync_timer);
+bool timeSyncGet = false;
+uint64_t netTime = 0;
 
 
 /***************************************************************************************************
@@ -49,15 +83,19 @@ static void bsp_event_handler(bsp_event_t event)
     switch (event)
     {
         case BSP_EVENT_KEY_0:
-            NRF_LOG_INFO("Button short");
-            flash_write(measure_1);
-            measure_1.MAC++;
+            NRF_LOG_INFO("Button short press");
+            // thread_coap_utils_provisioning_request_send();
             break;
 
         case BSP_EVENT_KEY_0_LONG:
-            NRF_LOG_INFO("Button long");
-            flash_read();
+        {
+            NRF_LOG_INFO("Button long press");
+
+            uint32_t error;
+            error = app_timer_start(m_time_sync_timer, APP_TIMER_TICKS(10000), NULL);
+            ASSERT(error == NRF_SUCCESS);
             break;
+        }
 
         default:
             return; // no implementation needed
@@ -91,7 +129,30 @@ static void thread_state_changed_callback(uint32_t flags, void * p_context)
         otThreadGetDeviceRole(p_context));
 }
 
-static void my_event_cb(Measurement * data) { NRF_LOG_INFO("Item: %d", data->MAC); }
+static void thread_time_sync_callback(void * p_context) { NRF_LOG_INFO("time sync callback"); }
+
+static void time_sync_handler(void * p_context)
+{
+    // NRF_LOG_INFO("Should do this every 10 sec");
+    uint64_t temp = 0;
+    switch (timeSyncGet)
+    {
+        case false:
+            otNetworkTimeGet(thread_ot_instance_get(), &netTime);
+            NRF_LOG_INFO("Time 1 get: %u", netTime);
+            bsp_board_led_on(BSP_BOARD_LED_2);
+            timeSyncGet = true;
+            break;
+
+        case true:
+            otNetworkTimeGet(thread_ot_instance_get(), &temp);
+            temp = temp - netTime;
+            NRF_LOG_INFO("Network Time for 10s is: %u", temp);
+            bsp_board_led_off(BSP_BOARD_LED_2);
+            timeSyncGet = false;
+            break;
+    }
+}
 
 /***************************************************************************************************
  * @section Initialization
@@ -130,19 +191,42 @@ static void log_init(void)
  */
 static void thread_instance_init(void)
 {
-    thread_configuration_t thread_configuration = {
+    thread_configuration_t thread_configuration = 
+    {
         .radio_mode = THREAD_RADIO_MODE_RX_ON_WHEN_IDLE,
-        .autocommissioning = true,
+        .autocommissioning = false,
     };
 
     thread_init(&thread_configuration);
+    //thread_cli_init();
     thread_state_changed_callback_set(thread_state_changed_callback);
+}
+
+/**@brief Function for initializing the Constrained Application Protocol Module
+ */
+static void thread_coap_init(void)
+{
+    thread_coap_utils_configuration_t thread_coap_configuration = {
+        .coap_server_enabled = false,
+        .coap_client_enabled = true,
+        .configurable_led_blinking_enabled = false,
+    };
+
+    thread_coap_utils_init(&thread_coap_configuration);
+}
+
+/**@brief Function for initializing the Thread Time Synchronizationt Package
+ */
+static void thread_time_sync_init(void)
+{
+    otNetworkTimeSetSyncPeriod(thread_ot_instance_get(), 60);
+    otNetworkTimeSetXtalThreshold(thread_ot_instance_get(), otPlatTimeGetXtalAccuracy());
+    otNetworkTimeSyncSetCallback(thread_ot_instance_get(), thread_time_sync_callback, NULL);
 }
 
 /**@brief Function for initializing scheduler module.
  */
 static void scheduler_init(void) { APP_SCHED_INIT(SCHED_EVENT_DATA_SIZE, SCHED_QUEUE_SIZE); }
-
 
 /***************************************************************************************************
  * @section Main
@@ -156,11 +240,14 @@ int main(int argc, char * argv[])
 
     NRF_LOG_INFO("Start APP");
 
-    flash_save_init(my_event_cb);
     thread_instance_init();
+    thread_coap_init();
     thread_bsp_init();
+    thread_time_sync_init();
 
-    measure_1.MAC = 0;
+    uint32_t retval =
+        app_timer_create(&m_time_sync_timer, APP_TIMER_MODE_REPEATED, time_sync_handler);
+    ASSERT(retval == NRF_SUCCESS);
 
     while (true)
     {

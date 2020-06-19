@@ -142,7 +142,7 @@ void flash_delete(void)
 void flash_save_init(flash_cb_t evt_handler)
 {
     ret_code_t rc;
-    fds_register(fds_evt_handler);
+    rc = fds_register(fds_evt_handler);
     APP_ERROR_CHECK(rc);
 
     rc = fds_init();

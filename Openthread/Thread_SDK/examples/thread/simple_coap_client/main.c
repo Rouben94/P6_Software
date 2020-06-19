@@ -92,8 +92,6 @@ static void bsp_event_handler(bsp_event_t event) {
 //
 //    thread_coap_utils_multicast_light_request_send(m_command,
 //        THREAD_COAP_UTILS_MULTICAST_REALM_LOCAL);
-  
-    //set_record();
 
     break;
   }
@@ -245,8 +243,6 @@ int main(int argc, char *argv[]) {
   log_init();
   scheduler_init();
   timer_init();
-
-  //data_storage_init();
 
   thread_instance_init();
   thread_coap_init();
