@@ -141,15 +141,7 @@ void thread_coap_utils_provisioning_request_send(void);
 void thread_coap_utils_peer_addr_clear(void);
 
 
-/**@brief Function for sending the light request comamnd to the CoAP peer.
- *
- * @param[in] command  Light command.
- *
- */
-void thread_coap_utils_unicast_light_request_send(uint8_t command);
-
-
-/**@brief Function for sending the light request comamnd to the multicast IPv6 address.
+/**@brief Function for sending the benchmark start request message to the multicast IPv6 address.
  *
  * @param[in] message  message struct with benchmark start / Ip6 address from master node / benchmark time.
  * @param[in] scope    IPv6 multicast address scope.

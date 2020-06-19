@@ -198,7 +198,6 @@ static void thread_instance_init(void)
     };
 
     thread_init(&thread_configuration);
-    //thread_cli_init();
     thread_state_changed_callback_set(thread_state_changed_callback);
 }
 
@@ -207,7 +206,7 @@ static void thread_instance_init(void)
 static void thread_coap_init(void)
 {
     thread_coap_utils_configuration_t thread_coap_configuration = {
-        .coap_server_enabled = false,
+        .coap_server_enabled = true,
         .coap_client_enabled = true,
         .configurable_led_blinking_enabled = false,
     };
