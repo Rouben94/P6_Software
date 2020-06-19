@@ -1,11 +1,12 @@
-set(target "beaconing_${PLATFORM}_${SOFTDEVICE}")
+set(target "bluetooth_mesh_benchmark")
+
+set(SDK_ROOT_PATH "D:/Raffael/GitHub/P6_Software_local/nRF5_SDK_16.0.0_98a08e2")
 
 add_executable(${target}
     "${CMAKE_CURRENT_SOURCE_DIR}/src/main.c"
-    "${CMAKE_SOURCE_DIR}/mesh/stack/src/mesh_stack.c"
-    "${CMAKE_SOURCE_DIR}/examples/common/src/mesh_provisionee.c"
-    "${CMAKE_SOURCE_DIR}/examples/common/src/simple_hal.c"
-    "${CMAKE_SOURCE_DIR}/examples/common/src/mesh_app_utils.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/time_sync.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/simple_hal.c"
+    "${SDK_ROOT_PATH}/components/libraries/balloc/nrf_balloc.c"
     ${BLE_SOFTDEVICE_SUPPORT_SOURCE_FILES}
     ${ACCESS_SOURCE_FILES}
     ${WEAK_SOURCE_FILES}
@@ -21,6 +22,7 @@ add_executable(${target}
     ${${nRF5_SDK_VERSION}_SOURCE_FILES})
 
 target_include_directories(${target} PUBLIC
+    "${SDK_ROOT_PATH}/components/libraries/balloc"
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/../include"
     "${CMAKE_SOURCE_DIR}/examples/common/include"
