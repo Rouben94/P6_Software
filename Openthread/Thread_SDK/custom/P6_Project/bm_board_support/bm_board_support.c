@@ -9,14 +9,14 @@
  *
  */
 
-#include "board_support.h"
+#include "bm_board_support.h"
 #include <stddef.h>
 #include <stdio.h>
 #include "nordic_common.h"
 #include "nrf.h"
 #include "nrf_gpio.h"
 #include "nrf_error.h"
-#include "board_support_config.h"
+#include "bm_board_support_config.h"
 #include "boards.h"
 
 #ifndef BSP_SIMPLE

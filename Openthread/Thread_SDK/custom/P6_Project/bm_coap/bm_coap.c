@@ -9,14 +9,15 @@
  *
  */
 
-#include "coap.h"
+#include "bm_coap.h"
 
 #include "app_timer.h"
-#include "board_support_thread.h"
+#include "bm_board_support_thread.h"
 #include "nrf_assert.h"
 #include "nrf_log.h"
 #include "sdk_config.h"
 #include "thread_utils.h"
+#include "bm_statemachine.h"
 
 #include <openthread/ip6.h>
 #include <openthread/link.h>
@@ -41,12 +42,12 @@ typedef struct
 
 static uint32_t                                  m_poll_period;
 static state_t                                   m_state;
-static thread_coap_utils_configuration_t         m_config;
+static thread_coap_utils_configuration_t          m_config;
 static thread_coap_utils_light_command_handler_t m_light_command_handler;
 
 /**@brief Forward declarations of CoAP resources handlers. */
 static void provisioning_request_handler(void *, otMessage *, const otMessageInfo *);
-static void light_request_handler(void *, otMessage *, const otMessageInfo *);
+static void benchmark_request_handeler(void *, otMessage *, const otMessageInfo *);
 
 /**@brief Definition of CoAP resources for provisioning. */
 static otCoapResource m_provisioning_resource =
@@ -57,11 +58,11 @@ static otCoapResource m_provisioning_resource =
     .mNext    = NULL
 };
 
-/**@brief Definition of CoAP resources for light. */
-static otCoapResource m_light_resource =
+/**@brief Definition of CoAP resources for benchmark. */
+static otCoapResource m_benchmark_resource =
 {
-    .mUriPath = "light",
-    .mHandler = light_request_handler,
+    .mUriPath = "benchmark",
+    .mHandler = benchmark_request_handeler,
     .mContext = NULL,
     .mNext    = NULL
 };
@@ -303,46 +304,11 @@ static void led_timer_handler(void * p_context)
     }
 }
 
-static void light_response_send(otMessage           * p_request_message,
-                                const otMessageInfo * p_message_info)
+static void benchmark_request_handeler(void                 * p_context,
+                                       otMessage            * p_message,
+                                       const otMessageInfo  * p_message_info)
 {
-    otError      error = OT_ERROR_NO_BUFS;
-    otMessage  * p_response;
-    otInstance * p_instance = thread_ot_instance_get();
-
-    do
-    {
-        p_response = otCoapNewMessage(p_instance, NULL);
-        if (p_response == NULL)
-        {
-            break;
-        }
-
-        error = otCoapMessageInitResponse(p_response,
-                                          p_request_message,
-                                          OT_COAP_TYPE_ACKNOWLEDGMENT,
-                                          OT_COAP_CODE_CHANGED);
-
-        if (error != OT_ERROR_NONE)
-        {
-            break;
-        }
-
-        error = otCoapSendResponse(p_instance, p_response, p_message_info);
-
-    } while (false);
-
-    if ((error != OT_ERROR_NONE) && (p_response != NULL))
-    {
-        otMessageFree(p_response);
-    }
-}
-
-static void light_request_handler(void                * p_context,
-                                  otMessage           * p_message,
-                                  const otMessageInfo * p_message_info)
-{
-    uint8_t command;
+    bm_master_message message;
 
     do
     {
@@ -357,46 +323,21 @@ static void light_request_handler(void                * p_context,
             break;
         }
 
-        if (otMessageRead(p_message, otMessageGetOffset(p_message), &command, 1) != 1)
+        if (otMessageRead(p_message, otMessageGetOffset(p_message), &message, sizeof(message)) != 12)
         {
-            NRF_LOG_INFO("light handler - missing command\r\n");
+            NRF_LOG_INFO("benchmark request handler - missing message")
         }
 
-        m_light_command_handler((thread_coap_utils_light_command_t)command);
+        bm_sm_time_set(message.bm_time);
 
-        switch (command)
-        {
-            case THREAD_COAP_UTILS_LIGHT_CMD_ON:
-                if (m_config.configurable_led_blinking_enabled)
-                {
-                    m_state.led_blinking_is_on = true;
-                }
-                break;
-
-            case THREAD_COAP_UTILS_LIGHT_CMD_OFF:
-                if (m_config.configurable_led_blinking_enabled)
-                {
-                    m_state.led_blinking_is_on = false;
-                }
-                break;
-
-            case THREAD_COAP_UTILS_LIGHT_CMD_TOGGLE:
-                if (m_config.configurable_led_blinking_enabled)
-                {
-                    m_state.led_blinking_is_on = !m_state.led_blinking_is_on;
-                }
-                break;
-
-            default:
-                break;
-        }
+        message.bm_status ? bm_sm_new_state_set(BM_STATE_1) : bm_sm_new_state_set(BM_DEFAULT_STATE);
 
         if (otCoapMessageGetType(p_message) == OT_COAP_TYPE_CONFIRMABLE)
         {
-            light_response_send(p_message, p_message_info);
+            //If there will be a confirmation.
         }
-
-    } while (false);
+        
+    } while(false);
 }
 
 void thread_coap_utils_init(const thread_coap_utils_configuration_t * p_config)
@@ -427,13 +368,13 @@ void thread_coap_utils_init(const thread_coap_utils_configuration_t * p_config)
                                   provisioning_timer_handler);
         ASSERT(retval == NRF_SUCCESS);
 
-        m_light_resource.mContext        = p_instance;
         m_provisioning_resource.mContext = p_instance;
-
-        error = otCoapAddResource(p_instance, &m_light_resource);
-        ASSERT(error == OT_ERROR_NONE);
+        m_benchmark_resource.mContext    = p_instance;
 
         error = otCoapAddResource(p_instance, &m_provisioning_resource);
+        ASSERT(error == OT_ERROR_NONE);
+
+        error = otCoapAddResource(p_instance, &m_benchmark_resource);
         ASSERT(error == OT_ERROR_NONE);
     }
 }
@@ -449,11 +390,11 @@ void thread_coap_utils_deinit(void)
 
     if (m_config.coap_server_enabled)
     {
-        m_light_resource.mContext        = NULL;
         m_provisioning_resource.mContext = NULL;
-
-        otCoapRemoveResource(p_instance, &m_light_resource);
+        m_benchmark_resource.mContext    = NULL;
+        
         otCoapRemoveResource(p_instance, &m_provisioning_resource);
+        otCoapRemoveResource(p_instance, &m_benchmark_resource);
     }
 }
 
@@ -462,68 +403,10 @@ void thread_coap_utils_peer_addr_clear(void)
     memset(&m_state.peer_address, 0, sizeof(m_state.peer_address));
 }
 
-void thread_coap_utils_unicast_light_request_send(uint8_t command)
-{
-    otError       error = OT_ERROR_NONE;
-    otMessage   * p_request;
-    otMessageInfo message_info;
-    otInstance  * p_instance = thread_ot_instance_get();
-
-    do
-    {
-        if (otIp6IsAddressUnspecified(&m_state.peer_address))
-        {
-            NRF_LOG_INFO("Failed to send the CoAP Request to the unspecified IPv6 address\r\n");
-            break;
-        }
-
-        p_request = otCoapNewMessage(p_instance, NULL);
-        if (p_request == NULL)
-        {
-            NRF_LOG_INFO("Failed to allocate message for CoAP Request\r\n");
-            break;
-        }
-
-        otCoapMessageInit(p_request, OT_COAP_TYPE_NON_CONFIRMABLE, OT_COAP_CODE_PUT);
-        otCoapMessageGenerateToken(p_request, 2);
-
-        error = otCoapMessageAppendUriPathOptions(p_request, "light");
-        ASSERT(error == OT_ERROR_NONE);
-
-        error = otCoapMessageSetPayloadMarker(p_request);
-        ASSERT(error == OT_ERROR_NONE);
-
-        otCoapMessageInit(p_request, OT_COAP_TYPE_NON_CONFIRMABLE, OT_COAP_CODE_PUT);
-        otCoapMessageGenerateToken(p_request, 2);
-        UNUSED_VARIABLE(otCoapMessageAppendUriPathOptions(p_request, "light"));
-        UNUSED_VARIABLE(otCoapMessageSetPayloadMarker(p_request));
-
-        error = otMessageAppend(p_request, &command, sizeof(command));
-        if (error != OT_ERROR_NONE)
-        {
-            break;
-        }
-
-        memset(&message_info, 0, sizeof(message_info));
-        message_info.mPeerPort = OT_DEFAULT_COAP_PORT;
-        memcpy(&message_info.mPeerAddr, &m_state.peer_address, sizeof(message_info.mPeerAddr));
-
-        error = otCoapSendRequest(p_instance,
-                                  p_request,
-                                  &message_info,
-                                  NULL,
-                                  p_instance);
-    } while (false);
-
-    if (error != OT_ERROR_NONE && p_request != NULL)
-    {
-        NRF_LOG_INFO("Failed to send CoAP Request: %d\r\n", error);
-        otMessageFree(p_request);
-    }
-}
-
-void thread_coap_utils_multicast_light_request_send(uint8_t                             command,
-                                                    thread_coap_utils_multicast_scope_t scope)
+/***************************************************************************************************
+ * @section Benchmark Coap Multicast Message
+ **************************************************************************************************/
+void bm_coap_multicast_start_request_send(bm_master_message message, thread_coap_utils_multicast_scope_t scope)
 {
     otError       error = OT_ERROR_NONE;
     otMessage   * p_request;
@@ -536,19 +419,19 @@ void thread_coap_utils_multicast_light_request_send(uint8_t                     
         p_request = otCoapNewMessage(p_instance, NULL);
         if (p_request == NULL)
         {
-            NRF_LOG_INFO("Failed to allocate message for CoAP Request\r\n");
-            break;
+          NRF_LOG_INFO("Failed to allocate message for Coap request");
+          break;
         }
 
         otCoapMessageInit(p_request, OT_COAP_TYPE_NON_CONFIRMABLE, OT_COAP_CODE_PUT);
 
-        error = otCoapMessageAppendUriPathOptions(p_request, "light");
+        error = otCoapMessageAppendUriPathOptions(p_request, "benchmark");
         ASSERT(error == OT_ERROR_NONE);
 
         error = otCoapMessageSetPayloadMarker(p_request);
         ASSERT(error == OT_ERROR_NONE);
 
-        error = otMessageAppend(p_request, &command, sizeof(command));
+        error = otMessageAppend(p_request, &message, sizeof(message));
         if (error != OT_ERROR_NONE)
         {
             break;
@@ -556,16 +439,14 @@ void thread_coap_utils_multicast_light_request_send(uint8_t                     
 
         switch (scope)
         {
-        case THREAD_COAP_UTILS_MULTICAST_LINK_LOCAL:
-            p_scope = "ff02::1";
-            break;
-
-        case THREAD_COAP_UTILS_MULTICAST_REALM_LOCAL:
-            p_scope = "ff03::1";
-            break;
-
-        default:
-            ASSERT(false);
+            case THREAD_COAP_UTILS_MULTICAST_LINK_LOCAL:
+                p_scope = "ff02::1";
+                break;
+            case THREAD_COAP_UTILS_MULTICAST_REALM_LOCAL:
+                p_scope = "ff03::1";
+                break;
+            default:
+                ASSERT(false);
         }
 
         memset(&message_info, 0, sizeof(message_info));
@@ -579,7 +460,7 @@ void thread_coap_utils_multicast_light_request_send(uint8_t                     
 
     if (error != OT_ERROR_NONE && p_request != NULL)
     {
-        NRF_LOG_INFO("Failed to send CoAP Request: %d\r\n", error);
+        NRF_LOG_INFO("Failed to send Coap request: %d\r\n", error);
         otMessageFree(p_request);
     }
 }

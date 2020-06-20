@@ -9,14 +9,14 @@
  *
  */
 
-#include "board_support_thread.h"
+#include "bm_board_support_thread.h"
 
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 
-#include "board_support.h"
-#include "board_support_config.h"
+#include "bm_board_support.h"
+#include "bm_board_support_config.h"
 #include "nrf_assert.h"
 
 #include <openthread/instance.h>

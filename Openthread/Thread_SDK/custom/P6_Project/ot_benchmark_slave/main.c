@@ -51,14 +51,16 @@
 
 #include "app_scheduler.h"
 #include "app_timer.h"
-#include "board_support_thread.h"
+#include "bm_board_support_thread.h"
 #include "nrf_log_ctrl.h"
 #include "nrf_log.h"
 #include "nrf_log_default_backends.h"
 
 #include "bm_coap.h"
 #include "thread_utils.h"
-#include "board_support_config.h"
+#include "bm_statemachine.h"
+#include "bm_board_support_config.h"
+
 
 
 #include <openthread/instance.h>
@@ -243,6 +245,7 @@ int main(int argc, char * argv[])
     thread_coap_init();
     thread_bsp_init();
     thread_time_sync_init();
+    bm_statemachine_init();
 
     uint32_t retval =
         app_timer_create(&m_time_sync_timer, APP_TIMER_MODE_REPEATED, time_sync_handler);
@@ -251,6 +254,7 @@ int main(int argc, char * argv[])
     while (true)
     {
         thread_process();
+        bm_sm_process();
         app_sched_execute();
 
         if (NRF_LOG_PROCESS() == false)

@@ -51,7 +51,7 @@
 #define BSP_THREAD_H__
 
 #include <stdint.h>
-#include "board_support.h"
+#include "bm_board_support.h"
 #include "sdk_errors.h"
 #include <openthread/instance.h>
 
