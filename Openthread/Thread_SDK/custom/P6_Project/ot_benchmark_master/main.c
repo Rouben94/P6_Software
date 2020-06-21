@@ -48,7 +48,7 @@
 
 #include "app_scheduler.h"
 #include "app_timer.h"
-#include "board_support_thread.h"
+#include "bm_board_support_thread.h"
 #include "nrf_log_ctrl.h"
 #include "nrf_log.h"
 #include "nrf_log_default_backends.h"
@@ -56,7 +56,7 @@
 #include "bm_coap.h"
 #include "bm_master_cli.h"
 #include "thread_utils.h"
-#include "board_support_config.h"
+#include "bm_board_support_config.h"
 
 #include <openthread/instance.h>
 #include <openthread/thread.h>

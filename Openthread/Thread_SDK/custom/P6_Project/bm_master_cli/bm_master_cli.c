@@ -30,7 +30,7 @@ void bm_cli_benchmark_start(uint8_t aArgsLength, char *aArgs[]) {
     master_message.bm_master_ip6_address = otThreadGetMeshLocalEid(thread_ot_instance_get());
     master_message.bm_time = (uint32_t)atoi(aArgs[0]);
 
-    bm_coap_multicast_start_request_send(master_message, THREAD_COAP_UTILS_MULTICAST_REALM_LOCAL);
+    bm_coap_multicast_start_send(master_message, THREAD_COAP_UTILS_MULTICAST_REALM_LOCAL);
 
     otCliOutput("done \r\n", sizeof("done \r\n"));
 }
@@ -42,7 +42,7 @@ void bm_cli_benchmark_stop(uint8_t aArgsLength, char *aArgs[]) {
     master_message.bm_master_ip6_address = NULL;
     master_message.bm_time = NULL;
 
-    bm_coap_multicast_start_request_send(master_message, THREAD_COAP_UTILS_MULTICAST_REALM_LOCAL);
+    bm_coap_multicast_start_send(master_message, THREAD_COAP_UTILS_MULTICAST_REALM_LOCAL);
 
     otCliOutput("done \r\n", sizeof("done \r\n"));
 }

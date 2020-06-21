@@ -147,7 +147,7 @@ void thread_coap_utils_peer_addr_clear(void);
  * @param[in] scope    IPv6 multicast address scope.
  *
  */
-void bm_coap_multicast_start_request_send(bm_master_message message, thread_coap_utils_multicast_scope_t scope);
+void bm_coap_multicast_start_send(bm_master_message message, thread_coap_utils_multicast_scope_t scope);
 
 
 #endif /* THREAD_COAP_UTILS_H__ */

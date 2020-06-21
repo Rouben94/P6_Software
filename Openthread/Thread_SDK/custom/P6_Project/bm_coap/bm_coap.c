@@ -47,7 +47,8 @@ static thread_coap_utils_light_command_handler_t m_light_command_handler;
 
 /**@brief Forward declarations of CoAP resources handlers. */
 static void provisioning_request_handler(void *, otMessage *, const otMessageInfo *);
-static void benchmark_request_handeler(void *, otMessage *, const otMessageInfo *);
+static void bm_start_handler(void *, otMessage *, const otMessageInfo *);
+static void bm_test_message_handler(void *, otMessage *, const otMessageInfo *);
 
 /**@brief Definition of CoAP resources for provisioning. */
 static otCoapResource m_provisioning_resource =
@@ -58,15 +59,27 @@ static otCoapResource m_provisioning_resource =
     .mNext    = NULL
 };
 
-/**@brief Definition of CoAP resources for benchmark. */
-static otCoapResource m_benchmark_resource =
+/**@brief Definition of CoAP resources for benchmark start. */
+static otCoapResource m_bm_start_resource =
 {
-    .mUriPath = "benchmark",
-    .mHandler = benchmark_request_handeler,
+    .mUriPath = "bm_start",
+    .mHandler = bm_start_handler,
     .mContext = NULL,
     .mNext    = NULL
 };
 
+/**@brief Definition of CoAP resources for benchmark test message. */
+static otCoapResource m_bm_test_resource =
+{
+    .mUriPath = "bm_test",
+    .mHandler = bm_test_message_handler,
+    .mContext = NULL,
+    .mNext    = NULL
+};
+
+/***************************************************************************************************
+ * @section Benchmark Coap handler for default messages
+ **************************************************************************************************/
 static void coap_default_handler(void                * p_context,
                                  otMessage           * p_message,
                                  const otMessageInfo * p_message_info)
@@ -78,6 +91,122 @@ static void coap_default_handler(void                * p_context,
     NRF_LOG_INFO("Received CoAP message that does not match any request or resource\r\n");
 }
 
+/***************************************************************************************************
+ * @section Benchmark Coap Multicast Benchmark start message
+ **************************************************************************************************/
+static void bm_start_handler(void                 * p_context,
+                                       otMessage            * p_message,
+                                       const otMessageInfo  * p_message_info)
+{
+    bm_master_message message;
+
+    do
+    {
+        if (otCoapMessageGetType(p_message) != OT_COAP_TYPE_CONFIRMABLE &&
+            otCoapMessageGetType(p_message) != OT_COAP_TYPE_NON_CONFIRMABLE)
+        {
+            break;
+        }
+
+        if (otCoapMessageGetCode(p_message) != OT_COAP_CODE_PUT)
+        {
+            break;
+        }
+
+        if (otMessageRead(p_message, otMessageGetOffset(p_message), &message, sizeof(message)) != 12)
+        {
+            NRF_LOG_INFO("benchmark request handler - missing message")
+        }
+
+        bm_sm_time_set(message.bm_time);
+
+        message.bm_status ? bm_sm_new_state_set(BM_STATE_1) : bm_sm_new_state_set(BM_DEFAULT_STATE);
+
+        if (otCoapMessageGetType(p_message) == OT_COAP_TYPE_CONFIRMABLE)
+        {
+            //If there will be a confirmation.
+        }
+        
+    } while(false);
+}
+
+void bm_coap_multicast_start_send(bm_master_message message, thread_coap_utils_multicast_scope_t scope)
+{
+    otError       error = OT_ERROR_NONE;
+    otMessage   * p_request;
+    otMessageInfo message_info;
+    const char  * p_scope = NULL;
+    otInstance  * p_instance = thread_ot_instance_get();
+
+    do
+    {
+        p_request = otCoapNewMessage(p_instance, NULL);
+        if (p_request == NULL)
+        {
+          NRF_LOG_INFO("Failed to allocate message for Coap request");
+          break;
+        }
+
+        otCoapMessageInit(p_request, OT_COAP_TYPE_NON_CONFIRMABLE, OT_COAP_CODE_PUT);
+
+        error = otCoapMessageAppendUriPathOptions(p_request, "bm_start");
+        ASSERT(error == OT_ERROR_NONE);
+
+        error = otCoapMessageSetPayloadMarker(p_request);
+        ASSERT(error == OT_ERROR_NONE);
+
+        error = otMessageAppend(p_request, &message, sizeof(message));
+        if (error != OT_ERROR_NONE)
+        {
+            break;
+        }
+
+        switch (scope)
+        {
+            case THREAD_COAP_UTILS_MULTICAST_LINK_LOCAL:
+                p_scope = "ff02::1";
+                break;
+            case THREAD_COAP_UTILS_MULTICAST_REALM_LOCAL:
+                p_scope = "ff03::1";
+                break;
+            default:
+                ASSERT(false);
+        }
+
+        memset(&message_info, 0, sizeof(message_info));
+        message_info.mPeerPort = OT_DEFAULT_COAP_PORT;
+
+        error = otIp6AddressFromString(p_scope, &message_info.mPeerAddr);
+        ASSERT(error == OT_ERROR_NONE);
+
+        error = otCoapSendRequest(p_instance, p_request, &message_info, NULL, NULL);
+    } while (false);
+
+    if (error != OT_ERROR_NONE && p_request != NULL)
+    {
+        NRF_LOG_INFO("Failed to send Coap request: %d\r\n", error);
+        otMessageFree(p_request);
+    }
+}
+
+/***************************************************************************************************
+ * @section Benchmark Coap test message.
+ **************************************************************************************************/
+static void bm_test_message_handler(void                 * p_context,
+                                    otMessage            * p_message,
+                                    const otMessageInfo  * p_message_info)
+{
+    
+}
+
+void bm_coap_unicast_test_message_send(bm_master_message message, thread_coap_utils_multicast_scope_t scope)
+{
+    
+}
+
+/***************************************************************************************************
+ * @section Benchmark Coap provisioning
+ **************************************************************************************************/
 static uint32_t poll_period_response_set(void)
 {
     uint32_t     error;
@@ -304,167 +433,6 @@ static void led_timer_handler(void * p_context)
     }
 }
 
-static void benchmark_request_handeler(void                 * p_context,
-                                       otMessage            * p_message,
-                                       const otMessageInfo  * p_message_info)
-{
-    bm_master_message message;
-
-    do
-    {
-        if (otCoapMessageGetType(p_message) != OT_COAP_TYPE_CONFIRMABLE &&
-            otCoapMessageGetType(p_message) != OT_COAP_TYPE_NON_CONFIRMABLE)
-        {
-            break;
-        }
-
-        if (otCoapMessageGetCode(p_message) != OT_COAP_CODE_PUT)
-        {
-            break;
-        }
-
-        if (otMessageRead(p_message, otMessageGetOffset(p_message), &message, sizeof(message)) != 12)
-        {
-            NRF_LOG_INFO("benchmark request handler - missing message")
-        }
-
-        bm_sm_time_set(message.bm_time);
-
-        message.bm_status ? bm_sm_new_state_set(BM_STATE_1) : bm_sm_new_state_set(BM_DEFAULT_STATE);
-
-        if (otCoapMessageGetType(p_message) == OT_COAP_TYPE_CONFIRMABLE)
-        {
-            //If there will be a confirmation.
-        }
-        
-    } while(false);
-}
-
-void thread_coap_utils_init(const thread_coap_utils_configuration_t * p_config)
-{
-    otInstance * p_instance = thread_ot_instance_get();
-
-    otError error = otCoapStart(p_instance, OT_DEFAULT_COAP_PORT);
-    ASSERT(error == OT_ERROR_NONE);
-
-    otCoapSetDefaultHandler(p_instance, coap_default_handler, NULL);
-
-    m_config = *p_config;
-
-    m_light_command_handler = light_changed_default;
-
-    if (m_config.coap_server_enabled)
-    {
-        LEDS_CONFIGURE(LEDS_MASK);
-        LEDS_OFF(LEDS_MASK);
-
-        uint32_t retval = app_timer_create(&m_led_timer,
-                                           APP_TIMER_MODE_REPEATED,
-                                           led_timer_handler);
-        ASSERT(retval == NRF_SUCCESS);
-
-        retval = app_timer_create(&m_provisioning_timer,
-                                  APP_TIMER_MODE_SINGLE_SHOT,
-                                  provisioning_timer_handler);
-        ASSERT(retval == NRF_SUCCESS);
-
-        m_provisioning_resource.mContext = p_instance;
-        m_benchmark_resource.mContext    = p_instance;
-
-        error = otCoapAddResource(p_instance, &m_provisioning_resource);
-        ASSERT(error == OT_ERROR_NONE);
-
-        error = otCoapAddResource(p_instance, &m_benchmark_resource);
-        ASSERT(error == OT_ERROR_NONE);
-    }
-}
-
-void thread_coap_utils_deinit(void)
-{
-    otInstance * p_instance = thread_ot_instance_get();
-
-    otError error = otCoapStop(p_instance);
-    ASSERT(error == OT_ERROR_NONE);
-
-    otCoapSetDefaultHandler(p_instance, NULL, NULL);
-
-    if (m_config.coap_server_enabled)
-    {
-        m_provisioning_resource.mContext = NULL;
-        m_benchmark_resource.mContext    = NULL;
-        
-        otCoapRemoveResource(p_instance, &m_provisioning_resource);
-        otCoapRemoveResource(p_instance, &m_benchmark_resource);
-    }
-}
-
-void thread_coap_utils_peer_addr_clear(void)
-{
-    memset(&m_state.peer_address, 0, sizeof(m_state.peer_address));
-}
-
-/***************************************************************************************************
- * @section Benchmark Coap Multicast Message
- **************************************************************************************************/
-void bm_coap_multicast_start_request_send(bm_master_message message, thread_coap_utils_multicast_scope_t scope)
-{
-    otError       error = OT_ERROR_NONE;
-    otMessage   * p_request;
-    otMessageInfo message_info;
-    const char  * p_scope = NULL;
-    otInstance  * p_instance = thread_ot_instance_get();
-
-    do
-    {
-        p_request = otCoapNewMessage(p_instance, NULL);
-        if (p_request == NULL)
-        {
-          NRF_LOG_INFO("Failed to allocate message for Coap request");
-          break;
-        }
-
-        otCoapMessageInit(p_request, OT_COAP_TYPE_NON_CONFIRMABLE, OT_COAP_CODE_PUT);
-
-        error = otCoapMessageAppendUriPathOptions(p_request, "benchmark");
-        ASSERT(error == OT_ERROR_NONE);
-
-        error = otCoapMessageSetPayloadMarker(p_request);
-        ASSERT(error == OT_ERROR_NONE);
-
-        error = otMessageAppend(p_request, &message, sizeof(message));
-        if (error != OT_ERROR_NONE)
-        {
-            break;
-        }
-
-        switch (scope)
-        {
-            case THREAD_COAP_UTILS_MULTICAST_LINK_LOCAL:
-                p_scope = "ff02::1";
-                break;
-            case THREAD_COAP_UTILS_MULTICAST_REALM_LOCAL:
-                p_scope = "ff03::1";
-                break;
-            default:
-                ASSERT(false);
-        }
-
-        memset(&message_info, 0, sizeof(message_info));
-        message_info.mPeerPort = OT_DEFAULT_COAP_PORT;
-
-        error = otIp6AddressFromString(p_scope, &message_info.mPeerAddr);
-        ASSERT(error == OT_ERROR_NONE);
-
-        error = otCoapSendRequest(p_instance, p_request, &message_info, NULL, NULL);
-    } while (false);
-
-    if (error != OT_ERROR_NONE && p_request != NULL)
-    {
-        NRF_LOG_INFO("Failed to send Coap request: %d\r\n", error);
-        otMessageFree(p_request);
-    }
-}
-
 static void provisioning_response_handler(void                * p_context,
                                           otMessage           * p_message,
                                           const otMessageInfo * p_message_info,
@@ -534,6 +502,9 @@ void thread_coap_utils_provisioning_request_send(void)
 
 }
 
+/***************************************************************************************************
+ * @section Benchmark Coap external functions
+ **************************************************************************************************/
 void thread_coap_utils_provisioning_enable_set(bool value)
 {
     provisioning_enable(value);
@@ -549,4 +520,85 @@ void thread_coap_utils_light_command_handler_set(thread_coap_utils_light_command
 bool thread_coap_utils_light_is_led_blinking(void)
 {
     return m_state.led_blinking_is_on;
+}
+
+void thread_coap_utils_peer_addr_clear(void)
+{
+    memset(&m_state.peer_address, 0, sizeof(m_state.peer_address));
+}
+
+/***************************************************************************************************
+ * @section Benchmark Coap Initialization
+ **************************************************************************************************/
+void thread_coap_utils_init(const thread_coap_utils_configuration_t * p_config)
+{
+    otInstance * p_instance = thread_ot_instance_get();
+
+    otError error = otCoapStart(p_instance, OT_DEFAULT_COAP_PORT);
+    ASSERT(error == OT_ERROR_NONE);
+
+    otCoapSetDefaultHandler(p_instance, coap_default_handler, NULL);
+
+    m_config = *p_config;
+
+    m_light_command_handler = light_changed_default;
+
+    if (m_config.coap_server_enabled)
+    {
+        LEDS_CONFIGURE(LEDS_MASK);
+        LEDS_OFF(LEDS_MASK);
+
+        uint32_t retval = app_timer_create(&m_led_timer,
+                                           APP_TIMER_MODE_REPEATED,
+                                           led_timer_handler);
+        ASSERT(retval == NRF_SUCCESS);
+
+        retval = app_timer_create(&m_provisioning_timer,
+                                  APP_TIMER_MODE_SINGLE_SHOT,
+                                  provisioning_timer_handler);
+        ASSERT(retval == NRF_SUCCESS);
+
+        m_provisioning_resource.mContext = p_instance;
+
+        error = otCoapAddResource(p_instance, &m_provisioning_resource);
+        ASSERT(error == OT_ERROR_NONE);
+
+        m_bm_test_resource.mContext = p_instance;
+
+        error = otCoapAddResource(p_instance, &m_bm_test_resource);
+        ASSERT(error == OT_ERROR_NONE);
+    }
+
+    if (m_config.coap_client_enabled)
+    {
+        m_bm_start_resource.mContext    = p_instance;
+
+        error = otCoapAddResource(p_instance, &m_bm_start_resource);
+        ASSERT(error == OT_ERROR_NONE);
+    }
+}
+
+void thread_coap_utils_deinit(void)
+{
+    otInstance * p_instance = thread_ot_instance_get();
+
+    otError error = otCoapStop(p_instance);
+    ASSERT(error == OT_ERROR_NONE);
+
+    otCoapSetDefaultHandler(p_instance, NULL, NULL);
+
+    if (m_config.coap_server_enabled)
+    {
+        m_provisioning_resource.mContext = NULL;
+        m_bm_test_resource.mContext      = NULL;
+        
+        otCoapRemoveResource(p_instance, &m_provisioning_resource);
+        otCoapRemoveResource(p_instance, &m_bm_test_resource);
+    }
+
+    if (m_config.coap_client_enabled)
+    {
+        m_bm_start_resource.mContext    = NULL;
+        otCoapRemoveResource(p_instance, &m_bm_start_resource);
+    }
 }
