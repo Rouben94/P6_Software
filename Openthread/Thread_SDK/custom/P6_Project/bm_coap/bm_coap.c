@@ -192,6 +192,12 @@ void bm_coap_multicast_start_send(bm_master_message message, thread_coap_utils_m
 /***************************************************************************************************
  * @section Benchmark Coap test message.
  **************************************************************************************************/
+static void bm_test_message_response_send(otMessage           * p_request_message,
+                                          const otMessageInfo * p_message_info)
+{
+    
+}
+
 static void bm_test_message_handler(void                 * p_context,
                                     otMessage            * p_message,
                                     const otMessageInfo  * p_message_info)
@@ -199,9 +205,20 @@ static void bm_test_message_handler(void                 * p_context,
     
 }
 
-void bm_coap_unicast_test_message_send(bm_master_message message, thread_coap_utils_multicast_scope_t scope)
+void bm_coap_unicast_test_message_send(bool state, thread_coap_utils_multicast_scope_t scope)
 {
-    
+    otError         error = OT_ERROR_NONE;
+    otMessage     * p_request;
+    otMessageInfo   messafe_info;
+    otInstance    * p_instance = thread_ot_instance_get();
+
+    do
+    {
+        if (otIp6IsAddressUnspecified(&m_state.peer_address))
+        {
+            NRF_LOG_INFO("Failed to send coap test message: No peer address found")
+        }
+    }
 }
 
 /***************************************************************************************************
