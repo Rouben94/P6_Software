@@ -149,5 +149,12 @@ void thread_coap_utils_peer_addr_clear(void);
  */
 void bm_coap_multicast_start_send(bm_master_message message, thread_coap_utils_multicast_scope_t scope);
 
+/**@brief Function for sending the benchmark test message to the peered unicast IPv6 address.
+ *
+ * @param[in] message  message state
+ *
+ */
+void bm_coap_unicast_test_message_send(bool state);
+
 
 #endif /* THREAD_COAP_UTILS_H__ */

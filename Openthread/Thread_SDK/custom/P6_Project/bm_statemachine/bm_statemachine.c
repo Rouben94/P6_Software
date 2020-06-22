@@ -2,21 +2,33 @@
 
 #include "app_timer.h"
 #include "boards.h"
+#include "bm_coap.h"
 
 #include "nrf_log_ctrl.h"
 #include "nrf_log.h"
 #include "nrf_log_default_backends.h"
 
+//#include <openthread/network_time.h>
+//#include <openthread/platform/time.h>
+
 APP_TIMER_DEF(m_benchmark_timer);
 APP_TIMER_DEF(m_led_timer);
+
+//uint64_t netTime = 0;
 
 uint32_t bm_time = 0;
 uint8_t bm_new_state = 0;
 uint8_t bm_actual_state = 0;
 
+
 static void led_handler(void * p_context)
 {
     bsp_board_led_invert(BSP_BOARD_LED_2);
+
+    //otNetworkTimeGet(thread_ot_instance_get(), &netTime);
+    //NRF_LOG_INFO("Network Time: %u", netTime);
+
+    bm_coap_unicast_test_message_send(1);
 }
 
 static void benchmark_handler(void * p_context)
@@ -53,6 +65,7 @@ static void state_1(void)
 
     error = app_timer_start(m_led_timer, APP_TIMER_TICKS(500), NULL);
     ASSERT(error == NRF_SUCCESS);
+
     error = app_timer_start(m_benchmark_timer, APP_TIMER_TICKS(bm_time), NULL);
     ASSERT(error == NRF_SUCCESS);
     bm_new_state = BM_EMPTY_STATE;

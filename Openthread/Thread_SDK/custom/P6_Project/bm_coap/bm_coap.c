@@ -192,20 +192,78 @@ void bm_coap_multicast_start_send(bm_master_message message, thread_coap_utils_m
 /***************************************************************************************************
  * @section Benchmark Coap test message.
  **************************************************************************************************/
+static void bm_test_message_response_handler(void                 * p_context,
+                                             otMessage            * p_message,
+                                             const otMessageInfo  * p_message_info,
+                                             otError              * result)
+{
+    // test message ACK handler
+}
+
 static void bm_test_message_response_send(otMessage           * p_request_message,
                                           const otMessageInfo * p_message_info)
 {
-    
+    otError       error = OT_ERROR_NONE;
+    otMessage   * p_response;
+    otInstance  * p_instance = thread_ot_instance_get();
+
+    do
+    {
+        p_response = otCoapNewMessage(p_instance, NULL);
+        if (p_response == NULL)
+        {
+            break;
+        }
+
+        error = otCoapMessageInitResponse(p_response, p_request_message, OT_COAP_TYPE_ACKNOWLEDGMENT, OT_COAP_CODE_CHANGED);
+        if (error != OT_ERROR_NONE)
+        {
+            break;
+        }
+
+        error = otCoapSendResponse(p_instance, p_request_message, p_message_info);
+    } while (false);
+
+    if (error != OT_ERROR_NONE && p_response != NULL)
+    {
+        otMessageFree(p_response);
+    }
 }
 
 static void bm_test_message_handler(void                 * p_context,
                                     otMessage            * p_message,
                                     const otMessageInfo  * p_message_info)
 {
-    
+    bool state;
+
+    do
+    {
+        if (otCoapMessageGetType(p_message) != OT_COAP_TYPE_CONFIRMABLE &&
+            otCoapMessageGetType(p_message) != OT_COAP_TYPE_NON_CONFIRMABLE)
+        {
+            break;
+        }
+
+        if (otCoapMessageGetCode(p_message) != OT_COAP_CODE_PUT)
+        {
+            break;
+        }
+
+        if (otMessageRead(p_message, otMessageGetOffset(p_message), &state, 1))
+        {
+            NRF_LOG_INFO("test message handler - missing command");
+        }
+
+        // Do some shit
+
+        if (otCoapMessageGetType(p_message) == OT_COAP_TYPE_CONFIRMABLE)
+        {
+            bm_test_message_response_send(p_message, p_message_info);
+        }
+    } while (false);
 }
 
-void bm_coap_unicast_test_message_send(bool state, thread_coap_utils_multicast_scope_t scope)
+void bm_coap_unicast_test_message_send(bool state)
 {
     otError         error = OT_ERROR_NONE;
     otMessage     * p_request;
@@ -217,7 +275,47 @@ void bm_coap_unicast_test_message_send(bool state, thread_coap_utils_multicast_s
         if (otIp6IsAddressUnspecified(&m_state.peer_address))
         {
             NRF_LOG_INFO("Failed to send coap test message: No peer address found")
+            break;
         }
+
+        p_request = otCoapNewMessage(p_instance, NULL);
+        if (p_request == NULL)
+        {
+            NRF_LOG_INFO("Failed to allocate message for Coap request");
+            break;
+        }
+
+        otCoapMessageInit(p_request, OT_COAP_TYPE_NON_CONFIRMABLE, OT_COAP_CODE_PUT);
+        otCoapMessageGenerateToken(p_request, 2);
+        
+        error = otCoapMessageAppendUriPathOptions(p_request, "bm_test");
+        ASSERT(error == OT_ERROR_NONE);
+
+        error = otCoapMessageSetPayloadMarker(p_request);
+        ASSERT(error == OT_ERROR_NONE);
+
+        otCoapMessageInit(p_request, OT_COAP_TYPE_NON_CONFIRMABLE, OT_COAP_CODE_PUT);
+        otCoapMessageGenerateToken(p_request, 2);
+        UNUSED_VARIABLE(otCoapMessageAppendUriPathOptions(p_request, "bm_test"));
+        UNUSED_VARIABLE(otCoapMessageSetPayloadMarker(p_request));
+
+        error = otMessageAppend(p_request, &state, sizeof(state));
+        if (error != OT_ERROR_NONE)
+        {
+            break;
+        }
+
+        memset(&messafe_info, 0, sizeof(messafe_info));
+        messafe_info.mPeerPort = OT_DEFAULT_COAP_PORT;
+        memcpy(&messafe_info.mPeerAddr, &m_state.peer_address, sizeof(messafe_info.mPeerAddr));
+        
+        error = otCoapSendRequest(p_instance, p_request, &messafe_info, NULL, p_instance);
+    } while (false);
+
+    if (error != OT_ERROR_NONE && p_request != NULL)
+    {
+        NRF_LOG_INFO("Failed to send Coap request: %d", error);
+        otMessageFree(p_request);
     }
 }
 
