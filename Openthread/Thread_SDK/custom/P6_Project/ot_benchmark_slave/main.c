@@ -71,9 +71,9 @@
 #define SCHED_QUEUE_SIZE 32                                   /**< Maximum number of events in the scheduler queue. */
 #define SCHED_EVENT_DATA_SIZE APP_TIMER_SCHED_EVENT_DATA_SIZE /**< Maximum app_scheduler event size. */
 
-APP_TIMER_DEF(m_time_sync_timer);
-bool timeSyncGet = false;
-uint64_t netTime = 0;
+//#define BM_MASTER
+#define BM_CLIENT
+//#define BM_SERVER
 
 
 /***************************************************************************************************
@@ -86,16 +86,20 @@ static void bsp_event_handler(bsp_event_t event)
     {
         case BSP_EVENT_KEY_0:
             NRF_LOG_INFO("Button short press");
-            // thread_coap_utils_provisioning_request_send();
+
+#ifdef BM_CLIENT
+            thread_coap_utils_provisioning_request_send();
+#endif
+
+#ifdef BM_SERVER
+            thread_coap_utils_provisioning_enable_set(true);
+#endif
+            
             break;
 
         case BSP_EVENT_KEY_0_LONG:
         {
             NRF_LOG_INFO("Button long press");
-
-            uint32_t error;
-            error = app_timer_start(m_time_sync_timer, APP_TIMER_TICKS(10000), NULL);
-            ASSERT(error == NRF_SUCCESS);
             break;
         }
 
@@ -132,29 +136,6 @@ static void thread_state_changed_callback(uint32_t flags, void * p_context)
 }
 
 static void thread_time_sync_callback(void * p_context) { NRF_LOG_INFO("time sync callback"); }
-
-static void time_sync_handler(void * p_context)
-{
-    // NRF_LOG_INFO("Should do this every 10 sec");
-    uint64_t temp = 0;
-    switch (timeSyncGet)
-    {
-        case false:
-            otNetworkTimeGet(thread_ot_instance_get(), &netTime);
-            NRF_LOG_INFO("Time 1 get: %u", netTime);
-            bsp_board_led_on(BSP_BOARD_LED_2);
-            timeSyncGet = true;
-            break;
-
-        case true:
-            otNetworkTimeGet(thread_ot_instance_get(), &temp);
-            temp = temp - netTime;
-            NRF_LOG_INFO("Network Time for 10s is: %u", temp);
-            bsp_board_led_off(BSP_BOARD_LED_2);
-            timeSyncGet = false;
-            break;
-    }
-}
 
 /***************************************************************************************************
  * @section Initialization
@@ -207,11 +188,29 @@ static void thread_instance_init(void)
  */
 static void thread_coap_init(void)
 {
+#ifdef BM_MASTER
+    thread_coap_utils_configuration_t thread_coap_configuration = {
+        .coap_server_enabled = false,
+        .coap_client_enabled = false,
+        .configurable_led_blinking_enabled = false,
+    };
+#endif
+
+#ifdef BM_CLIENT
     thread_coap_utils_configuration_t thread_coap_configuration = {
         .coap_server_enabled = false,
         .coap_client_enabled = true,
         .configurable_led_blinking_enabled = false,
     };
+#endif
+
+#ifdef BM_SERVER
+    thread_coap_utils_configuration_t thread_coap_configuration = {
+        .coap_server_enabled = true,
+        .coap_client_enabled = false,
+        .configurable_led_blinking_enabled = true,
+    };
+#endif
 
     thread_coap_utils_init(&thread_coap_configuration);
 }
@@ -246,10 +245,6 @@ int main(int argc, char * argv[])
     thread_bsp_init();
     thread_time_sync_init();
     bm_statemachine_init();
-
-    uint32_t retval =
-        app_timer_create(&m_time_sync_timer, APP_TIMER_MODE_REPEATED, time_sync_handler);
-    ASSERT(retval == NRF_SUCCESS);
 
     while (true)
     {

@@ -39,6 +39,7 @@ typedef struct
     bool         led_blinking_is_on;   /**< Information if leds are blinking */
     otIp6Address peer_address;         /**< An address of a related server node. */
 } state_t;
+otIp6Address bm_master_address;
 
 static uint32_t                                  m_poll_period;
 static state_t                                   m_state;
@@ -118,9 +119,14 @@ static void bm_start_handler(void                 * p_context,
             NRF_LOG_INFO("benchmark request handler - missing message")
         }
 
-        bm_sm_time_set(message.bm_time);
+        
+        bm_master_address = *message.bm_master_ip6_address;
 
-        message.bm_status ? bm_sm_new_state_set(BM_STATE_1) : bm_sm_new_state_set(BM_DEFAULT_STATE);
+        if (m_config.coap_client_enabled)
+        {
+            bm_sm_time_set(message.bm_time);
+            message.bm_status ? bm_sm_new_state_set(BM_STATE_1) : bm_sm_new_state_set(BM_DEFAULT_STATE);
+        }      
 
         if (otCoapMessageGetType(p_message) == OT_COAP_TYPE_CONFIRMABLE)
         {
@@ -249,12 +255,13 @@ static void bm_test_message_handler(void                 * p_context,
             break;
         }
 
-        if (otMessageRead(p_message, otMessageGetOffset(p_message), &state, 1))
+        if (otMessageRead(p_message, otMessageGetOffset(p_message), &state, sizeof(state)) != 1)
         {
             NRF_LOG_INFO("test message handler - missing command");
         }
 
         // Do some shit
+        NRF_LOG_INFO("Server: Got test message");
 
         if (otCoapMessageGetType(p_message) == OT_COAP_TYPE_CONFIRMABLE)
         {
@@ -553,6 +560,7 @@ static void provisioning_response_handler(void                * p_context,
                                           const otMessageInfo * p_message_info,
                                           otError               result)
 {
+    //result = OT_ERROR_NONE;
     UNUSED_PARAMETER(p_context);
 
     // Restore the polling period back to initial slow value.
@@ -684,7 +692,7 @@ void thread_coap_utils_init(const thread_coap_utils_configuration_t * p_config)
         ASSERT(error == OT_ERROR_NONE);
     }
 
-    if (m_config.coap_client_enabled)
+    if (m_config.coap_client_enabled || m_config.coap_server_enabled)
     {
         m_bm_start_resource.mContext    = p_instance;
 
@@ -711,9 +719,6 @@ void thread_coap_utils_deinit(void)
         otCoapRemoveResource(p_instance, &m_bm_test_resource);
     }
 
-    if (m_config.coap_client_enabled)
-    {
-        m_bm_start_resource.mContext    = NULL;
-        otCoapRemoveResource(p_instance, &m_bm_start_resource);
-    }
+    m_bm_start_resource.mContext    = NULL;
+    otCoapRemoveResource(p_instance, &m_bm_start_resource);
 }

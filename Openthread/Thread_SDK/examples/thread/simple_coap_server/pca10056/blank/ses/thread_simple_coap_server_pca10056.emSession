@@ -40,8 +40,7 @@
  </Watch4>
  <Files>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="79" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../main.c" selected="0" top="66" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="334" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../app_utils/thread_coap_utils.c" selected="1" top="477" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="60" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../config/sdk_config.h" selected="0" top="39" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="507" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../app_utils/thread_coap_utils.c" selected="1" top="432" codecName="Default"/>
  </Files>
  <ARMCrossStudioWindow activeProject="thread_simple_coap_server_pca10056" fileDialogDefaultFilter="*.c" autoConnectTarget="J-Link" buildConfiguration="Release" sessionSettings="" debugSearchFileMap="" fileDialogInitialDirectory="/home/robin/Workfolder/nRF5_SDK/components/libraries/fds" debugSearchPath="" autoConnectCapabilities="3199"/>
 </session>

@@ -8,31 +8,44 @@
 #include "nrf_log.h"
 #include "nrf_log_default_backends.h"
 
-//#include <openthread/network_time.h>
-//#include <openthread/platform/time.h>
+#include <openthread/network_time.h>
 
 APP_TIMER_DEF(m_benchmark_timer);
 APP_TIMER_DEF(m_led_timer);
 
-//uint64_t netTime = 0;
+uint16_t bm_netTime_nr = 0;
+uint64_t bm_netTime[1000];
 
-uint32_t bm_time = 0;
-uint8_t bm_new_state = 0;
-uint8_t bm_actual_state = 0;
+uint32_t  bm_time = 0;
+uint8_t   bm_new_state = 0;
+uint8_t   bm_actual_state = 0;
+
+static void save_netTime(uint64_t time)
+{
+    bm_netTime[bm_netTime_nr] = time;
+    bm_netTime_nr++;
+}
 
 
 static void led_handler(void * p_context)
 {
+    uint64_t time;
     bsp_board_led_invert(BSP_BOARD_LED_2);
 
-    //otNetworkTimeGet(thread_ot_instance_get(), &netTime);
-    //NRF_LOG_INFO("Network Time: %u", netTime);
+    otNetworkTimeGet(thread_ot_instance_get(), &time);
+    save_netTime(time);
 
     bm_coap_unicast_test_message_send(1);
 }
 
 static void benchmark_handler(void * p_context)
 {
+    for (int i=0; i<bm_netTime_nr; i++)
+    {
+        NRF_LOG_INFO("Time %d: %d", i+1, bm_netTime[i]);
+    }
+    bm_netTime_nr = 0;
+    memset(bm_netTime, 0, 1000 * sizeof(uint64_t));
     bm_new_state = BM_DEFAULT_STATE;
 }
 
