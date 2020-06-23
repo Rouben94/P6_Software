@@ -105,7 +105,7 @@ static void coap_default_handler(void                * p_context,
 /***************************************************************************************************
  * @section Benchmark Coap Unicast time result response to master
  **************************************************************************************************/
- static void bm_time_result_handler(void                 * p_context,
+static void bm_time_result_handler(void                 * p_context,
                                     otMessage            * p_message,
                                     const otMessageInfo  * p_message_info)
 {
@@ -124,7 +124,7 @@ static void coap_default_handler(void                * p_context,
             break;
         }
 
-        if (otMessageRead(p_message, otMessageGetOffset(p_message), &message_info, sizeof(message_info)) != 1)
+        if (otMessageRead(p_message, otMessageGetOffset(p_message), &message_info, sizeof(&message_info)) != 4)
         {
             NRF_LOG_INFO("test message handler - missing command");
         }
@@ -171,7 +171,7 @@ void bm_coap_unicast_time_results_send(bm_message_info message_info[512])
         UNUSED_VARIABLE(otCoapMessageAppendUriPathOptions(p_request, "bm_result"));
         UNUSED_VARIABLE(otCoapMessageSetPayloadMarker(p_request));
 
-        error = otMessageAppend(p_request, &message_info, sizeof(message_info));
+        error = otMessageAppend(p_request, &message_info, sizeof(&message_info));
         if (error != OT_ERROR_NONE)
         {
             break;
@@ -219,7 +219,7 @@ static void bm_start_handler(void                 * p_context,
         }
 
         
-        bm_master_address = *message.bm_master_ip6_address;
+        bm_master_address = message.bm_master_ip6_address;
 
         if (m_config.coap_client_enabled)
         {

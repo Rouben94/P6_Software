@@ -45,12 +45,13 @@
 #include <openthread/coap.h>
 
 #include "thread_utils.h"
+#include "bm_statemachine.h"
 
 /**@brief Benchmark configuration structure. */
 typedef struct
 {
   bool bm_status;                               /**<  Indicates if the benchmark should start or stop*/
-  const otIp6Address * bm_master_ip6_address;   /**<  Tells the slave node which Ip6 address the master node has*/
+  otIp6Address bm_master_ip6_address;   /**<  Tells the slave node which Ip6 address the master node has*/
   uint32_t bm_time;                             /**<  Tells the slave node how long the benchmark does take*/
 } bm_master_message;
 
@@ -155,6 +156,13 @@ void bm_coap_multicast_start_send(bm_master_message message, thread_coap_utils_m
  *
  */
 void bm_coap_unicast_test_message_send(bool state);
+
+/**@brief Function for sending the benchmark test message to the peered unicast IPv6 address.
+ *
+ * @param[in] message  message state
+ *
+ */
+void bm_coap_unicast_time_results_send(bm_message_info message_info[512]);
 
 
 #endif /* THREAD_COAP_UTILS_H__ */

@@ -27,7 +27,7 @@ void bm_cli_benchmark_start(uint8_t aArgsLength, char *aArgs[]) {
     NRF_LOG_INFO("Argument: %s", aArgs[0]);
 
     master_message.bm_status = true;
-    master_message.bm_master_ip6_address = otThreadGetMeshLocalEid(thread_ot_instance_get());
+    master_message.bm_master_ip6_address = *otThreadGetMeshLocalEid(thread_ot_instance_get());
     master_message.bm_time = (uint32_t)atoi(aArgs[0]);
 
     bm_coap_multicast_start_send(master_message, THREAD_COAP_UTILS_MULTICAST_REALM_LOCAL);
@@ -39,7 +39,7 @@ void bm_cli_benchmark_stop(uint8_t aArgsLength, char *aArgs[]) {
     NRF_LOG_INFO("Benchmark stop");
     
     master_message.bm_status = false;
-    master_message.bm_master_ip6_address = NULL;
+    otIp6AddressFromString("0", &master_message.bm_master_ip6_address);
     master_message.bm_time = NULL;
 
     bm_coap_multicast_start_send(master_message, THREAD_COAP_UTILS_MULTICAST_REALM_LOCAL);
