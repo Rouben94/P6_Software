@@ -34,7 +34,7 @@ extern void synctimer_init()
 #if defined(DPPI_PRESENT) || defined(__NRFX_DOXYGEN__)
 	/* Setup DPPI for Sending and Receiving Timesync Packet */
 	nrf_timer_subscribe_set(synctimer.p_reg, NRF_TIMER_TASK_CAPTURE0, nRF53_DPPICH_Tx);
-	NRF_RADIO->PUBLISH_END = 
+	//NRF_RADIO->PUBLISH_END = 
 	nrf_timer_subscribe_set(synctimer.p_reg, NRF_TIMER_TASK_START, nRF53_DPPICH_Rx);
 #else
 	/* Setup PPI for Sending and Receiving Timesync Packet */

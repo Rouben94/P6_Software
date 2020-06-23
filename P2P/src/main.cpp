@@ -15,6 +15,8 @@
 #define DiscoveryStartCH 37						   // Defines the Start Channel of Discovery
 #define DiscoveryEndCH 39						   // Defines the End Channel of Discovery
 
+#define SW0_NODE	DT_ALIAS(led0)
+
 class Stopwatch
 {
 public:
