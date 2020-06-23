@@ -45,10 +45,13 @@
  * @brief Zigbee Pressure and Temperature sensor
  */
 
+#include "pca10059/mbr/config/sdk_config.h"
 #include "zboss_api.h"
+#include "zboss_api_addons.h"
 #include "zb_mem_config_med.h"
 #include "zb_error_handler.h"
 #include "zigbee_helpers.h"
+
 #include "app_timer.h"
 #include "bsp.h"
 #include "boards.h"
@@ -58,12 +61,14 @@
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
 
-#include "zb_multi_sensor.h"
+#include "bm_server.h"
 
+//#define IEEE_CHANNEL_MASK                 ZB_TRANSCEIVER_ALL_CHANNELS_MASK    /**< Scan all channles to find the coordinator. */
 #define IEEE_CHANNEL_MASK                  (1l << ZIGBEE_CHANNEL)               /**< Scan only one, predefined channel to find the coordinator. */
-#define ERASE_PERSISTENT_CONFIG            ZB_FALSE                             /**< Do not erase NVRAM to save the network parameters after device reboot or power-off. */
+#define ERASE_PERSISTENT_CONFIG            ZB_TRUE                             /**< Do not erase NVRAM to save the network parameters after device reboot or power-off. */
+#define MAX_CHILDREN                       10                                   /**< The maximum amount of connected devices. Setting this value to 0 disables association to this device.  */
 
-#define ZIGBEE_NETWORK_STATE_LED           BSP_BOARD_LED_2                      /**< LED indicating that light switch successfully joind Zigbee network. */
+#define ZIGBEE_NETWORK_STATE_LED           BSP_BOARD_LED_0                      /**< LED indicating that light switch successfully joind Zigbee network. */
 
 #define MIN_TEMPERATURE_VALUE              0                                    /**< Minimum temperature value as returned by the simulated measurement function. */
 #define MAX_TEMPERATURE_VALUE              4000                                 /**< Maximum temperature value as returned by the simulated measurement function. */
@@ -72,8 +77,8 @@
 #define MAX_PRESSURE_VALUE                 1100                                 /**< Maximum pressure value as returned by the simulated measurement function. */
 #define PRESSURE_VALUE_INCREMENT           5                                    /**< Value by which the temperature value is incremented/decremented for each call to the simulated measurement function. */
 
-#if !defined ZB_ED_ROLE
-#error Define ZB_ED_ROLE to compile End Device source code.
+#if !defined ZB_ROUTER_ROLE
+#error Define ZB_ROUTER_ROLE to compile benchmark server (router) source code.
 #endif
 
 static sensor_device_ctx_t m_dev_ctx;
@@ -213,7 +218,8 @@ static zb_void_t leds_init(void)
     error_code = bsp_init(BSP_INIT_LEDS, NULL);
     APP_ERROR_CHECK(error_code);
 
-    bsp_board_leds_off();
+    //bsp_board_leds_off();
+    bsp_board_leds_on();
 }
 
 /**@brief Function for handling nrf app timer.
@@ -337,19 +343,17 @@ int main(void)
     ZB_SET_TRAF_DUMP_OFF();
 
     /* Initialize Zigbee stack. */
-    ZB_INIT("multi_sensor");
+    ZB_INIT("benchmark_server");
 
     /* Set device address to the value read from FICR registers. */
     zb_osif_get_ieee_eui64(ieee_addr);
     zb_set_long_address(ieee_addr);
 
     /* Set static long IEEE address. */
-    zb_set_network_ed_role(IEEE_CHANNEL_MASK);
+    zb_set_network_router_role(IEEE_CHANNEL_MASK);
+    zb_set_max_children(MAX_CHILDREN);
     zigbee_erase_persistent_storage(ERASE_PERSISTENT_CONFIG);
-
-    zb_set_ed_timeout(ED_AGING_TIMEOUT_64MIN);
-    zb_set_keepalive_timeout(ZB_MILLISECONDS_TO_BEACON_INTERVAL(3000));
-    zb_set_rx_on_when_idle(ZB_FALSE);
+    zb_set_keepalive_timeout(ZB_MILLISECONDS_TO_BEACON_INTERVAL(3000));    
 
     /* Initialize application context structure. */
     UNUSED_RETURN_VALUE(ZB_MEMSET(&m_dev_ctx, 0, sizeof(m_dev_ctx)));
