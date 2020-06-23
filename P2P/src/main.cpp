@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <vector>
 #include <zephyr.h>
+//#include <device.h>
 #include <shell/shell.h>
 #include <hal/nrf_radio.h>
 #include <drivers/clock_control.h>
@@ -12,6 +13,8 @@
 #define DiscoveryMode NRF_RADIO_MODE_BLE_LR125KBIT // Defines the Discovery Mode used
 #define DiscoveryStartCH 37						   // Defines the Start Channel of Discovery
 #define DiscoveryEndCH 39						   // Defines the End Channel of Discovery
+
+#define RUN_STATUS_LED                  DT_ALIAS(led0)
 
 class Stopwatch
 {

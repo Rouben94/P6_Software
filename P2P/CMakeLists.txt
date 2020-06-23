@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.13.1)
 
 #Board selection
 #set(BOARD nrf52840dk_nrf52840)
-set(BOARD nrf5340_dk_nrf5340_cpunet)
-#set(BOARD nrf52840_pca10059)
+#set(BOARD nrf5340_dk_nrf5340_cpunet)
+set(BOARD nrf52840_pca10059)
 
 #For ncs build
 include($ENV{ZEPHYR_BASE}/../nrf/cmake/boilerplate.cmake)
