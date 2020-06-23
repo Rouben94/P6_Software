@@ -260,8 +260,8 @@ static void bm_test_message_handler(void                 * p_context,
             NRF_LOG_INFO("test message handler - missing command");
         }
 
-        // Do some shit
         NRF_LOG_INFO("Server: Got test message");
+        bm_save_message_info(otCoapMessageGetMessageId(p_message));
 
         if (otCoapMessageGetType(p_message) == OT_COAP_TYPE_CONFIRMABLE)
         {
@@ -316,6 +316,7 @@ void bm_coap_unicast_test_message_send(bool state)
         messafe_info.mPeerPort = OT_DEFAULT_COAP_PORT;
         memcpy(&messafe_info.mPeerAddr, &m_state.peer_address, sizeof(messafe_info.mPeerAddr));
         
+        bm_save_message_info(otCoapMessageGetMessageId(p_request));
         error = otCoapSendRequest(p_instance, p_request, &messafe_info, NULL, p_instance);
     } while (false);
 

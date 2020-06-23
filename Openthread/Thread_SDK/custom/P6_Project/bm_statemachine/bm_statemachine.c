@@ -10,43 +10,33 @@
 
 #include <openthread/network_time.h>
 
+#define NUMBER_OF_NETWORK_TIME_ELEMENTS 512
+
 APP_TIMER_DEF(m_benchmark_timer);
 APP_TIMER_DEF(m_led_timer);
 
-uint16_t bm_netTime_nr = 0;
-uint64_t bm_netTime[1000];
+struct bm_message_info
+{
+    uint64_t net_time;
+    uint16_t message_id;
+} bm_message_info[NUMBER_OF_NETWORK_TIME_ELEMENTS];
+
+uint16_t bm_message_info_nr = 0;
 
 uint32_t  bm_time = 0;
 uint8_t   bm_new_state = 0;
 uint8_t   bm_actual_state = 0;
 
-static void save_netTime(uint64_t time)
-{
-    bm_netTime[bm_netTime_nr] = time;
-    bm_netTime_nr++;
-}
-
-
-static void led_handler(void * p_context)
+/***************************************************************************************************
+ * @section State machine - Functions
+ **************************************************************************************************/
+void bm_save_message_info(uint16_t id)
 {
     uint64_t time;
-    bsp_board_led_invert(BSP_BOARD_LED_2);
-
     otNetworkTimeGet(thread_ot_instance_get(), &time);
-    save_netTime(time);
-
-    bm_coap_unicast_test_message_send(1);
-}
-
-static void benchmark_handler(void * p_context)
-{
-    for (int i=0; i<bm_netTime_nr; i++)
-    {
-        NRF_LOG_INFO("Time %d: %d", i+1, bm_netTime[i]);
-    }
-    bm_netTime_nr = 0;
-    memset(bm_netTime, 0, 1000 * sizeof(uint64_t));
-    bm_new_state = BM_DEFAULT_STATE;
+    bm_message_info[bm_message_info_nr].net_time = time;
+    bm_message_info[bm_message_info_nr].message_id = id;
+    bm_message_info_nr++;
 }
 
 void bm_sm_time_set(uint32_t time)
@@ -59,6 +49,23 @@ void bm_sm_new_state_set(uint8_t state)
     bm_new_state = state;
 }
 
+/***************************************************************************************************
+ * @section State machine - Timer handlers
+ **************************************************************************************************/
+static void led_handler(void * p_context)
+{
+    bsp_board_led_invert(BSP_BOARD_LED_2);
+    bm_coap_unicast_test_message_send(1);
+}
+
+static void benchmark_handler(void * p_context)
+{
+    bm_new_state = BM_STATE_2;
+}
+
+/***************************************************************************************************
+ * @section State machine
+ **************************************************************************************************/
 static void default_state(void)
 {
     uint32_t error;
@@ -72,7 +79,6 @@ static void default_state(void)
 static void state_1(void)
 {
     NRF_LOG_INFO("state one done");
-    NRF_LOG_INFO("Benchmark time is: %d", bm_time);
 
     uint32_t error;
 
@@ -84,19 +90,18 @@ static void state_1(void)
     bm_new_state = BM_EMPTY_STATE;
 }
 
-void bm_statemachine_empty(void)
+static void state_2(void)
 {
-    
-}
+    NRF_LOG_INFO("state two done");
 
-void bm_statemachine_init(void)
-{
-    uint32_t error;
-
-    error = app_timer_create(&m_led_timer, APP_TIMER_MODE_REPEATED, led_handler);
-    ASSERT(error == NRF_SUCCESS);
-    error = app_timer_create(&m_benchmark_timer, APP_TIMER_MODE_REPEATED, benchmark_handler);
-    ASSERT(error == NRF_SUCCESS);
+    for (int i=0; i<bm_message_info_nr; i++)
+    {
+        //NRF_LOG_INFO("Time %d: %d", i+1, bm_netTime[i]);
+    }
+    bm_message_info_nr = 0;
+    memset(bm_message_info, 0, NUMBER_OF_NETWORK_TIME_ELEMENTS * sizeof(bm_message_info));
+    bm_coap_unicast_test_message_send(0);
+    bm_new_state = BM_DEFAULT_STATE;
 }
 
 void bm_sm_process(void)
@@ -113,12 +118,27 @@ void bm_sm_process(void)
             state_1();
             break;
 
+        case BM_STATE_2:
+            state_2();
+            break;
+
         case BM_EMPTY_STATE:
-            bm_statemachine_empty();
             break;
         
         default:
-            bm_statemachine_empty();
             break;
     }
+}
+
+/***************************************************************************************************
+ * @section State machine - Init
+ **************************************************************************************************/
+void bm_statemachine_init(void)
+{
+    uint32_t error;
+
+    error = app_timer_create(&m_led_timer, APP_TIMER_MODE_REPEATED, led_handler);
+    ASSERT(error == NRF_SUCCESS);
+    error = app_timer_create(&m_benchmark_timer, APP_TIMER_MODE_REPEATED, benchmark_handler);
+    ASSERT(error == NRF_SUCCESS);
 }

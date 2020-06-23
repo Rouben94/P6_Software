@@ -10,7 +10,8 @@ typedef enum
     BM_EMPTY_STATE,
     BM_DEFAULT_STATE,
     BM_STATE_1,
-    BM_STATE_2
+    BM_STATE_2,
+    BM_STATE_3
 } bm_state;
 
 void bm_statemachine_init(void);
@@ -21,8 +22,22 @@ void bm_statemachine_init(void);
  */
 void bm_sm_process(void);
 
+/**@brief 
+ *
+ * @details 
+ */
 void bm_sm_time_set(uint32_t time);
 
+/**@brief 
+ *
+ * @details 
+ */
 void bm_sm_new_state_set(uint8_t state);
+
+/**@brief 
+ *
+ * @details 
+ */
+void bm_save_message_info(uint16_t id);
 
 #endif // BM_STATEMACHINE_H_

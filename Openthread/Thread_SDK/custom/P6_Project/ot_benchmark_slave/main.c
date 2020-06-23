@@ -71,7 +71,6 @@
 #define SCHED_QUEUE_SIZE 32                                   /**< Maximum number of events in the scheduler queue. */
 #define SCHED_EVENT_DATA_SIZE APP_TIMER_SCHED_EVENT_DATA_SIZE /**< Maximum app_scheduler event size. */
 
-//#define BM_MASTER
 #define BM_CLIENT
 //#define BM_SERVER
 
@@ -188,14 +187,6 @@ static void thread_instance_init(void)
  */
 static void thread_coap_init(void)
 {
-#ifdef BM_MASTER
-    thread_coap_utils_configuration_t thread_coap_configuration = {
-        .coap_server_enabled = false,
-        .coap_client_enabled = false,
-        .configurable_led_blinking_enabled = false,
-    };
-#endif
-
 #ifdef BM_CLIENT
     thread_coap_utils_configuration_t thread_coap_configuration = {
         .coap_server_enabled = false,
