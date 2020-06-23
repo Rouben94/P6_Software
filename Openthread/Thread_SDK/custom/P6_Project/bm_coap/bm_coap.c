@@ -109,7 +109,7 @@ static void coap_default_handler(void                * p_context,
                                     otMessage            * p_message,
                                     const otMessageInfo  * p_message_info)
 {
-    bm_message_info message_info;
+    bm_message_info message_info[512];
 
     do
     {
@@ -129,12 +129,13 @@ static void coap_default_handler(void                * p_context,
             NRF_LOG_INFO("test message handler - missing command");
         }
 
-        //RESULTS CLI OUT
+        NRF_LOG_INFO("Got result message");
+        NRF_LOG_INFO("Message %d: %d", message_info[1].message_id, message_info[1].net_time);
 
     } while (false);
 }
 
-void bm_coap_unicast_time_results_send(bm_message_info message_info)
+void bm_coap_unicast_time_results_send(bm_message_info message_info[512])
 {
     otError         error = OT_ERROR_NONE;
     otMessage     * p_request;
@@ -667,7 +668,6 @@ static void provisioning_response_handler(void                * p_context,
                                           const otMessageInfo * p_message_info,
                                           otError               result)
 {
-    //result = OT_ERROR_NONE;
     UNUSED_PARAMETER(p_context);
 
     // Restore the polling period back to initial slow value.

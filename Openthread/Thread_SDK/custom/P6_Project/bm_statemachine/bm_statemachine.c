@@ -92,8 +92,7 @@ static void state_2(void)
     ASSERT(error == NRF_SUCCESS);
     bsp_board_led_off(BSP_BOARD_LED_2);
 
-    bm_message_info_nr = 0;
-    memset(message_info, 0, sizeof(message_info));
+
     
     bm_coap_unicast_test_message_send(0);
     bm_new_state = BM_STATE_3;
@@ -102,6 +101,11 @@ static void state_2(void)
 static void state_3(void)
 {
     NRF_LOG_INFO("state three done");
+
+    bm_coap_unicast_time_results_send(message_info);
+
+    bm_message_info_nr = 0;
+    memset(message_info, 0, sizeof(message_info));
 
     bm_new_state = BM_EMPTY_STATE;
 }
