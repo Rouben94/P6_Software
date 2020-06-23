@@ -27,8 +27,8 @@
 #include <zb_error_handler.h>
 #include <zb_nrf_platform.h>
 
-//#define RUN_STATUS_LED                  DK_LED1
-#define RUN_STATUS_LED                  DT_ALIAS(led0)
+#define RUN_STATUS_LED                  DK_LED1
+//#define RUN_STATUS_LED                  DT_ALIAS(led0)
 #define RUN_LED_BLINK_INTERVAL          1000
 
 /* Device endpoint, used to receive light controlling commands. */
