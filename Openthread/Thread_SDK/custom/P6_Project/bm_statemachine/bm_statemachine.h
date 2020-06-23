@@ -14,6 +14,13 @@ typedef enum
     BM_STATE_3
 } bm_state;
 
+/* Struct for benchmark message information */
+typedef struct
+{
+    uint64_t net_time;
+    uint16_t message_id;
+} bm_message_info;
+
 void bm_statemachine_init(void);
 
 /**@brief Function for processing the benchmark pending tasks.

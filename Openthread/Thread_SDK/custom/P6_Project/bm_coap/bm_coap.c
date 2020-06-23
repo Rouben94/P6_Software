@@ -39,6 +39,7 @@ typedef struct
     bool         led_blinking_is_on;   /**< Information if leds are blinking */
     otIp6Address peer_address;         /**< An address of a related server node. */
 } state_t;
+
 otIp6Address bm_master_address;
 
 static uint32_t                                  m_poll_period;
@@ -50,6 +51,7 @@ static thread_coap_utils_light_command_handler_t m_light_command_handler;
 static void provisioning_request_handler(void *, otMessage *, const otMessageInfo *);
 static void bm_start_handler(void *, otMessage *, const otMessageInfo *);
 static void bm_test_message_handler(void *, otMessage *, const otMessageInfo *);
+static void bm_time_result_handler(void *, otMessage *, const otMessageInfo *);
 
 /**@brief Definition of CoAP resources for provisioning. */
 static otCoapResource m_provisioning_resource =
@@ -78,6 +80,15 @@ static otCoapResource m_bm_test_resource =
     .mNext    = NULL
 };
 
+/**@brief Definition of CoAP resources for benchmark test message. */
+static otCoapResource m_bm_result_resource =
+{
+    .mUriPath = "bm_result",
+    .mHandler = bm_time_result_handler,
+    .mContext = NULL,
+    .mNext    = NULL
+};
+
 /***************************************************************************************************
  * @section Benchmark Coap handler for default messages
  **************************************************************************************************/
@@ -90,6 +101,93 @@ static void coap_default_handler(void                * p_context,
     UNUSED_PARAMETER(p_message_info);
 
     NRF_LOG_INFO("Received CoAP message that does not match any request or resource\r\n");
+}
+/***************************************************************************************************
+ * @section Benchmark Coap Unicast time result response to master
+ **************************************************************************************************/
+ static void bm_time_result_handler(void                 * p_context,
+                                    otMessage            * p_message,
+                                    const otMessageInfo  * p_message_info)
+{
+    bm_message_info message_info;
+
+    do
+    {
+        if (otCoapMessageGetType(p_message) != OT_COAP_TYPE_CONFIRMABLE &&
+            otCoapMessageGetType(p_message) != OT_COAP_TYPE_NON_CONFIRMABLE)
+        {
+            break;
+        }
+
+        if (otCoapMessageGetCode(p_message) != OT_COAP_CODE_PUT)
+        {
+            break;
+        }
+
+        if (otMessageRead(p_message, otMessageGetOffset(p_message), &message_info, sizeof(message_info)) != 1)
+        {
+            NRF_LOG_INFO("test message handler - missing command");
+        }
+
+        //RESULTS CLI OUT
+
+    } while (false);
+}
+
+void bm_coap_unicast_time_results_send(bm_message_info message_info)
+{
+    otError         error = OT_ERROR_NONE;
+    otMessage     * p_request;
+    otMessageInfo   messafe_info;
+    otInstance    * p_instance = thread_ot_instance_get();
+
+    do
+    {
+        if (otIp6IsAddressUnspecified(&bm_master_address))
+        {
+            NRF_LOG_INFO("Failed to send coap test message: No master address found")
+            break;
+        }
+
+        p_request = otCoapNewMessage(p_instance, NULL);
+        if (p_request == NULL)
+        {
+            NRF_LOG_INFO("Failed to allocate message for Coap request");
+            break;
+        }
+
+        otCoapMessageInit(p_request, OT_COAP_TYPE_NON_CONFIRMABLE, OT_COAP_CODE_PUT);
+        otCoapMessageGenerateToken(p_request, 2);
+        
+        error = otCoapMessageAppendUriPathOptions(p_request, "bm_result");
+        ASSERT(error == OT_ERROR_NONE);
+
+        error = otCoapMessageSetPayloadMarker(p_request);
+        ASSERT(error == OT_ERROR_NONE);
+
+        otCoapMessageInit(p_request, OT_COAP_TYPE_NON_CONFIRMABLE, OT_COAP_CODE_PUT);
+        otCoapMessageGenerateToken(p_request, 2);
+        UNUSED_VARIABLE(otCoapMessageAppendUriPathOptions(p_request, "bm_result"));
+        UNUSED_VARIABLE(otCoapMessageSetPayloadMarker(p_request));
+
+        error = otMessageAppend(p_request, &message_info, sizeof(message_info));
+        if (error != OT_ERROR_NONE)
+        {
+            break;
+        }
+
+        memset(&messafe_info, 0, sizeof(messafe_info));
+        messafe_info.mPeerPort = OT_DEFAULT_COAP_PORT;
+        memcpy(&messafe_info.mPeerAddr, &bm_master_address, sizeof(messafe_info.mPeerAddr));
+        
+        error = otCoapSendRequest(p_instance, p_request, &messafe_info, NULL, p_instance);
+    } while (false);
+
+    if (error != OT_ERROR_NONE && p_request != NULL)
+    {
+        NRF_LOG_INFO("Failed to send Coap request: %d", error);
+        otMessageFree(p_request);
+    }
 }
 
 /***************************************************************************************************
@@ -125,7 +223,7 @@ static void bm_start_handler(void                 * p_context,
         if (m_config.coap_client_enabled)
         {
             bm_sm_time_set(message.bm_time);
-            message.bm_status ? bm_sm_new_state_set(BM_STATE_1) : bm_sm_new_state_set(BM_DEFAULT_STATE);
+            message.bm_status ? bm_sm_new_state_set(BM_STATE_1) : bm_sm_new_state_set(BM_STATE_2);
         }      
 
         if (otCoapMessageGetType(p_message) == OT_COAP_TYPE_CONFIRMABLE)
@@ -260,8 +358,15 @@ static void bm_test_message_handler(void                 * p_context,
             NRF_LOG_INFO("test message handler - missing command");
         }
 
-        NRF_LOG_INFO("Server: Got test message");
-        bm_save_message_info(otCoapMessageGetMessageId(p_message));
+        if (state)
+        {
+            NRF_LOG_INFO("Server: Got test message");
+            bm_save_message_info(otCoapMessageGetMessageId(p_message));
+        } else if (!state)
+        {
+            bm_sm_new_state_set(BM_STATE_3);
+        }
+        
 
         if (otCoapMessageGetType(p_message) == OT_COAP_TYPE_CONFIRMABLE)
         {
@@ -316,8 +421,9 @@ void bm_coap_unicast_test_message_send(bool state)
         messafe_info.mPeerPort = OT_DEFAULT_COAP_PORT;
         memcpy(&messafe_info.mPeerAddr, &m_state.peer_address, sizeof(messafe_info.mPeerAddr));
         
-        bm_save_message_info(otCoapMessageGetMessageId(p_request));
         error = otCoapSendRequest(p_instance, p_request, &messafe_info, NULL, p_instance);
+
+        bm_save_message_info(otCoapMessageGetMessageId(p_request));
     } while (false);
 
     if (error != OT_ERROR_NONE && p_request != NULL)
@@ -700,6 +806,14 @@ void thread_coap_utils_init(const thread_coap_utils_configuration_t * p_config)
         error = otCoapAddResource(p_instance, &m_bm_start_resource);
         ASSERT(error == OT_ERROR_NONE);
     }
+
+    if (!m_config.coap_client_enabled || !m_config.coap_server_enabled)
+    {
+        m_bm_result_resource.mContext   = p_instance;
+
+        error = otCoapAddResource(p_instance, &m_bm_result_resource);
+        ASSERT(error == OT_ERROR_NONE);
+    }
 }
 
 void thread_coap_utils_deinit(void)
@@ -720,6 +834,15 @@ void thread_coap_utils_deinit(void)
         otCoapRemoveResource(p_instance, &m_bm_test_resource);
     }
 
-    m_bm_start_resource.mContext    = NULL;
-    otCoapRemoveResource(p_instance, &m_bm_start_resource);
+    if (m_config.coap_client_enabled || m_config.coap_server_enabled)
+    {
+        m_bm_start_resource.mContext    = NULL;
+        otCoapRemoveResource(p_instance, &m_bm_start_resource);
+    }
+    
+    if (!m_config.coap_client_enabled || !m_config.coap_server_enabled)
+    {
+        m_bm_result_resource.mContext   = NULL;
+        otCoapRemoveResource(p_instance, &m_bm_result_resource);
+    }
 }

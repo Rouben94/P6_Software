@@ -2,7 +2,6 @@
 <session>
  <Bookmarks/>
  <Breakpoints groups="Breakpoints" active_group="Breakpoints">
-  <BreakpointListItem trigger="" line="101" counter="0" hardwareBreakpoint="" isFunctionBreakpoint="false" action="" expression="" group="Breakpoints" type="Breakpoint" state="2" filename="../../../bm_statemachine/bm_statemachine.c" useHWbreakpoint="false"/>
   <Exceptions set="MemManage;UsageFault_Coprocessor;UsageFault_CheckingError;UsageFault_StateError;BusFault;ExceptionEntryReturnFault;HardFault"/>
  </Breakpoints>
  <ExecutionProfileWindow/>
@@ -27,8 +26,7 @@
   <ProjectSessionItem path="ot_benchmark_slave;ot_benchmark_slave;Application"/>
   <ProjectSessionItem path="ot_benchmark_slave;ot_benchmark_slave;Board Definition"/>
   <ProjectSessionItem path="ot_benchmark_slave;ot_benchmark_slave;Coap"/>
-  <ProjectSessionItem path="ot_benchmark_slave;ot_benchmark_slave;nRF_Libraries"/>
-  <ProjectSessionItem path="ot_benchmark_slave;ot_benchmark_slave;Segger Startup Files"/>
+  <ProjectSessionItem path="ot_benchmark_slave;ot_benchmark_slave;None"/>
   <ProjectSessionItem path="ot_benchmark_slave;ot_benchmark_slave;Statemachine"/>
  </Project>
  <Register1>
@@ -62,12 +60,11 @@
   <Watches active="0" update="Never"/>
  </Watch4>
  <Files>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="226" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../main.c" selected="0" top="204" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="101" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../bm_statemachine/bm_statemachine.c" selected="0" top="78" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="40" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../bm_statemachine/bm_statemachine.h" selected="0" top="18" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="263" useTextEdit="1" openedFrom="/home/robin/Workfolder/P6_Software/Openthread/Thread_SDK/custom/P6_Project/ot_benchmark_slave/main.c" useBinaryEdit="0" left="0" path="../../../bm_coap/bm_coap.c" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="1" y="226" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../main.c" selected="0" top="141" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="53" y="32" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../bm_statemachine/bm_statemachine.c" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="46" y="16" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../bm_statemachine/bm_statemachine.h" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="1" y="847" useTextEdit="1" openedFrom="/home/robin/Workfolder/P6_Software/Openthread/Thread_SDK/custom/P6_Project/bm_statemachine/bm_statemachine.c" useBinaryEdit="0" left="0" path="../../../bm_coap/bm_coap.c" selected="1" top="773" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="136" useTextEdit="1" openedFrom="/home/robin/Workfolder/P6_Software/Openthread/Thread_SDK/custom/P6_Project/bm_coap/bm_coap.c" useBinaryEdit="0" left="0" path="../../../bm_coap/bm_coap.h" selected="0" top="120" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="16" y="93" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../components/libraries/util/app_error_weak.c" selected="1" top="80" codecName=""/>
  </Files>
  <ARMCrossStudioWindow activeProject="ot_benchmark_slave" fileDialogDefaultFilter="*.c" autoConnectTarget="J-Link" buildConfiguration="Debug" sessionSettings="" debugSearchFileMap="/home/piko/Documents/project/pikoncs/mbedtls/include/mbedtls/cipher.h&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/include/mbedtls/ssl_ciphersuites.h&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/include/mbedtls/ssl_internal.h&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/arc4.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/asn1parse.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/asn1write.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/base64.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/bignum.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/cipher.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/cipher_wrap.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/ctr_drbg.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/ecjpake.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/hmac_drbg.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/md.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/md_wrap.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/oid.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/pk.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/pk_wrap.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/pkcs5.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/pkparse.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/platform.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/sha512.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/ssl_cli.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/ssl_cookie.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/ssl_srv.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/ssl_tls.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/x509.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/x509_crt.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/nrfxlib/nrf_security/src/backend/cc310/replacements/entropy.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/nrfxlib/nrf_security/src/mbedcrypto_glue/aes_alt.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/nrfxlib/nrf_security/src/mbedcrypto_glue/cc310/aes_cc310.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/nrfxlib/nrf_security/src/mbedcrypto_glue/vanilla/aes_vanilla.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/nrfxlib/nrf_security/src/mbedtls/replacements/pem.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/nrfxlib/nrf_security/src/mbedtls/replacements/ssl_ciphersuites.c&#xa;" fileDialogInitialDirectory="/home/robin/Workfolder/P6_Software/Openthread/Thread_SDK/custom/P6_Project/bm_statemachine" debugSearchPath="" autoConnectCapabilities="3711"/>
 </session>
