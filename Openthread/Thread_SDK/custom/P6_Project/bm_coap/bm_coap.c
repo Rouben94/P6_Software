@@ -18,6 +18,7 @@
 #include "sdk_config.h"
 #include "thread_utils.h"
 #include "bm_statemachine.h"
+#include "bm_master_cli.h"
 
 #include <openthread/ip6.h>
 #include <openthread/link.h>
@@ -130,7 +131,7 @@ static void bm_time_result_handler(void                 * p_context,
         }
 
         NRF_LOG_INFO("Got result message");
-        NRF_LOG_INFO("Message %d: %d", message_info.message_id, message_info.net_time);
+        bm_cli_write_result(message_info.net_time, message_info.message_id);
 
     } while (false);
 }
@@ -213,7 +214,7 @@ static void bm_start_handler(void                 * p_context,
             break;
         }
 
-        if (otMessageRead(p_message, otMessageGetOffset(p_message), &message, sizeof(message)) != 12)
+        if (otMessageRead(p_message, otMessageGetOffset(p_message), &message, sizeof(message)) != 24)
         {
             NRF_LOG_INFO("benchmark request handler - missing message")
         }
@@ -423,8 +424,11 @@ void bm_coap_unicast_test_message_send(bool state)
         memcpy(&messafe_info.mPeerAddr, &m_state.peer_address, sizeof(messafe_info.mPeerAddr));
         
         error = otCoapSendRequest(p_instance, p_request, &messafe_info, NULL, p_instance);
-
-        bm_save_message_info(otCoapMessageGetMessageId(p_request));
+        
+        if (state)
+        {
+            bm_save_message_info(otCoapMessageGetMessageId(p_request));
+        }
     } while (false);
 
     if (error != OT_ERROR_NONE && p_request != NULL)

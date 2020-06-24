@@ -49,9 +49,14 @@ void bm_cli_benchmark_stop(uint8_t aArgsLength, char *aArgs[]) {
 
 void bm_cli_write_result(uint64_t time, uint16_t ID)
 {
-    //char text[50] = {};
-    //otCliOutput(("ID %d: %d", ID, time), 50); 
+    char buf1[50] = {"\0"};
+    char buf2[50] = {"\0"};
 
+    sprintf(buf1, "ID %u: ", ID);
+    sprintf(buf2, "%u \r\n", time);
+
+    otCliOutput(buf1, sizeof(buf1));
+    otCliOutput(buf2, sizeof(buf2));
 }
 
 /**@brief Function for initialize custom cli commands */

@@ -62,6 +62,7 @@
 "Output/ot_benchmark_slave Debug/Obj/bm_coap.o"
 "Output/ot_benchmark_slave Debug/Obj/thread_utils.o"
 "Output/ot_benchmark_slave Debug/Obj/bm_statemachine.o"
+"Output/ot_benchmark_slave Debug/Obj/bm_master_cli.o"
 "/usr/share/segger_embedded_studio_for_arm_4.52c/lib/libdebugio_mempoll_v7em_fpv4_sp_d16_hard_t_le_eabi.a"
 "/usr/share/segger_embedded_studio_for_arm_4.52c/lib/libm_v7em_fpv4_sp_d16_hard_t_le_eabi.a"
 "/usr/share/segger_embedded_studio_for_arm_4.52c/lib/libc_v7em_fpv4_sp_d16_hard_t_le_eabi.a"
