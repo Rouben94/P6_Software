@@ -4,7 +4,7 @@ set(NRF_DIR D:/Raffael/GitHub/P6_Software_local/ncs/nrf)
 
 #Board selection
 #set(BOARD nrf52840dk_nrf52840)
-set(BOARD nrf5340_dk_nrf5340_cpunet)
+set(BOARD nrf5340pdk_nrf5340_cpunet)
 #set(BOARD nrf52840_pca10059)
 
 #For ncs build

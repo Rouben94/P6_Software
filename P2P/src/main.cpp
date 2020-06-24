@@ -71,19 +71,23 @@ RADIO_PACKET radio_pkt = {};
 int cmd_handler_send()
 {
 	simple_nrf_radio.Send(radio_pkt, 5000);
-	SyncPkt.SyncTimeOffset = synctimer_getSync();
+	SyncPkt.SyncTimeOffset = synctimer_getTxTimeStamp();
 	printk("Ticks: %d\n\r",synctimer_getSyncTime());
-	printk("Ticks Offset: %d\n\r",SyncPkt.SyncTimeOffset);
 	return 0;
 }
 SHELL_CMD_REGISTER(send, NULL, "Send Sync Packet", cmd_handler_send);
 int cmd_handler_receive()
 {
-	synctimer_stop();
 	simple_nrf_radio.Receive(&radio_pkt, 5000);
-	synctimer_setSync(SyncPkt.SyncTimeOffset);
-	printk("Ticks Offset: %d\n\r",SyncTimerOffset);
+	SyncPkt = *(TIMESYNC_RADIO_PACKET*) radio_pkt.PDU;
+	if (SyncPkt.SyncTimeOffset > 0){
+		synctimer_setSync(SyncPkt.SyncTimeOffset);
+		printk("Master: %d\n\r",Timestamp_Master);
+		printk("Slave: %d\n\r",Timestamp_Slave);
+		printk("Diff: %d\n\r",Timestamp_Diff);
+	}
 	printk("Ticks: %d\n\r",synctimer_getSyncTime());
+	synctimer_TimeStampCapture_disable();
 	return 0;
 }
 SHELL_CMD_REGISTER(receive, NULL, "Receive Sync Packet", cmd_handler_receive);
@@ -101,6 +105,7 @@ void main(void)
 	radio_pkt.PDU = (u8_t *)&SyncPkt;
 	// Start Sync if Master
 	synctimer_init();
+	synctimer_TimeStampCapture_enable();
 	synctimer_start();
 	printk("Synctimer Started");
 }

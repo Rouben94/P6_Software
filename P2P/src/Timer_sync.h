@@ -14,10 +14,6 @@ extern "C" {
 
 #if defined(DPPI_PRESENT) || defined(__NRFX_DOXYGEN__)
 #include <nrfx_dppi.h>
-/** DPPI Channel from RADIO->EVENTS_END */
-#define nRF53_DPPICH_Tx 0
-/** DPPI Channel from RADIO->EVENTS_ADDRESS */
-#define nRF53_DPPICH_Rx 1
 #else
 #include <nrfx_ppi.h>
 /** PreDefined PPI Channel from RADIO->EVENTS_END */
@@ -28,13 +24,27 @@ extern "C" {
 
 /* Timer used for Synchronisation */
 const nrfx_timer_t synctimer = NRFX_TIMER_INSTANCE(2);
-extern uint32_t SyncTimerOffset;
+extern uint32_t Timestamp_Slave;
+extern uint32_t Timestamp_Master;
+extern uint32_t Timestamp_Diff;
 
 /**
 * Init the Sync Timer
 *
 */
 extern void synctimer_init();
+
+/**
+* Timestamp Capture enable
+*
+*/
+extern void synctimer_TimeStampCapture_enable();
+/**
+* Timestamp Capture disable
+*
+*/
+extern void synctimer_TimeStampCapture_disable();
+
 /**
 * Clears and starts the timer
 */
@@ -49,7 +59,13 @@ extern void synctimer_stop();
 *
 * @return Latest Tx Timestamp
 */
-extern uint32_t synctimer_getSync();
+extern uint32_t synctimer_getTxTimeStamp();
+/**
+* Get previous Rx sync timestamp
+*
+* @return Latest Rx Timestamp
+*/
+extern uint32_t synctimer_getRxTimeStamp();
 /**
 * Synchronise the timer with the received offset Timestamp
 *
