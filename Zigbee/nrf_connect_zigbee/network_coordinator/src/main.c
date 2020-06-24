@@ -21,10 +21,16 @@
 #include <zigbee_helpers.h>
 #include <zb_nrf_platform.h>
 
+#include <shell/shell.h>
 
 #define RUN_STATUS_LED          DK_LED1
 #define RUN_LED_BLINK_INTERVAL  1000
 
+/* Do not erase NVRAM to save the network parameters after device reboot or
+ * power-off. NOTE: If this option is set to ZB_TRUE then do full device erase
+ * for all network devices before running other samples.
+ */
+#define ERASE_PERSISTENT_CONFIG    ZB_TRUE
 
 /* LED indicating that network is opened for new nodes */
 #define ZIGBEE_NETWORK_STATE_LED          DK_LED3
@@ -211,12 +217,35 @@ void error(void)
 	}
 }
 
+void cmd_handler_get_pan_id(void)
+{
+	zb_ext_pan_id_t ext_pan_id;
+	dk_set_led_on(DK_LED4);
+	zb_get_extended_pan_id(*ext_pan_id);
+	LOG_INF("\n\r PAN ID: %d", ext_pan_id);
+}
+void cmd_handler_test_off(void)
+{
+	dk_set_led_off(DK_LED4);
+	LOG_INF("\n\r LED 4 off");
+}
+void cmd_handler_test_on(void)
+{
+	dk_set_led_on(DK_LED4);
+	LOG_INF("\n\r LED 4 on");
+}
+
+SHELL_CMD_REGISTER(test_on, NULL, "Test Command LED4 on", cmd_handler_test_on);
+SHELL_CMD_REGISTER(test_off, NULL, "Test Command LED4 off", cmd_handler_test_off);
+SHELL_CMD_REGISTER(bm_get_pan_id, NULL, "Get PAN ID of the Zigbee Network", cmd_handler_get_pan_id);
+
+
 void main(void)
 {
 	int blink_status = 0;
 
 	LOG_INF("Starting ZBOSS Coordinator example\n");
-
+	
 	/* Initialize */
 	configure_gpio();
 
