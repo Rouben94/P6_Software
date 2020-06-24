@@ -47,6 +47,13 @@ void bm_cli_benchmark_stop(uint8_t aArgsLength, char *aArgs[]) {
     otCliOutput("done \r\n", sizeof("done \r\n"));
 }
 
+void bm_cli_write_result(uint64_t time, uint16_t ID)
+{
+    //char text[50] = {};
+    //otCliOutput(("ID %d: %d", ID, time), 50); 
+
+}
+
 /**@brief Function for initialize custom cli commands */
 void bm_custom_cli_init(void){
     otCliSetUserCommands(bm_cli_usercommands, sizeof(bm_cli_usercommands));

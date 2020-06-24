@@ -10,12 +10,12 @@
 
 #include <openthread/network_time.h>
 
-#define NUMBER_OF_NETWORK_TIME_ELEMENTS 512
+#define NUMBER_OF_NETWORK_TIME_ELEMENTS 1000
 
 APP_TIMER_DEF(m_benchmark_timer);
 APP_TIMER_DEF(m_led_timer);
 
-bm_message_info message_info[NUMBER_OF_NETWORK_TIME_ELEMENTS];
+bm_message_info message_info[NUMBER_OF_NETWORK_TIME_ELEMENTS] = {0};
 
 uint16_t bm_message_info_nr = 0;
 
@@ -92,8 +92,6 @@ static void state_2(void)
     ASSERT(error == NRF_SUCCESS);
     bsp_board_led_off(BSP_BOARD_LED_2);
 
-
-    
     bm_coap_unicast_test_message_send(0);
     bm_new_state = BM_STATE_3;
 }
@@ -102,7 +100,10 @@ static void state_3(void)
 {
     NRF_LOG_INFO("state three done");
 
-    bm_coap_unicast_time_results_send(message_info);
+    for (int i = 0; i<bm_message_info_nr; i++)
+    {
+        bm_coap_unicast_time_results_send(message_info[i]);
+    }
 
     bm_message_info_nr = 0;
     memset(message_info, 0, sizeof(message_info));

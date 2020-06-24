@@ -162,7 +162,7 @@ void bm_coap_unicast_test_message_send(bool state);
  * @param[in] message  message state
  *
  */
-void bm_coap_unicast_time_results_send(bm_message_info message_info[512]);
+void bm_coap_unicast_time_results_send(bm_message_info message_info);
 
 
 #endif /* THREAD_COAP_UTILS_H__ */

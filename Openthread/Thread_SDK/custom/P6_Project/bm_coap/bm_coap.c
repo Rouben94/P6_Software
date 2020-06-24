@@ -106,10 +106,10 @@ static void coap_default_handler(void                * p_context,
  * @section Benchmark Coap Unicast time result response to master
  **************************************************************************************************/
 static void bm_time_result_handler(void                 * p_context,
-                                    otMessage            * p_message,
-                                    const otMessageInfo  * p_message_info)
+                                   otMessage            * p_message,
+                                   const otMessageInfo  * p_message_info)
 {
-    bm_message_info message_info[512];
+    bm_message_info message_info;
 
     do
     {
@@ -124,18 +124,18 @@ static void bm_time_result_handler(void                 * p_context,
             break;
         }
 
-        if (otMessageRead(p_message, otMessageGetOffset(p_message), &message_info, sizeof(&message_info)) != 4)
+        if (otMessageRead(p_message, otMessageGetOffset(p_message), &message_info, sizeof(message_info)) != 40)
         {
             NRF_LOG_INFO("test message handler - missing command");
         }
 
         NRF_LOG_INFO("Got result message");
-        NRF_LOG_INFO("Message %d: %d", message_info[1].message_id, message_info[1].net_time);
+        NRF_LOG_INFO("Message %d: %d", message_info.message_id, message_info.net_time);
 
     } while (false);
 }
 
-void bm_coap_unicast_time_results_send(bm_message_info message_info[512])
+void bm_coap_unicast_time_results_send(bm_message_info message_info)
 {
     otError         error = OT_ERROR_NONE;
     otMessage     * p_request;
@@ -171,7 +171,7 @@ void bm_coap_unicast_time_results_send(bm_message_info message_info[512])
         UNUSED_VARIABLE(otCoapMessageAppendUriPathOptions(p_request, "bm_result"));
         UNUSED_VARIABLE(otCoapMessageSetPayloadMarker(p_request));
 
-        error = otMessageAppend(p_request, &message_info, sizeof(&message_info));
+        error = otMessageAppend(p_request, &message_info, sizeof(message_info));
         if (error != OT_ERROR_NONE)
         {
             break;
@@ -195,8 +195,8 @@ void bm_coap_unicast_time_results_send(bm_message_info message_info[512])
  * @section Benchmark Coap Multicast Benchmark start message
  **************************************************************************************************/
 static void bm_start_handler(void                 * p_context,
-                                       otMessage            * p_message,
-                                       const otMessageInfo  * p_message_info)
+                             otMessage            * p_message,
+                             const otMessageInfo  * p_message_info)
 {
     bm_master_message message;
 
