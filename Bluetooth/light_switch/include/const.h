@@ -18,7 +18,7 @@ static const u8_t net_key[16] = {
 	0xfe,
 };
 static const u8_t dev_key[16] = {
-	0x01,
+	0x02,
 	0x23,
 	0x45,
 	0x67,
@@ -57,15 +57,13 @@ static const u8_t app_key[16] = {
 static const u16_t net_idx=0;
 static const u16_t app_idx=0;
 static const u32_t iv_index=0;
-
+static u8_t flags;
 #if !defined(NODE_ADDR)
-#define NODE_ADDR 0x0b0c
+#define NODE_ADDR 0x0b0e
 #endif
+static u16_t addr = NODE_ADDR;
 
 #define GROUP_ADDR 0xc000
-
-static u8_t flags;
-static u16_t addr = NODE_ADDR;
 
 static const u8_t dev_uuid[16] = { 0xdd, 0xdd };
 

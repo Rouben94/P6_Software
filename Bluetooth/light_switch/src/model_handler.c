@@ -19,7 +19,8 @@
 /* Light switch behavior */
 
 /** Context for a single light switch. */
-struct button {
+struct button
+{
 	/** Current light status of the corresponding server. */
 	bool status;
 	/** Generic OnOff client instance for this switch. */
@@ -27,16 +28,16 @@ struct button {
 };
 
 static void status_handler(struct bt_mesh_onoff_cli *cli,
-			   struct bt_mesh_msg_ctx *ctx,
-			   const struct bt_mesh_onoff_status *status);
+						   struct bt_mesh_msg_ctx *ctx,
+						   const struct bt_mesh_onoff_status *status);
 
 static struct button buttons[4] = {
-	[0 ... 3] = { .client = BT_MESH_ONOFF_CLI_INIT(&status_handler) },
+	[0 ... 3] = {.client = BT_MESH_ONOFF_CLI_INIT(&status_handler)},
 };
 
 static void status_handler(struct bt_mesh_onoff_cli *cli,
-			   struct bt_mesh_msg_ctx *ctx,
-			   const struct bt_mesh_onoff_status *status)
+						   struct bt_mesh_msg_ctx *ctx,
+						   const struct bt_mesh_onoff_status *status)
 {
 	struct button *button =
 		CONTAINER_OF(cli, struct button, client);
@@ -46,17 +47,20 @@ static void status_handler(struct bt_mesh_onoff_cli *cli,
 	dk_set_led(index, status->present_on_off);
 
 	printk("Button %d: Received response: %s\n", index + 1,
-	       status->present_on_off ? "on" : "off");
+		   status->present_on_off ? "on" : "off");
 }
 
 static void button_handler_cb(u32_t pressed, u32_t changed)
 {
-	if (!bt_mesh_is_provisioned()) {
+	if (!bt_mesh_is_provisioned())
+	{
 		return;
 	}
 
-	for (int i = 0; i < 4; ++i) {
-		if (!(pressed & changed & BIT(i))) {
+	for (int i = 0; i < 4; ++i)
+	{
+		if (!(pressed & changed & BIT(i)))
+		{
 			continue;
 		}
 
@@ -69,13 +73,26 @@ static void button_handler_cb(u32_t pressed, u32_t changed)
 		 * make sense to send acknowledged messages to group addresses -
 		 * we won't be able to make use of the responses anyway.
 		 */
-		if (bt_mesh_model_pub_is_unicast(buttons[i].client.model)) {
+		if (bt_mesh_model_pub_is_unicast(buttons[i].client.model))
+		{
 			err = bt_mesh_onoff_cli_set(&buttons[i].client, NULL,
-						    &set, NULL);
-		} else {
+										&set, NULL);
+			printk("Set Ack\n");
+		}
+		else
+		{
+			struct bt_mesh_msg_ctx ctx = {
+				.net_idx = 0,
+				.app_idx = 0,
+				.addr = 0xC000,
+				.send_rel = 0,
+				.send_ttl = 0xFF
+			};
 			err = bt_mesh_onoff_cli_set_unack(&buttons[i].client,
-							  NULL, &set);
-			if (!err) {
+											  &ctx, &set);
+			printk("Set unack\n");
+			if (!err)
+			{
 				/* There'll be no response status for the
 				 * unacked message. Set the state immediately.
 				 */
@@ -84,7 +101,8 @@ static void button_handler_cb(u32_t pressed, u32_t changed)
 			}
 		}
 
-		if (err) {
+		if (err)
+		{
 			printk("OnOff %d set failed: %d\n", i + 1, err);
 		}
 	}
@@ -102,6 +120,9 @@ static struct bt_mesh_cfg_srv cfg_srv = {
 	.net_transmit = BT_MESH_TRANSMIT(2, 20),
 	.relay_retransmit = BT_MESH_TRANSMIT(2, 20),
 };
+
+/** Configuration client definition */
+static struct bt_mesh_cfg_cli cfg_cli = {};
 
 /* Set up a repeating delayed work to blink the DK's LEDs when attention is
  * requested.
@@ -146,23 +167,24 @@ BT_MESH_HEALTH_PUB_DEFINE(health_pub, 0);
 
 static struct bt_mesh_elem elements[] = {
 	BT_MESH_ELEM(1,
-		     BT_MESH_MODEL_LIST(
-			     BT_MESH_MODEL_CFG_SRV(&cfg_srv),
-			     BT_MESH_MODEL_HEALTH_SRV(&health_srv, &health_pub),
-			     BT_MESH_MODEL_ONOFF_CLI(&buttons[0].client)),
-		     BT_MESH_MODEL_NONE),
+				 BT_MESH_MODEL_LIST(
+					 BT_MESH_MODEL_CFG_SRV(&cfg_srv),
+					 BT_MESH_MODEL_CFG_CLI(&cfg_cli),
+					 BT_MESH_MODEL_HEALTH_SRV(&health_srv, &health_pub),
+					 BT_MESH_MODEL_ONOFF_CLI(&buttons[0].client)),
+				 BT_MESH_MODEL_NONE),
 	BT_MESH_ELEM(2,
-		     BT_MESH_MODEL_LIST(
-			     BT_MESH_MODEL_ONOFF_CLI(&buttons[1].client)),
-		     BT_MESH_MODEL_NONE),
+				 BT_MESH_MODEL_LIST(
+					 BT_MESH_MODEL_ONOFF_CLI(&buttons[1].client)),
+				 BT_MESH_MODEL_NONE),
 	BT_MESH_ELEM(3,
-		     BT_MESH_MODEL_LIST(
-			     BT_MESH_MODEL_ONOFF_CLI(&buttons[2].client)),
-		     BT_MESH_MODEL_NONE),
+				 BT_MESH_MODEL_LIST(
+					 BT_MESH_MODEL_ONOFF_CLI(&buttons[2].client)),
+				 BT_MESH_MODEL_NONE),
 	BT_MESH_ELEM(4,
-		     BT_MESH_MODEL_LIST(
-			     BT_MESH_MODEL_ONOFF_CLI(&buttons[3].client)),
-		     BT_MESH_MODEL_NONE),
+				 BT_MESH_MODEL_LIST(
+					 BT_MESH_MODEL_ONOFF_CLI(&buttons[3].client)),
+				 BT_MESH_MODEL_NONE),
 };
 
 static const struct bt_mesh_comp comp = {

@@ -9,17 +9,7 @@
 #include <dk_buttons_and_leds.h>
 #include "model_handler.h"
 
-static void led_set(struct bt_mesh_onoff_srv *srv, struct bt_mesh_msg_ctx *ctx,
-		    const struct bt_mesh_onoff_set *set,
-		    struct bt_mesh_onoff_status *rsp);
 
-static void led_get(struct bt_mesh_onoff_srv *srv, struct bt_mesh_msg_ctx *ctx,
-		    struct bt_mesh_onoff_status *rsp);
-
-static const struct bt_mesh_onoff_srv_handlers onoff_handlers = {
-	.set = led_set,
-	.get = led_get,
-};
 
 struct led_ctx {
 	struct bt_mesh_onoff_srv srv;
@@ -59,29 +49,9 @@ static void led_set(struct bt_mesh_onoff_srv *srv, struct bt_mesh_msg_ctx *ctx,
 		    const struct bt_mesh_onoff_set *set,
 		    struct bt_mesh_onoff_status *rsp)
 {
-	struct led_ctx *led = CONTAINER_OF(srv, struct led_ctx, srv);
-	int led_idx = led - &led_ctx[0];
-
-	if (set->on_off == led->value) {
-		goto respond;
-	}
-
-	led->value = set->on_off;
-	led->remaining = set->transition->time;
-
-	if (set->transition->delay > 0) {
-		k_delayed_work_submit(&led->work,
-				      K_MSEC(set->transition->delay));
-	} else if (set->transition->time > 0) {
-		led_transition_start(led);
-	} else {
-		dk_set_led(led_idx, set->on_off);
-	}
-
-respond:
-	if (rsp) {
-		led_status(led, rsp);
-	}
+	// Set DK LED index
+	dk_set_led(0, set->on_off);
+	rsp->present_on_off = set->on_off;
 }
 
 static void led_get(struct bt_mesh_onoff_srv *srv, struct bt_mesh_msg_ctx *ctx,
@@ -122,6 +92,26 @@ static struct bt_mesh_cfg_srv cfg_srv = {
 	.net_transmit = BT_MESH_TRANSMIT(2, 20),
 	.relay_retransmit = BT_MESH_TRANSMIT(2, 20),
 };
+
+/** Configuration client definition */
+static struct bt_mesh_cfg_cli cfg_cli = {
+};
+
+/** ON/OFF Server definition */
+
+static void led_set(struct bt_mesh_onoff_srv *srv, struct bt_mesh_msg_ctx *ctx,
+		    const struct bt_mesh_onoff_set *set,
+		    struct bt_mesh_onoff_status *rsp);
+
+static void led_get(struct bt_mesh_onoff_srv *srv, struct bt_mesh_msg_ctx *ctx,
+		    struct bt_mesh_onoff_status *rsp);
+
+static const struct bt_mesh_onoff_srv_handlers onoff_handlers = {
+	.set = led_set,
+	.get = led_get,
+};
+
+static struct bt_mesh_onoff_srv srv = BT_MESH_ONOFF_SRV_INIT(&onoff_handlers);
 
 /* Set up a repeating delayed work to blink the DK's LEDs when attention is
  * requested.
@@ -167,18 +157,10 @@ static struct bt_mesh_elem elements[] = {
 	BT_MESH_ELEM(
 		1, BT_MESH_MODEL_LIST(
 			BT_MESH_MODEL_CFG_SRV(&cfg_srv),
+			BT_MESH_MODEL_CFG_CLI(&cfg_cli),
 			BT_MESH_MODEL_HEALTH_SRV(&health_srv, &health_pub),
 			BT_MESH_MODEL_ONOFF_SRV(&led_ctx[0].srv)),
-		BT_MESH_MODEL_NONE),
-	BT_MESH_ELEM(
-		2, BT_MESH_MODEL_LIST(BT_MESH_MODEL_ONOFF_SRV(&led_ctx[1].srv)),
-		BT_MESH_MODEL_NONE),
-	BT_MESH_ELEM(
-		3, BT_MESH_MODEL_LIST(BT_MESH_MODEL_ONOFF_SRV(&led_ctx[2].srv)),
-		BT_MESH_MODEL_NONE),
-	BT_MESH_ELEM(
-		4, BT_MESH_MODEL_LIST(BT_MESH_MODEL_ONOFF_SRV(&led_ctx[3].srv)),
-		BT_MESH_MODEL_NONE),
+		BT_MESH_MODEL_NONE)
 };
 
 static const struct bt_mesh_comp comp = {
