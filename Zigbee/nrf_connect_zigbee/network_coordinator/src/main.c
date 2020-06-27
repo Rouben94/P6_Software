@@ -217,13 +217,13 @@ void error(void)
 	}
 }
 
-void cmd_handler_get_pan_id(void)
+/* void cmd_handler_get_pan_id(void)
 {
 	zb_ext_pan_id_t ext_pan_id;
 	dk_set_led_on(DK_LED4);
 	zb_get_extended_pan_id(*ext_pan_id);
 	LOG_INF("\n\r PAN ID: %d", ext_pan_id);
-}
+} */
 void cmd_handler_test_off(void)
 {
 	dk_set_led_off(DK_LED4);
@@ -237,7 +237,7 @@ void cmd_handler_test_on(void)
 
 SHELL_CMD_REGISTER(test_on, NULL, "Test Command LED4 on", cmd_handler_test_on);
 SHELL_CMD_REGISTER(test_off, NULL, "Test Command LED4 off", cmd_handler_test_off);
-SHELL_CMD_REGISTER(bm_get_pan_id, NULL, "Get PAN ID of the Zigbee Network", cmd_handler_get_pan_id);
+//SHELL_CMD_REGISTER(bm_get_pan_id, NULL, "Get PAN ID of the Zigbee Network", cmd_handler_get_pan_id);
 
 
 void main(void)
