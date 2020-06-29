@@ -61,8 +61,6 @@
 #include "bm_statemachine.h"
 #include "bm_board_support_config.h"
 
-
-
 #include <openthread/instance.h>
 #include <openthread/network_time.h>
 #include <openthread/platform/time.h>
@@ -85,7 +83,6 @@ static void bsp_event_handler(bsp_event_t event)
     {
         case BSP_EVENT_KEY_0:
             NRF_LOG_INFO("Button short press");
-
 #ifdef BM_CLIENT
             thread_coap_utils_provisioning_request_send();
 #endif
@@ -176,7 +173,8 @@ static void thread_instance_init(void)
     thread_configuration_t thread_configuration = 
     {
         .radio_mode = THREAD_RADIO_MODE_RX_ON_WHEN_IDLE,
-        .autocommissioning = false,
+        .autocommissioning = true,
+        .autostart_disable = false
     };
 
     thread_init(&thread_configuration);

@@ -157,11 +157,13 @@ static void thread_instance_init(void)
     thread_configuration_t thread_configuration =
     {
         .radio_mode        = THREAD_RADIO_MODE_RX_ON_WHEN_IDLE,
-        .autocommissioning = false,
+        .autocommissioning = true,
+        .autostart_disable = false
     };
 
     thread_init(&thread_configuration);
     thread_cli_init();
+    bm_custom_cli_init();
     thread_state_changed_callback_set(thread_state_changed_callback);
 }
 
@@ -203,7 +205,6 @@ int main(int argc, char *argv[])
     thread_instance_init();
     thread_coap_init();
     thread_bsp_init();
-    bm_custom_cli_init();
 
     while (true)
     {

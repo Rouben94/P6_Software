@@ -1,15 +1,15 @@
 MEMORY
 {
   UNPLACED_SECTIONS (wx) : ORIGIN = 0x100000000, LENGTH = 0
-  ot_flash_data (wx) : ORIGIN = 0x000fc000, LENGTH = 0x00004000
+  ot_flash_data (wx) : ORIGIN = 0x000dc000, LENGTH = 0x00004000
   RAM (wx) : ORIGIN = 0x20000000, LENGTH = 0x00040000
   FLASH (wx) : ORIGIN = 0x00000000, LENGTH = 0x00100000
 }
 
 SECTIONS
 {
-  __ot_flash_data_segment_start__ = 0x000fc000;
-  __ot_flash_data_segment_end__ = 0x00100000;
+  __ot_flash_data_segment_start__ = 0x000dc000;
+  __ot_flash_data_segment_end__ = 0x000e0000;
   __ot_flash_data_segment_size__ = 0x00004000;
   __RAM_segment_start__ = 0x20000000;
   __RAM_segment_end__ = 0x20040000;
@@ -22,8 +22,8 @@ SECTIONS
   __STACKSIZE_PROCESS__ = 0;
   __STACKSIZE__ = 8192;
 
-  __ot_flash_data_load_start__ = 0xfc000;
-  .ot_flash_data 0xfc000 : AT(0xfc000)
+  __ot_flash_data_load_start__ = 0xdc000;
+  .ot_flash_data 0xdc000 : AT(0xdc000)
   {
     __ot_flash_data_start__ = .;
     __start_ot_flash_data =   __ot_flash_data_start__;
@@ -35,13 +35,26 @@ SECTIONS
   __stop_ot_flash_data =   __ot_flash_data_end__;
   __ot_flash_data_load_end__ = __ot_flash_data_end__;
 
-  __ot_flash_data_segment_used_end__ = 0xfc000 + SIZEOF(.ot_flash_data);
+  __ot_flash_data_segment_used_end__ = 0xdc000 + SIZEOF(.ot_flash_data);
   __ot_flash_data_segment_used_size__ = __ot_flash_data_segment_used_end__ - __ot_flash_data_segment_start__;
 
   . = ASSERT(__ot_flash_data_start__ == __ot_flash_data_end__ || (__ot_flash_data_end__ - __ot_flash_data_segment_start__) <= __ot_flash_data_segment_size__ , "error: .ot_flash_data is too large to fit in ot_flash_data memory segment");
 
-  __vectors_ram_load_start__ = 0x20000000;
-  .vectors_ram 0x20000000 (NOLOAD) : AT(0x20000000)
+  __reserved_ram_load_start__ = 0x20000000;
+  .reserved_ram 0x20000000 (NOLOAD) : AT(0x20000000)
+  {
+    __reserved_ram_start__ = .;
+    *(.reserved_ram .reserved_ram.*)
+    . = MAX(__reserved_ram_start__ + 0x20000008-0x20000000 , .);
+  }
+  __reserved_ram_end__ = __reserved_ram_start__ + SIZEOF(.reserved_ram);
+  __reserved_ram_size__ = SIZEOF(.reserved_ram);
+  __reserved_ram_load_end__ = __reserved_ram_end__;
+
+  . = ASSERT(__reserved_ram_start__ == __reserved_ram_end__ || (__reserved_ram_end__ - __RAM_segment_start__) <= __RAM_segment_size__ , "error: .reserved_ram is too large to fit in RAM memory segment");
+
+  __vectors_ram_load_start__ = 0x20000008;
+  .vectors_ram 0x20000008 (NOLOAD) : AT(0x20000008)
   {
     __vectors_ram_start__ = .;
     __app_ram_start__ =   __vectors_ram_start__;
@@ -52,6 +65,7 @@ SECTIONS
   __vectors_ram_load_end__ = __vectors_ram_end__;
 
   . = ASSERT(__vectors_ram_start__ == __vectors_ram_end__ || (__vectors_ram_end__ - __RAM_segment_start__) <= __RAM_segment_size__ , "error: .vectors_ram is too large to fit in RAM memory segment");
+  . = ASSERT(__reserved_ram_end__ <= __vectors_ram_start__ , "error: section .reserved_ram overlaps absolute placed section .vectors_ram");
 
   __nrf_sections_run_load_start__ = ALIGN(__vectors_ram_end__ , 4);
   .nrf_sections_run ALIGN(__vectors_ram_end__ , 4) (NOLOAD) : AT(ALIGN(__vectors_ram_end__ , 4))
@@ -66,8 +80,21 @@ SECTIONS
 
   . = ASSERT(__nrf_sections_run_start__ == __nrf_sections_run_end__ || (__nrf_sections_run_end__ - __RAM_segment_start__) <= __RAM_segment_size__ , "error: .nrf_sections_run is too large to fit in RAM memory segment");
 
-  __vectors_load_start__ = 0x0;
-  .vectors 0x0 : AT(0x0)
+  __reserved_flash_load_start__ = 0x0;
+  .reserved_flash 0x0 (NOLOAD) : AT(0x0)
+  {
+    __reserved_flash_start__ = .;
+    *(.reserved_flash .reserved_flash.*)
+    . = MAX(__reserved_flash_start__ + 0x1000-0x0 , .);
+  }
+  __reserved_flash_end__ = __reserved_flash_start__ + SIZEOF(.reserved_flash);
+  __reserved_flash_size__ = SIZEOF(.reserved_flash);
+  __reserved_flash_load_end__ = __reserved_flash_end__;
+
+  . = ASSERT(__reserved_flash_start__ == __reserved_flash_end__ || (__reserved_flash_end__ - __FLASH_segment_start__) <= __FLASH_segment_size__ , "error: .reserved_flash is too large to fit in FLASH memory segment");
+
+  __vectors_load_start__ = 0x1000;
+  .vectors 0x1000 : AT(0x1000)
   {
     __vectors_start__ = .;
     *(.vectors .vectors.*)
@@ -77,6 +104,7 @@ SECTIONS
   __vectors_load_end__ = __vectors_end__;
 
   . = ASSERT(__vectors_start__ == __vectors_end__ || (__vectors_end__ - __FLASH_segment_start__) <= __FLASH_segment_size__ , "error: .vectors is too large to fit in FLASH memory segment");
+  . = ASSERT(__reserved_flash_end__ <= __vectors_start__ , "error: section .reserved_flash overlaps absolute placed section .vectors");
 
   __init_load_start__ = ALIGN(__vectors_end__ , 4);
   .init ALIGN(__vectors_end__ , 4) : AT(ALIGN(__vectors_end__ , 4))

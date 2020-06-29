@@ -1,6 +1,7 @@
 <!DOCTYPE Linker_Placement_File>
 <Root name="Flash Section Placement">
   <MemorySegment name="FLASH" start="$(FLASH_PH_START)" size="$(FLASH_PH_SIZE)">
+    <ProgramSection load="no" name=".reserved_flash" start="$(FLASH_PH_START)" size="$(FLASH_START)-$(FLASH_PH_START)" />
     <ProgramSection alignment="0x100" load="Yes" name=".vectors" start="$(FLASH_START)" />
     <ProgramSection alignment="4" load="Yes" name=".init" />
     <ProgramSection alignment="4" load="Yes" name=".init_rodata" />
@@ -21,6 +22,7 @@
     <ProgramSection alignment="4" load="Yes" runin=".tdata_run" name=".tdata" />
   </MemorySegment>
   <MemorySegment name="RAM" start="$(RAM_PH_START)" size="$(RAM_PH_SIZE)">
+    <ProgramSection load="no" name=".reserved_ram" start="$(RAM_PH_START)" size="$(RAM_START)-$(RAM_PH_START)" />
     <ProgramSection alignment="0x100" load="No" name=".vectors_ram" start="$(RAM_START)" address_symbol="__app_ram_start__"/>
     <ProgramSection alignment="4" keep="Yes" load="No" name=".nrf_sections_run" address_symbol="__start_nrf_sections_run" />
     <ProgramSection alignment="4" keep="Yes" load="No" name=".log_dynamic_data_run" address_symbol="__start_log_dynamic_data" end_symbol="__stop_log_dynamic_data" />
@@ -36,7 +38,7 @@
     <ProgramSection alignment="8" size="__STACKSIZE__" load="No" place_from_segment_end="Yes" name=".stack"  address_symbol="__StackLimit" end_symbol="__StackTop"/>
     <ProgramSection alignment="8" size="__STACKSIZE_PROCESS__" load="No" name=".stack_process" />
   </MemorySegment>
-  <MemorySegment name="ot_flash_data" start="0xfc000" size="0x4000">
-    <ProgramSection alignment="4" keep="Yes" load="Yes" name=".ot_flash_data" address_symbol="__start_ot_flash_data" end_symbol="__stop_ot_flash_data" start = "0xfc000" size="0x4000" />
+  <MemorySegment name="ot_flash_data" start="0xdc000" size="0x4000">
+    <ProgramSection alignment="4" keep="Yes" load="Yes" name=".ot_flash_data" address_symbol="__start_ot_flash_data" end_symbol="__stop_ot_flash_data" start = "0xdc000" size="0x4000" />
   </MemorySegment>
 </Root>

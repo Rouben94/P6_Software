@@ -20,8 +20,6 @@ otCliCommand bm_cli_usercommands[2] = {
 
 bm_master_message master_message;
 
-static thread_coap_utils_light_command_t m_command = THREAD_COAP_UTILS_LIGHT_CMD_OFF; /**< This variable stores command that has been most recently used. */
-
 void bm_cli_benchmark_start(uint8_t aArgsLength, char *aArgs[]) {
     NRF_LOG_INFO("Benchmark start");
     NRF_LOG_INFO("Argument: %s", aArgs[0]);
@@ -57,9 +55,11 @@ void bm_cli_write_result(uint64_t time, uint16_t ID)
 
     otCliOutput(buf1, sizeof(buf1));
     otCliOutput(buf2, sizeof(buf2));
+
+    otCliOutput("done \r\n", sizeof("done \r\n"));
 }
 
 /**@brief Function for initialize custom cli commands */
 void bm_custom_cli_init(void){
-    otCliSetUserCommands(bm_cli_usercommands, sizeof(bm_cli_usercommands));
+    otCliSetUserCommands(bm_cli_usercommands, 2 * sizeof(bm_cli_usercommands[0]));
 }
