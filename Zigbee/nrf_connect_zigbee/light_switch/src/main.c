@@ -275,6 +275,7 @@ static void light_switch_send_step(zb_bufid_t bufid, zb_uint16_t is_step_up)
 					   step_dir,
 					   DIMM_STEP,
 					   DIMM_TRANSACTION_TIME);
+	
 }
 
 /**@brief Function for sending add group request. As a result all light bulb's

@@ -27,9 +27,6 @@
 #include <zb_error_handler.h>
 #include <zb_nrf_platform.h>
 
-//#define RUN_STATUS_LED                  DK_LED1
-#define RUN_TEST_LED              	    DK_LED2						
-
 /*
 nRF52840-Dongle LEDs and Buttons
 DK_LED1 --> green
@@ -39,7 +36,7 @@ DK_LED4 --> blue
 DK_BTN1 --> Button 1
 */
 
-//#define RUN_STATUS_LED                  DT_ALIAS(led0)
+#define RUN_STATUS_LED                  DK_LED1
 #define RUN_LED_BLINK_INTERVAL          1000
 
 /* Device endpoint, used to receive light controlling commands. */
@@ -81,8 +78,7 @@ DK_BTN1 --> Button 1
 #define BULB_INIT_BASIC_PH_ENV          ZB_ZCL_BASIC_ENV_UNSPECIFIED
 
 /* LED indicating that light switch successfully joind Zigbee network. */
-//#define ZIGBEE_NETWORK_STATE_LED        DK_LED3
-#define ZIGBEE_NETWORK_STATE_LED        DK_LED1
+#define ZIGBEE_NETWORK_STATE_LED        DK_LED3
 uint8_t toggle = 0;
 
 /* LED immitaing dimmable light bulb - define for informational
@@ -518,7 +514,7 @@ void error(void)
 
 void main(void)
 {
-	//int blink_status = 0;
+	int blink_status = 0;
 
 	LOG_INF("Starting ZBOSS Light Bulb example");
 
@@ -540,11 +536,11 @@ void main(void)
 	LOG_INF("ZBOSS Light Bulb example started");
 
 	while (1) {
-		//dk_set_led(RUN_STATUS_LED, (++blink_status) % 2);
+		dk_set_led(RUN_STATUS_LED, (++blink_status) % 2);
 		//dk_set_led(RUN_TEST_LED, (++blink_status) % 2);
 
 		//dk_set_led(RUN_TEST_LED, (++blink_status) % 2);
 
-		//k_sleep(K_MSEC(RUN_LED_BLINK_INTERVAL));
+		k_sleep(K_MSEC(RUN_LED_BLINK_INTERVAL));
 	}
 }

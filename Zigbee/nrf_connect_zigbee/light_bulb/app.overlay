@@ -10,7 +10,7 @@
 
 	pwmleds {
 		pwm_led3: pwm_led_3 {
-			pwms = <&pwm0 12>;
+			pwms = <&pwm0 16>;
 		};
 	};
 };
