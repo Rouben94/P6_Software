@@ -51,6 +51,9 @@
 /* Button ID used to enable sleepy behavior. */
 #define BUTTON_SLEEPY              DK_BTN3_MSK
 
+#define DEFAULT_GROUP_ID                    0xB331                              /**< Group ID, which will be used to control all light sources with a single command. */
+
+
 /* Transition time for a single step operation in 0.1 sec units.
  * 0xFFFF - immediate change.
  */
@@ -115,7 +118,6 @@ ZB_HA_DECLARE_DIMMER_SWITCH_CTX(dimmer_switch_ctx, dimmer_switch_ep);
 /* Forward declarations */
 static void light_switch_button_handler(zb_uint8_t button);
 static void find_light_bulb(zb_bufid_t bufid);
-static void find_light_bulb_timeout(zb_bufid_t bufid);
 static void light_switch_send_on_off(zb_bufid_t bufid, zb_uint16_t on_off);
 
 
@@ -133,29 +135,29 @@ static void button_handler(u32_t button_state, u32_t has_changed)
 	/* Inform default signal handler about user input at the device. */
 	user_input_indicate();
 
-	if (device_ctx.bulb_params.short_addr == 0xFFFF) {
-		LOG_DBG("No bulb found yet.");
-		return;
-	}
+	//if (device_ctx.bulb_params.short_addr == 0xFFFF) {
+	//	LOG_INF("No bulb found yet.");
+	//	return;
+	//}
 
 	switch (has_changed) {
 	case BUTTON_ON:
-		LOG_DBG("ON - button changed");
+		LOG_INF("ON - button changed");
 		on_off = ZB_TRUE;
 		break;
 	case BUTTON_OFF:
-		LOG_DBG("OFF - button changed");
+		LOG_INF("OFF - button changed");
 		on_off = ZB_FALSE;
 		break;
 	default:
-		LOG_DBG("Unhandled button");
+		LOG_INF("Unhandled button");
 		return;
 	}
 
 	switch (button_state) {
 	case BUTTON_ON:
 	case BUTTON_OFF:
-		LOG_DBG("Button pressed");
+		LOG_INF("Button pressed");
 		atomic_set(&device_ctx.button.in_progress, ZB_TRUE);
 		zb_err_code = zigbee_schedule_alarm(light_switch_button_handler,
 						    button_state,
@@ -210,10 +212,11 @@ static void light_switch_send_on_off(zb_bufid_t bufid, zb_uint16_t on_off)
 {
 	u8_t cmd_id = on_off ? ZB_ZCL_CMD_ON_OFF_ON_ID
 			     : ZB_ZCL_CMD_ON_OFF_OFF_ID;
+	zb_uint16_t          group_id = DEFAULT_GROUP_ID;
 
-	LOG_INF("Send ON/OFF command: %d", on_off);
+	LOG_INF("Send ON/OFF command: %d to group id: %d", on_off, group_id);
 
-	ZB_ZCL_ON_OFF_SEND_REQ(bufid,
+/* 	ZB_ZCL_ON_OFF_SEND_REQ(bufid,
 			       device_ctx.bulb_params.short_addr,
 			       ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
 			       device_ctx.bulb_params.endpoint,
@@ -221,7 +224,17 @@ static void light_switch_send_on_off(zb_bufid_t bufid, zb_uint16_t on_off)
 			       ZB_AF_HA_PROFILE_ID,
 			       ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
 			       cmd_id,
-			       NULL);
+			       NULL); */
+
+	ZB_ZCL_ON_OFF_SEND_REQ(bufid,
+			       group_id,
+			       ZB_APS_ADDR_MODE_16_GROUP_ENDP_NOT_PRESENT,
+			       0,
+			       LIGHT_SWITCH_ENDPOINT,
+			       ZB_AF_HA_PROFILE_ID,
+			       ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
+			       cmd_id,
+			       NULL);			   
 }
 
 /**@brief Function for sending step requests to the light bulb.
@@ -235,10 +248,11 @@ static void light_switch_send_step(zb_bufid_t bufid, zb_uint16_t is_step_up)
 {
 	u8_t step_dir = is_step_up ? ZB_ZCL_LEVEL_CONTROL_STEP_MODE_UP :
 				     ZB_ZCL_LEVEL_CONTROL_STEP_MODE_DOWN;
+	zb_uint16_t          group_id = DEFAULT_GROUP_ID;
 
 	LOG_INF("Send step level command: %d", is_step_up);
 
-	ZB_ZCL_LEVEL_CONTROL_SEND_STEP_REQ(bufid,
+/* 	ZB_ZCL_LEVEL_CONTROL_SEND_STEP_REQ(bufid,
 					   device_ctx.bulb_params.short_addr,
 					   ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
 					   device_ctx.bulb_params.endpoint,
@@ -248,53 +262,89 @@ static void light_switch_send_step(zb_bufid_t bufid, zb_uint16_t is_step_up)
 					   NULL,
 					   step_dir,
 					   DIMM_STEP,
+					   DIMM_TRANSACTION_TIME); */
+	
+	ZB_ZCL_LEVEL_CONTROL_SEND_STEP_REQ(bufid,
+					   group_id,
+					   ZB_APS_ADDR_MODE_16_GROUP_ENDP_NOT_PRESENT,
+					   0,
+					   LIGHT_SWITCH_ENDPOINT,
+					   ZB_AF_HA_PROFILE_ID,
+					   ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
+					   NULL,
+					   step_dir,
+					   DIMM_STEP,
 					   DIMM_TRANSACTION_TIME);
+}
+
+/**@brief Function for sending add group request. As a result all light bulb's
+ *        light controlling endpoints will participate in the same group.
+ *
+ * @param[in]   bufid   Non-zero reference to Zigbee stack buffer that will be used to construct add group request.
+ */
+static void add_group(zb_bufid_t bufid)
+{
+    zb_zdo_match_desc_resp_t   * p_resp = (zb_zdo_match_desc_resp_t *) zb_buf_begin(bufid);    // Get the begining of the response
+    zb_apsde_data_indication_t * p_ind  = ZB_BUF_GET_PARAM(bufid, zb_apsde_data_indication_t); // Get the pointer to the parameters buffer, which stores APS layer response
+    zb_uint16_t                  dst_addr = p_ind->src_addr;
+    zb_uint8_t                   dst_ep = *(zb_uint8_t *)(p_resp + 1);
+
+    LOG_INF("Include device 0x%x, ep %d to the group 0x%x", dst_addr, dst_ep, DEFAULT_GROUP_ID);
+
+    ZB_ZCL_GROUPS_SEND_ADD_GROUP_REQ(bufid,
+                                     dst_addr,
+                                     ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
+                                     dst_ep,
+                                     LIGHT_SWITCH_ENDPOINT,
+                                     ZB_AF_HA_PROFILE_ID,
+                                     ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
+                                     NULL,
+                                     DEFAULT_GROUP_ID);
 }
 
 /**@brief Callback function receiving finding procedure results.
  *
- * @param[in]   bufid   Reference to Zigbee stack buffer used to pass
- *                      received data.
+ * @param[in]   bufid   Reference to Zigbee stack buffer used to pass received data.
  */
-static void find_light_bulb_cb(zb_bufid_t bufid)
+static zb_void_t find_light_bulb_cb(zb_bufid_t bufid)
 {
-	/* Get the beginning of the response. */
-	zb_zdo_match_desc_resp_t *resp =
-			       (zb_zdo_match_desc_resp_t *) zb_buf_begin(bufid);
-	/* Get the pointer to the parameters buffer, which stores APS layer
-	 * response.
-	 */
-	zb_apsde_data_indication_t *ind  = ZB_BUF_GET_PARAM(bufid,
-						    zb_apsde_data_indication_t);
-	zb_uint8_t *match_ep;
+    zb_zdo_match_desc_resp_t   * p_resp = (zb_zdo_match_desc_resp_t *) zb_buf_begin(bufid);    // Get the begining of the response
+    zb_apsde_data_indication_t * p_ind  = ZB_BUF_GET_PARAM(bufid, zb_apsde_data_indication_t); // Get the pointer to the parameters buffer, which stores APS layer response
+    zb_uint8_t                 * p_match_ep;
+    zb_ret_t                     zb_err_code;
+    static zb_bool_t             bulb_found = ZB_FALSE;
 
-	if ((resp->status == ZB_ZDP_STATUS_SUCCESS) &&
-		(resp->match_len > 0) &&
-		(device_ctx.bulb_params.short_addr == 0xFFFF)) {
+    if ((p_resp->status == ZB_ZDP_STATUS_SUCCESS) && (p_resp->match_len > 0))
+    {
+        /* Match EP list follows right after response header */
+        p_match_ep = (zb_uint8_t *)(p_resp + 1);
 
-		/* Match EP list follows right after response header */
-		match_ep = (zb_uint8_t *)(resp + 1);
+        LOG_INF("Found bulb addr: 0x%x ep: %d", p_ind->src_addr, *p_match_ep);
+        bulb_found = ZB_TRUE;
 
-		/* We are searching for exact cluster, so only 1 EP
-		 * may be found.
-		 */
-		device_ctx.bulb_params.endpoint   = *match_ep;
-		device_ctx.bulb_params.short_addr = ind->src_addr;
+        zb_err_code = ZB_SCHEDULE_APP_CALLBACK(add_group, bufid);
+        ZB_ERROR_CHECK(zb_err_code);
+        bufid = 0;
+    }
+    else if (p_resp->status == ZB_ZDP_STATUS_TIMEOUT)
+    {
+        if (bulb_found)
+        {
+			dk_set_led_on(BULB_FOUND_LED);
+        }
+        else
+        {
+            LOG_INF("Bulb not found, try again");
+            zb_err_code = ZB_SCHEDULE_APP_ALARM(find_light_bulb, bufid, MATCH_DESC_REQ_START_DELAY);
+            ZB_ERROR_CHECK(zb_err_code);
+            bufid = 0; // Do not free buffer - it will be reused by find_light_bulb callback
+        }
+    }
 
-		LOG_INF("Found bulb addr: %d ep: %d",
-			device_ctx.bulb_params.short_addr,
-			device_ctx.bulb_params.endpoint);
-
-		zb_ret_t zb_err_code = ZB_SCHEDULE_APP_ALARM_CANCEL(
-				   find_light_bulb_timeout, ZB_ALARM_ANY_PARAM);
-		ZB_ERROR_CHECK(zb_err_code);
-
-		dk_set_led_on(BULB_FOUND_LED);
-	}
-
-	if (bufid) {
-		zb_buf_free(bufid);
-	}
+    if (bufid)
+    {
+        zb_buf_free(bufid);
+    }
 }
 
 /**@brief Function for sending ON/OFF and Level Control find request.
@@ -304,53 +354,23 @@ static void find_light_bulb_cb(zb_bufid_t bufid)
  */
 static void find_light_bulb(zb_bufid_t bufid)
 {
-	zb_zdo_match_desc_param_t *req;
+	zb_zdo_match_desc_param_t * p_req;
 
-	/* Initialize pointers inside buffer and reserve space for
-	 * zb_zdo_match_desc_param_t request.
-	 */
-	req = zb_buf_initial_alloc(bufid,
-		sizeof(zb_zdo_match_desc_param_t) + (1) * sizeof(zb_uint16_t));
+    /* Initialize pointers inside buffer and reserve space for zb_zdo_match_desc_param_t request */
+    p_req = zb_buf_initial_alloc(bufid, sizeof(zb_zdo_match_desc_param_t) + (1) * sizeof(zb_uint16_t));
 
-	req->nwk_addr         = MATCH_DESC_REQ_ROLE;
-	req->addr_of_interest = MATCH_DESC_REQ_ROLE;
-	req->profile_id       = ZB_AF_HA_PROFILE_ID;
+    p_req->nwk_addr         = MATCH_DESC_REQ_ROLE;              // Send to devices specified by MATCH_DESC_REQ_ROLE
+    p_req->addr_of_interest = MATCH_DESC_REQ_ROLE;              // Get responses from devices specified by MATCH_DESC_REQ_ROLE
+    p_req->profile_id       = ZB_AF_HA_PROFILE_ID;              // Look for Home Automation profile clusters
 
-	/* We are searching for 2 clusters: On/Off and Level Control Server */
-	req->num_in_clusters  = 2;
-	req->num_out_clusters = 0;
-	req->cluster_list[0]  = ZB_ZCL_CLUSTER_ID_ON_OFF;
-	req->cluster_list[1]  = ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL;
-
-	/* Set 0xFFFF to reset short address in order to parse
-	 * only one response.
-	 */
-	device_ctx.bulb_params.short_addr = 0xFFFF;
+    /* We are searching for 2 clusters: On/Off and Level Control Server */
+    p_req->num_in_clusters  = 2;
+    p_req->num_out_clusters = 0;
+    /*lint -save -e415 // Suppress warning 415 "likely access of out-of-bounds pointer" */
+    p_req->cluster_list[0]  = ZB_ZCL_CLUSTER_ID_ON_OFF;
+    p_req->cluster_list[1]  = ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL;
+    /*lint -restore */
 	(void)zb_zdo_match_desc_req(bufid, find_light_bulb_cb);
-}
-
-/**@brief Finding procedure timeout handler.
- *
- * @param[in]   bufid   Reference to Zigbee stack buffer that will be used to
- *                      construct find request.
- */
-static void find_light_bulb_timeout(zb_bufid_t bufid)
-{
-	zb_ret_t zb_err_code;
-
-	if (bufid) {
-		LOG_INF("Bulb not found, try again");
-
-		zb_err_code = zigbee_schedule_alarm(find_light_bulb, bufid,
-						    MATCH_DESC_REQ_START_DELAY);
-		ZB_ERROR_CHECK(zb_err_code);
-		zb_err_code = zigbee_schedule_alarm(find_light_bulb_timeout, 0,
-						    MATCH_DESC_REQ_TIMEOUT);
-		ZB_ERROR_CHECK(zb_err_code);
-	} else {
-		zb_err_code = zb_buf_get_out_delayed(find_light_bulb_timeout);
-		ZB_ERROR_CHECK(zb_err_code);
-	}
 }
 
 /**@brief Callback for detecting button press duration.
@@ -405,22 +425,11 @@ void zboss_signal_handler(zb_bufid_t bufid)
 	case ZB_BDB_SIGNAL_STEERING:
 		/* Call default signal handler. */
 		ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
-		if (status == RET_OK) {
-			/* Check the light device address */
-			if (device_ctx.bulb_params.short_addr == 0xFFFF) {
-				zb_err_code = zigbee_schedule_alarm(
-						    find_light_bulb, bufid,
-						    MATCH_DESC_REQ_START_DELAY);
-				ZB_ERROR_CHECK(zb_err_code);
-				zb_err_code = zigbee_schedule_alarm(
-						find_light_bulb_timeout, 0,
-						MATCH_DESC_REQ_TIMEOUT);
-				ZB_ERROR_CHECK(zb_err_code);
-				/* Do not free buffer - it will be reused by
-				 * find_light_bulb callback.
-				 */
-				bufid = 0;
-			}
+		if (status == RET_OK) 
+		{
+			zb_err_code = ZB_SCHEDULE_APP_ALARM(find_light_bulb, bufid, MATCH_DESC_REQ_START_DELAY);
+            ZB_ERROR_CHECK(zb_err_code);
+            bufid = 0; // Do not free buffer - it will be reused by find_light_bulb callback.
 		}
 		break;
 	default:
@@ -452,7 +461,7 @@ void main(void)
 	memset(&device_ctx, 0, sizeof(struct light_switch_ctx));
 
 	/* Set default bulb short_addr. */
-	device_ctx.bulb_params.short_addr = 0xFFFF;
+	//device_ctx.bulb_params.short_addr = 0xFFFF;
 
 	/* Register dimmer switch device context (endpoints). */
 	ZB_AF_REGISTER_DEVICE_CTX(&dimmer_switch_ctx);

@@ -28,8 +28,16 @@
 #include <zb_nrf_platform.h>
 
 //#define RUN_STATUS_LED                  DK_LED1
-#define RUN_TEST_LED              	    DK_LED2
-#define TEST_BUTTON           			DK_BTN1_MSK
+#define RUN_TEST_LED              	    DK_LED2						
+
+/*
+nRF52840-Dongle LEDs and Buttons
+DK_LED1 --> green
+DK_LED2 --> red
+DK_LED3 --> green
+DK_LED4 --> blue
+DK_BTN1 --> Button 1
+*/
 
 //#define RUN_STATUS_LED                  DT_ALIAS(led0)
 #define RUN_LED_BLINK_INTERVAL          1000
@@ -80,12 +88,10 @@ uint8_t toggle = 0;
 /* LED immitaing dimmable light bulb - define for informational
  * purposes only.
  */
-//#define BULB_LED                        DK_LED4
 #define BULB_LED                        DK_LED4
 
 /* Button used to enter the Bulb into the Identify mode. */
-#define IDENTIFY_MODE_BUTTON            DK_BTN4_MSK
-#define TEST_MODE_BUTTON				DK_BTN1_MSK
+#define IDENTIFY_MODE_BUTTON            DK_BTN1_MSK
 
 /* Use onboard led4 to act as a light bulb.
  * The app.overlay file has this at node label "pwm_led3" in /pwmleds.
@@ -226,9 +232,7 @@ static void button_changed(u32_t button_state, u32_t has_changed)
 			zb_bdb_finding_binding_target_cancel();
 		}
 	}
-	if (buttons & TEST_MODE_BUTTON) {
-		dk_set_led(ZIGBEE_NETWORK_STATE_LED,(++toggle)%2);
-	}
+	
 }
 
 /**@brief Function for initializing additional PWM leds. */
@@ -487,7 +491,7 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid)
 void zboss_signal_handler(zb_bufid_t bufid)
 {
 	/* Update network status LED. */
-	//zigbee_led_status_update(bufid, ZIGBEE_NETWORK_STATE_LED);
+	zigbee_led_status_update(bufid, ZIGBEE_NETWORK_STATE_LED);
 
 	/* No application-specific behavior is required.
 	 * Call default signal handler.
@@ -514,7 +518,7 @@ void error(void)
 
 void main(void)
 {
-	int blink_status = 0;
+	//int blink_status = 0;
 
 	LOG_INF("Starting ZBOSS Light Bulb example");
 
