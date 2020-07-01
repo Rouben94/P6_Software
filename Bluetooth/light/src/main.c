@@ -53,12 +53,8 @@ static void bt_ready(int err){
 
 	/* ------------- Provisioning ------------*/
 	printk("Provisioning...\n");
-	//sys_rand_get(dev_key,sizeof(dev_key)); // Generate Random Dev Key
-	//addr = (dev_uuid[1] << 8) | dev_uuid[0];
 	addr = (dev_uuid[1] << 8) | dev_uuid[0];
-	addr &= ~(1U << 15); // Limit the Address Range from 0-0x7FFF, 0-32767
-	/* This will be a no-op if settings_load() loaded provisioning info */
-	//bt_mesh_prov_enable(BT_MESH_PROV_ADV | BT_MESH_PROV_GATT);	
+	addr &= ~(1U << 15); // Limit the Address Range from 0-0x7FFF, 0-32767	
 	if (IS_ENABLED(CONFIG_SETTINGS))
 	{
 		settings_load();
