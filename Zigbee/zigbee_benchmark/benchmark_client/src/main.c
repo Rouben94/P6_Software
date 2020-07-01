@@ -326,20 +326,32 @@ static zb_void_t find_light_bulb_cb(zb_bufid_t bufid)
         zb_err_code = ZB_SCHEDULE_APP_CALLBACK(add_group, bufid);
         ZB_ERROR_CHECK(zb_err_code);
         bufid = 0;
-    }
-    else if (p_resp->status == ZB_ZDP_STATUS_TIMEOUT)
-    {
-        if (bulb_found)
+
+		if (bulb_found)
         {
 			dk_set_led_on(BULB_FOUND_LED);
         }
-        else
+    }
+    else if (p_resp->status == ZB_ZDP_STATUS_TIMEOUT)
+    {
+		if (bulb_found)
         {
-            LOG_INF("Bulb not found, try again");
-            zb_err_code = ZB_SCHEDULE_APP_ALARM(find_light_bulb, bufid, MATCH_DESC_REQ_START_DELAY);
-            ZB_ERROR_CHECK(zb_err_code);
-            bufid = 0; // Do not free buffer - it will be reused by find_light_bulb callback
+            dk_set_led_off(BULB_FOUND_LED);
+			k_sleep(K_MSEC(200));
+			dk_set_led_on(BULB_FOUND_LED);
+			k_sleep(K_MSEC(200));
+			dk_set_led_off(BULB_FOUND_LED);
+			k_sleep(K_MSEC(200));
+			dk_set_led_on(BULB_FOUND_LED);
+			LOG_INF("Bulb found, Finding Light Bulbs finished");
         }
+		else
+		{
+			LOG_INF("Bulb not found, try again");
+       		zb_err_code = ZB_SCHEDULE_APP_ALARM(find_light_bulb, bufid, MATCH_DESC_REQ_START_DELAY);
+        	ZB_ERROR_CHECK(zb_err_code);
+        	bufid = 0; // Do not free buffer - it will be reused by find_light_bulb callback
+		}
     }
 
     if (bufid)
