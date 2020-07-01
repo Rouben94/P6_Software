@@ -26,12 +26,14 @@ uint8_t   bm_actual_state = 0;
 /***************************************************************************************************
  * @section State machine - Functions
  **************************************************************************************************/
-void bm_save_message_info(uint16_t id)
+void bm_save_message_info(uint16_t id, uint16_t number_of_hops, bool data_size)
 {
     uint64_t time;
     otNetworkTimeGet(thread_ot_instance_get(), &time);
     message_info[bm_message_info_nr].net_time = time;
     message_info[bm_message_info_nr].message_id = id;
+    message_info[bm_message_info_nr].data_size = data_size;
+    message_info[bm_message_info_nr].number_of_hops = number_of_hops;
     bm_message_info_nr++;
 }
 
@@ -51,7 +53,7 @@ void bm_sm_new_state_set(uint8_t state)
 static void led_handler(void * p_context)
 {
     bsp_board_led_invert(BSP_BOARD_LED_2);
-    bm_coap_unicast_test_message_send(1);
+    bm_coap_probe_message_send(2);
 }
 
 static void benchmark_handler(void * p_context)
@@ -92,7 +94,7 @@ static void state_2(void)
     ASSERT(error == NRF_SUCCESS);
     bsp_board_led_off(BSP_BOARD_LED_2);
 
-    bm_coap_unicast_test_message_send(0);
+    bm_coap_probe_message_send(0);
     bm_new_state = BM_STATE_3;
 }
 
@@ -102,7 +104,7 @@ static void state_3(void)
 
     for (int i = 0; i<bm_message_info_nr; i++)
     {
-        bm_coap_unicast_time_results_send(message_info[i]);
+        bm_coap_results_send(message_info[i]);
     }
 
     bm_message_info_nr = 0;

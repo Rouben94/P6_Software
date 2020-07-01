@@ -14,13 +14,27 @@ typedef enum
     BM_STATE_3
 } bm_state;
 
+/* Typdef for benchmark state */
+typedef enum
+{
+    BM_STOP,
+    BM_1bit,
+    BM_96kB
+} bm_data_size;
+
 /* Struct for benchmark message information */
 typedef struct
 {
     uint64_t net_time;
+    uint16_t number_of_hops;
     uint16_t message_id;
+    bool data_size;
 } bm_message_info;
 
+/**@brief Function for processing the benchmark pending tasks.
+ *
+ * @details This function must be periodically executed to process the benchmark pending tasks.
+ */
 void bm_statemachine_init(void);
 
 /**@brief Function for processing the benchmark pending tasks.
@@ -45,6 +59,6 @@ void bm_sm_new_state_set(uint8_t state);
  *
  * @details 
  */
-void bm_save_message_info(uint16_t id);
+void bm_save_message_info(uint16_t id, uint16_t number_of_hops, bool data_size);
 
 #endif // BM_STATEMACHINE_H_

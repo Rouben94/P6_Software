@@ -96,14 +96,14 @@ void bm_coap_multicast_start_send(bm_master_message message);
  * @param[in] message  message state
  *
  */
-void bm_coap_unicast_test_message_send(bool state);
+void bm_coap_probe_message_send(uint8_t state);
 
 /**@brief Function for sending the benchmark test message to the peered unicast IPv6 address.
  *
  * @param[in] message  message state
  *
  */
-void bm_coap_unicast_time_results_send(bm_message_info message_info);
+void bm_coap_results_send(bm_message_info message_info);
 
 /**@brief Function for sending the benchmark test message to the peered unicast IPv6 address.
  *

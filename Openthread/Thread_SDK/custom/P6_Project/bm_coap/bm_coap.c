@@ -70,8 +70,8 @@ static thread_coap_utils_configuration_t          m_config;
 
 /**@brief Forward declarations of CoAP resources handlers. */
 static void bm_start_handler(void *, otMessage *, const otMessageInfo *);
-static void bm_test_message_handler(void *, otMessage *, const otMessageInfo *);
-static void bm_time_result_handler(void *, otMessage *, const otMessageInfo *);
+static void bm_probe_message_handler(void *, otMessage *, const otMessageInfo *);
+static void bm_result_handler(void *, otMessage *, const otMessageInfo *);
 
 /**@brief Definition of CoAP resources for benchmark start. */
 static otCoapResource m_bm_start_resource =
@@ -86,7 +86,7 @@ static otCoapResource m_bm_start_resource =
 static otCoapResource m_bm_test_resource =
 {
     .mUriPath = "bm_test",
-    .mHandler = bm_test_message_handler,
+    .mHandler = bm_probe_message_handler,
     .mContext = NULL,
     .mNext    = NULL
 };
@@ -95,7 +95,7 @@ static otCoapResource m_bm_test_resource =
 static otCoapResource m_bm_result_resource =
 {
     .mUriPath = "bm_result",
-    .mHandler = bm_time_result_handler,
+    .mHandler = bm_result_handler,
     .mContext = NULL,
     .mNext    = NULL
 };
@@ -157,7 +157,7 @@ static void coap_default_handler(void                * p_context,
 /***************************************************************************************************
  * @section Benchmark Coap Unicast time result response to master
  **************************************************************************************************/
-static void bm_time_result_handler(void                 * p_context,
+static void bm_result_handler(void                 * p_context,
                                    otMessage            * p_message,
                                    const otMessageInfo  * p_message_info)
 {
@@ -176,18 +176,18 @@ static void bm_time_result_handler(void                 * p_context,
             break;
         }
 
-        if (otMessageRead(p_message, otMessageGetOffset(p_message), &message_info, sizeof(message_info)) != 40)
+        if (otMessageRead(p_message, otMessageGetOffset(p_message), &message_info, sizeof(message_info)) != 16)
         {
-            NRF_LOG_INFO("test message handler - missing command");
+            NRF_LOG_INFO("test message handler - missing results");
         }
 
         NRF_LOG_INFO("Got result message");
-        bm_cli_write_result(message_info.net_time, message_info.message_id);
+        bm_cli_write_result(message_info);
 
     } while (false);
 }
 
-void bm_coap_unicast_time_results_send(bm_message_info message_info)
+void bm_coap_results_send(bm_message_info message_info)
 {
     otError         error = OT_ERROR_NONE;
     otMessage     * p_request;
@@ -339,7 +339,7 @@ void bm_coap_multicast_start_send(bm_master_message message)
 /***************************************************************************************************
  * @section Benchmark Coap test message.
  **************************************************************************************************/
-static void bm_test_message_response_handler(void                 * p_context,
+static void bm_probe_message_response_handler(void                 * p_context,
                                              otMessage            * p_message,
                                              const otMessageInfo  * p_message_info,
                                              otError              * result)
@@ -347,7 +347,7 @@ static void bm_test_message_response_handler(void                 * p_context,
     // test message ACK handler
 }
 
-static void bm_test_message_response_send(otMessage           * p_request_message,
+static void bm_probe_message_response_send(otMessage           * p_request_message,
                                           const otMessageInfo * p_message_info)
 {
     otError       error = OT_ERROR_NONE;
@@ -377,11 +377,11 @@ static void bm_test_message_response_send(otMessage           * p_request_messag
     }
 }
 
-static void bm_test_message_handler(void                 * p_context,
+static void bm_probe_message_handler(void                 * p_context,
                                     otMessage            * p_message,
                                     const otMessageInfo  * p_message_info)
 {
-    bool state;
+    uint32_t bm_probe;
 
     do
     {
@@ -396,35 +396,45 @@ static void bm_test_message_handler(void                 * p_context,
             break;
         }
 
-        if (otMessageRead(p_message, otMessageGetOffset(p_message), &state, sizeof(state)) != 1)
+        if (otMessageRead(p_message, otMessageGetOffset(p_message), &bm_probe, sizeof(bm_probe)) == 1)
         {
-            NRF_LOG_INFO("test message handler - missing command");
+            NRF_LOG_INFO("Server: Got 1 bit message");
+            bm_save_message_info(otCoapMessageGetMessageId(p_message), 5, 0);
+            bsp_board_led_invert(BSP_BOARD_LED_2);
+        } else
+        {
+            NRF_LOG_INFO("Server: Got 96kB message");
+            bm_save_message_info(otCoapMessageGetMessageId(p_message), 5, 1);
+            bsp_board_led_invert(BSP_BOARD_LED_2);
         }
 
-        if (state)
-        {
-            NRF_LOG_INFO("Server: Got test message");
-            bm_save_message_info(otCoapMessageGetMessageId(p_message));
-            bsp_board_led_invert(BSP_BOARD_LED_2);
-        } else if (!state)
+        if (!bm_probe)
         {
             bm_sm_new_state_set(BM_STATE_3);
         }
         
-
         if (otCoapMessageGetType(p_message) == OT_COAP_TYPE_CONFIRMABLE)
         {
-            bm_test_message_response_send(p_message, p_message_info);
+            bm_probe_message_response_send(p_message, p_message_info);
         }
     } while (false);
 }
 
-void bm_coap_unicast_test_message_send(bool state)
+void bm_coap_probe_message_send(uint8_t state)
 {
     otError         error = OT_ERROR_NONE;
     otMessage     * p_request;
     otMessageInfo   messafe_info;
     otInstance    * p_instance = thread_ot_instance_get();
+
+    uint32_t bm_big_probe[3000] = {86, 56, 12, 44, 67, 420};
+    bool bm_small_probe      = 1;
+
+    if(state == BM_STOP)
+    {
+        bm_small_probe = 0;
+        bm_big_probe[0] = 0;
+    }
 
     do
     {
@@ -455,7 +465,14 @@ void bm_coap_unicast_test_message_send(bool state)
         UNUSED_VARIABLE(otCoapMessageAppendUriPathOptions(p_request, "bm_test"));
         UNUSED_VARIABLE(otCoapMessageSetPayloadMarker(p_request));
 
-        error = otMessageAppend(p_request, &state, sizeof(state));
+        if (state == BM_1bit)
+        {
+            error = otMessageAppend(p_request, &bm_small_probe, sizeof(bool));
+        } else if (state == BM_96kB)
+        {
+            error = otMessageAppend(p_request, &bm_big_probe, 3000*sizeof(uint32_t));
+        }
+
         if (error != OT_ERROR_NONE)
         {
             break;
@@ -467,10 +484,14 @@ void bm_coap_unicast_test_message_send(bool state)
         
         error = otCoapSendRequest(p_instance, p_request, &messafe_info, NULL, p_instance);
         
-        if (state)
+        if (state == BM_1bit)
         {
-            bm_save_message_info(otCoapMessageGetMessageId(p_request));
+            bm_save_message_info(otCoapMessageGetMessageId(p_request), 0, 0);
+        } else if (state == BM_96kB)
+        {
+            bm_save_message_info(otCoapMessageGetMessageId(p_request), 0, 1);
         }
+
     } while (false);
 
     if (error != OT_ERROR_NONE && p_request != NULL)
