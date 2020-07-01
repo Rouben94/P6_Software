@@ -27,6 +27,9 @@
 #include <zb_error_handler.h>
 #include <zb_nrf_platform.h>
 
+
+#define DEFAULT_GROUP_ID                    0xB331                              /**< Group ID, which will be used to control all light sources with a single command. */
+
 /*
 nRF52840-Dongle LEDs and Buttons
 DK_LED1 --> green

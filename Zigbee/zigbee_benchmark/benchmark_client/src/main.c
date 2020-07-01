@@ -52,7 +52,7 @@
 #define BUTTON_SLEEPY              DK_BTN3_MSK
 
 #define DEFAULT_GROUP_ID                    0xB331                              /**< Group ID, which will be used to control all light sources with a single command. */
-
+#define BUTTON_TEST				   DK_BTN4_MSK
 
 /* Transition time for a single step operation in 0.1 sec units.
  * 0xFFFF - immediate change.
@@ -131,6 +131,7 @@ static void button_handler(u32_t button_state, u32_t has_changed)
 {
 	zb_bool_t on_off;
 	zb_ret_t zb_err_code;
+	int blink_status = 0;
 
 	/* Inform default signal handler about user input at the device. */
 	user_input_indicate();
@@ -148,6 +149,9 @@ static void button_handler(u32_t button_state, u32_t has_changed)
 	case BUTTON_OFF:
 		LOG_INF("OFF - button changed");
 		on_off = ZB_FALSE;
+		break;
+	case BUTTON_TEST:
+		LOG_INF("TEST - button changed");
 		break;
 	default:
 		LOG_INF("Unhandled button");
@@ -168,6 +172,10 @@ static void button_handler(u32_t button_state, u32_t has_changed)
 		} else {
 			ZB_ERROR_CHECK(zb_err_code);
 		}
+		break;
+	case BUTTON_TEST:
+		LOG_INF("Button TEST pressed");
+		dk_set_led(DK_LED2, (++blink_status) % 2);
 		break;
 	case 0:
 		LOG_DBG("Button released");
@@ -431,7 +439,6 @@ void zboss_signal_handler(zb_bufid_t bufid)
 
 	/* Update network status LED */
 	zigbee_led_status_update(bufid, ZIGBEE_NETWORK_STATE_LED);
-
 	switch (sig) {
 	case ZB_BDB_SIGNAL_DEVICE_REBOOT:
 		/* fall-through */
@@ -443,6 +450,7 @@ void zboss_signal_handler(zb_bufid_t bufid)
 			zb_err_code = ZB_SCHEDULE_APP_ALARM(find_light_bulb, bufid, MATCH_DESC_REQ_START_DELAY);
             ZB_ERROR_CHECK(zb_err_code);
             bufid = 0; // Do not free buffer - it will be reused by find_light_bulb callback.
+			LOG_INF("Network Steering");
 		}
 		break;
 	default:
