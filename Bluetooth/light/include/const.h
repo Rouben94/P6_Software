@@ -17,7 +17,7 @@ static const u8_t net_key[16] = {
 	0xb3,
 	0xfe,
 };
-static const u8_t dev_key[16] = {
+static u8_t dev_key[16] = {
 	0x01,
 	0x23,
 	0x45,
@@ -36,39 +36,30 @@ static const u8_t dev_key[16] = {
 	0xef,
 };
 static const u8_t app_key[16] = {
+	0xa3,
 	0x01,
-	0x23,
-	0x45,
-	0x67,
-	0x89,
-	0xab,
-	0xcd,
-	0xef,
-	0x01,
-	0x23,
-	0x45,
-	0x67,
-	0x89,
-	0xab,
-	0xcd,
-	0xef,
+	0x77,
+	0x4b,
+	0xe8,
+	0x02,
+	0x2c,
+	0xd8,
+	0x12,
+	0x3f,
+	0xf3,
+	0x27,
+	0x42,
+	0xa7,
+	0x36,
+	0x94,
 };
 
 static const u16_t net_idx=0;
 static const u16_t app_idx=0;
 static const u32_t iv_index=0;
 
-#if !defined(NODE_ADDR)
-#define NODE_ADDR 0x0b0c
-#endif
+#define GROUP_ADDR 0xc000 //Range from 0xC000-0xFEFF 
 
-#define GROUP_ADDR 0xc000
+static u8_t flags=0;
+static u16_t addr = 0x0b0d; // Unicast Address Range from 0-0x7FFF, 0-32767 ->Assigned Random
 
-static u8_t flags;
-static u16_t addr = NODE_ADDR;
-
-static const u8_t dev_uuid[16] = { 0xdd, 0xdd };
-
-static const struct bt_mesh_prov prov = {
-	.uuid = dev_uuid,
-};
