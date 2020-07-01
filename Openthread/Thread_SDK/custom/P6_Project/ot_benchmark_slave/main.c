@@ -61,10 +61,12 @@
 #include "bm_statemachine.h"
 #include "bm_board_support_config.h"
 
+#include <openthread/thread.h>
 #include <openthread/instance.h>
+#include <openthread/ip6.h>
 #include <openthread/network_time.h>
 #include <openthread/platform/time.h>
-#include <openthread/thread.h>
+
 
 #define SCHED_QUEUE_SIZE 32                                   /**< Maximum number of events in the scheduler queue. */
 #define SCHED_EVENT_DATA_SIZE APP_TIMER_SCHED_EVENT_DATA_SIZE /**< Maximum app_scheduler event size. */
@@ -83,14 +85,7 @@ static void bsp_event_handler(bsp_event_t event)
     {
         case BSP_EVENT_KEY_0:
             NRF_LOG_INFO("Button short press");
-#ifdef BM_CLIENT
-            thread_coap_utils_provisioning_request_send();
-#endif
-
-#ifdef BM_SERVER
-            thread_coap_utils_provisioning_enable_set(true);
-#endif
-            
+            bm_increment_group_address();
             break;
 
         case BSP_EVENT_KEY_0_LONG:
@@ -122,7 +117,6 @@ static void thread_state_changed_callback(uint32_t flags, void * p_context)
             case OT_DEVICE_ROLE_DISABLED:
             case OT_DEVICE_ROLE_DETACHED:
             default:
-                thread_coap_utils_peer_addr_clear();
                 break;
         }
     }
@@ -189,7 +183,6 @@ static void thread_coap_init(void)
     thread_coap_utils_configuration_t thread_coap_configuration = {
         .coap_server_enabled = false,
         .coap_client_enabled = true,
-        .configurable_led_blinking_enabled = false,
     };
 #endif
 
@@ -197,7 +190,6 @@ static void thread_coap_init(void)
     thread_coap_utils_configuration_t thread_coap_configuration = {
         .coap_server_enabled = true,
         .coap_client_enabled = false,
-        .configurable_led_blinking_enabled = true,
     };
 #endif
 

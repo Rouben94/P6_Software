@@ -60,31 +60,7 @@ typedef struct
 {
     bool coap_server_enabled;                /**< Indicates if CoAP Server should be enabled. */
     bool coap_client_enabled;                /**< Indicates if CoAP Client should be enabled. */
-    bool configurable_led_blinking_enabled;  /**< Indicates if LED blinking on Light commands should be configurable. */
 } thread_coap_utils_configuration_t;
-
-
-/**@brief Enumeration describing light commands. */
-typedef enum
-{
-    THREAD_COAP_UTILS_LIGHT_CMD_OFF = '0',
-    THREAD_COAP_UTILS_LIGHT_CMD_ON,
-    THREAD_COAP_UTILS_LIGHT_CMD_TOGGLE
-} thread_coap_utils_light_command_t;
-
-
-/**@brief Type definition of the function used to handle light resource change.
- */
-typedef void (*thread_coap_utils_light_command_handler_t)(thread_coap_utils_light_command_t light_state);
-
-
-/**@brief Scope of multicast request. */
-typedef enum
-{
-    THREAD_COAP_UTILS_MULTICAST_LINK_LOCAL,  /**< The Link Local multicast scope allows to send message to all neighbors. */
-    THREAD_COAP_UTILS_MULTICAST_REALM_LOCAL, /**< The Realm Local multicast scope allows to send message to all non-sleepy
-                                                  devices in the network. */
-} thread_coap_utils_multicast_scope_t;
 
 /***************************************************************************************************
  * @section CoAP utils core functions.
@@ -104,43 +80,8 @@ void thread_coap_utils_init(const thread_coap_utils_configuration_t * p_config);
 void thread_coap_utils_deinit(void);
 
 /***************************************************************************************************
- * @section CoAP Server function proptypes.
- **************************************************************************************************/
-
-/**@brief Function for enabling or disabling the provisioning.
- *
- * @param enabled Indicates if provisioning should be enabled.
- *
- */
-void thread_coap_utils_provisioning_enable_set(bool enabled);
-
-
-/**@brief Function for specifying custom light command handler.
- *
- * @param[in] handler Pointer to the function invoked when light resource is changed.
- *
- */
-void thread_coap_utils_light_command_handler_set(thread_coap_utils_light_command_handler_t handler);
-
-
-/**@brief Function for indicating if LED associated with light resource is blinking.
-*
-* @return  @true if LED associated with light resources is blinking.
-*
-*/
-bool thread_coap_utils_light_is_led_blinking(void);
-
-/***************************************************************************************************
  * @section CoAP client function proptypes.
  **************************************************************************************************/
-
-/**@brief Function for sending the provisioning request to the CoAP server. */
-void thread_coap_utils_provisioning_request_send(void);
-
-
-/**@brief Function for removing stored peer address after provisioning process. */
-void thread_coap_utils_peer_addr_clear(void);
-
 
 /**@brief Function for sending the benchmark start request message to the multicast IPv6 address.
  *
@@ -148,7 +89,7 @@ void thread_coap_utils_peer_addr_clear(void);
  * @param[in] scope    IPv6 multicast address scope.
  *
  */
-void bm_coap_multicast_start_send(bm_master_message message, thread_coap_utils_multicast_scope_t scope);
+void bm_coap_multicast_start_send(bm_master_message message);
 
 /**@brief Function for sending the benchmark test message to the peered unicast IPv6 address.
  *
@@ -163,6 +104,13 @@ void bm_coap_unicast_test_message_send(bool state);
  *
  */
 void bm_coap_unicast_time_results_send(bm_message_info message_info);
+
+/**@brief Function for sending the benchmark test message to the peered unicast IPv6 address.
+ *
+ * @param[in] message  message state
+ *
+ */
+void bm_increment_group_address(void);
 
 
 #endif /* THREAD_COAP_UTILS_H__ */

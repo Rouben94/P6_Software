@@ -54,13 +54,12 @@
 #include "nrf_log_default_backends.h"
 
 #include "bm_coap.h"
-#include "bm_master_cli.h"
 #include "thread_utils.h"
+#include "bm_master_cli.h"
 #include "bm_board_support_config.h"
 
 #include <openthread/instance.h>
 #include <openthread/thread.h>
-
 
 #define SCHED_QUEUE_SIZE      32                              /**< Maximum number of events in the scheduler queue. */
 #define SCHED_EVENT_DATA_SIZE APP_TIMER_SCHED_EVENT_DATA_SIZE /**< Maximum app_scheduler event size. */
@@ -105,7 +104,6 @@ static void thread_state_changed_callback(uint32_t flags, void * p_context)
             case OT_DEVICE_ROLE_DISABLED:
             case OT_DEVICE_ROLE_DETACHED:
             default:
-                thread_coap_utils_peer_addr_clear();
                 break;
         }
     }
@@ -163,7 +161,6 @@ static void thread_instance_init(void)
 
     thread_init(&thread_configuration);
     thread_cli_init();
-    bm_custom_cli_init();
     thread_state_changed_callback_set(thread_state_changed_callback);
 }
 
@@ -176,7 +173,6 @@ static void thread_coap_init(void)
       {
           .coap_server_enabled = false,
           .coap_client_enabled = false,
-          .configurable_led_blinking_enabled = false,
       };
 
   thread_coap_utils_init(&thread_coap_configuration);
@@ -189,6 +185,7 @@ static void scheduler_init(void)
 {
     APP_SCHED_INIT(SCHED_EVENT_DATA_SIZE, SCHED_QUEUE_SIZE);
 }
+
 
 /***************************************************************************************************
  * @section Main
@@ -204,6 +201,7 @@ int main(int argc, char *argv[])
 
     thread_instance_init();
     thread_coap_init();
+    bm_custom_cli_init();
     thread_bsp_init();
 
     while (true)
