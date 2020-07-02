@@ -24,6 +24,7 @@ along with P2P-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 #include <drivers/clock_control.h>
 #include <drivers/clock_control/nrf_clock_control.h>
 #include "simple_nrf_radio.h"
+using namespace std;
 
 /* ------------- Definitions --------------*/
 #define isMaster 0								   	// Node is the Master (1) or Slave (0)
@@ -31,38 +32,53 @@ along with P2P-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 #define CommonStartCH 37						   	// Common Start Channel 
 #define CommonEndCH 39						   		// Common End Channel 
 #define MSB_MAC_Address 0xF4CE						// MSB of MAC for Nordic Semi Vendor
-// Master: Find Nodes by Broadcasting ---- Slave: Listen for Broadcasts and Answer with mockup. If already Discovered Sleep
+// Master: Find Nodes by Broadcasting ---- Slave: Listen for Broadcasts. If already Discovered Sleep
 #define ST_DISCOVERY 10	
+// Master: Listen for Mockup Answers ---- Slave: Send a radnom delayed Mockup Answer. If already Discovered Sleep
+#define ST_MOCKUP 20	
 // Master: Publish Settings and Timesync by Broadcasting ---- Slave: Listen for Settings and Timesync. If received go to sleep														
-#define ST_PARAM 20
+#define ST_PARAM 30
 // Master: Publish Packets by Broadcasting with defined Settings ---- Slave: Listen for Packets with defined Settings. 
-#define ST_PACKETS 30
-// Master: Listen for Reports. Save Downlink RSSI ---- Slave: Send Report in Given Timeslot. Sleep before and after. 
-#define ST_REPORTS 40
+#define ST_PACKETS 40
+// Master: Listen for Reports. Save Downlink RSSI ---- Slave: Send Report in Random Timeslot. Sleep before and after. 
+#define ST_REPORTS 50
 // Master: Time for Master to Publish the Reports to CLI  ---- Slave: Sleep
-#define ST_PUBLISH 50
-// Timeslots for the Sates in ms. The Timesync has to be accurate enough. 
-#define ST_TIME_DISCOVERY_MS 200					
-#define ST_TIME_PARAM_MS 50							
-#define ST_TIME_PACKETS_MS 500						
-#define ST_TIME_REPORTS_MS 200
-#define ST_TIME_PUBLISH_MS 50
-// Addresses used by State
-#define DiscoveryAddress 0x8E89BED6
-#define ParamAddress 0x8E89BED7
-#define PacketsAddress 0x8E89BED8
-#define ReportsAddress 0x8E89BED9
+#define ST_PUBLISH 60
+// Timeslots for the Sates in ms. The Timesync has to be accurate enough. -> Optimized for 50 Nodes, 3 Channels and BLE LR125kBit
+#define ST_TIME_DISCOVERY_MS 300
+#define ST_TIME_MOCKUP_MS 1200					
+#define ST_TIME_PARAM_MS 60							
+#define ST_TIME_PACKETS_MS 600						
+#define ST_TIME_REPORTS_MS 900
+#define ST_TIME_PUBLISH_MS 60
+// Addresses used by State. Random Generated for good diversity. 
+#define DiscoveryAddress 0x9CE74F9A
+#define MockupAddress 0x57855CC7
+#define ParamAddress 0x32C731E9
+#define PacketsAddress 0xF492A652
+#define ReportsAddress 0x37DAFC9D
+// Define a Timer used inside States for Timing
+K_TIMER_DEFINE(state_timer, NULL, NULL);
+// Size of stack area used by each thread 
+#define STACKSIZE 1024
+// Scheduling priority used by each thread 
+#define PRIORITY 7
 /*============================================*/
 
 /* -------------- Data Container Definitions ------------------*/
 struct DiscoveryPkt
 {	
-	u32_t LSB_MAC_Address; 
+	u32_t LastTxTimestamp;
+	u32_t MockupTimestamp;
+} __attribute__((packed));
+
+struct MockupPkt
+{	
+	u32_t LSB_MAC_Address;
 } __attribute__((packed));
 
 struct ParamPkt
 {	
-	u32_t LastTxTimestamp;
 	u8_t StartCH;
 	u8_t StopCH;
 	u8_t Mode;
@@ -90,10 +106,14 @@ struct PublishList
 /*===========================================*/
 
 
-/* ------------------- Global Variables -----------------*/
+/* ------------------- Variables -----------------*/
 Simple_nrf_radio simple_nrf_radio;
 u32_t LSB_MAC_Address = NRF_FICR->DEVICEADDR[0];
 RADIO_PACKET radio_pkt_Rx, radio_pkt_Tx = {};
+DiscoveryPkt Disc_pkt_RX, Disc_pkt_TX = {};
+ParamPkt Param_pkt_RX, Param_pkt_TX = {};
+ReportsPkt Repo_pkt_RX, Repo_pkt_TX = {};
+vector<PublishList> pb_list;
 u8_t currentState = ST_DISCOVERY;
 /*=================================================*/
 
@@ -121,19 +141,26 @@ int cmd_handler_receive()
 SHELL_CMD_REGISTER(receive, NULL, "Receive Payload", cmd_handler_receive);
 /*=================================================*/
 
-// Define a Timer used for Discovery Sync
-K_TIMER_DEFINE(timer1, NULL, NULL);
+/*--------------------- State Threads -------------------*/
+
+void TH_ST_DISCOVERY(void)
+{
+
+}
+
+K_THREAD_DEFINE(TH_ST_DISCOVERY_id, STACKSIZE, TH_ST_DISCOVERY, NULL, NULL, NULL,
+		PRIORITY, 0, 0);
+
+
+
+/*=======================================================*/
 
 void main(void)
 {
+	printk("P2P-Benchamrk Started\n");
 	// Init
-	printk("Started \n");
-	int res = simple_nrf_radio.RSSI(8);
-	printk("RSSI: %d\n", res);
-
-	// Init the Radio Packets
-	DISCOVERY_RADIO_PACKET discPkt_Rx,discPkt_Tx = {};
 	
+
 	radio_pkt_Rx.length = sizeof(discPkt_Rx);
 	radio_pkt_Rx.PDU = (u8_t *)&discPkt_Rx;
 	radio_pkt_Tx.length = sizeof(discPkt_Tx);
