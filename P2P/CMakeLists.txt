@@ -9,5 +9,5 @@ set(BOARD nrf52840dk_nrf52840)
 find_package(Zephyr HINTS $ENV{ZEPHYR_BASE})
 project(NONE)
 
-target_sources(app PRIVATE src/main.cpp src/simple_nrf_radio.cpp)
+target_sources(app PRIVATE src/main.cpp src/simple_nrf_radio.cpp src/Timer_sync.c)
 target_include_directories(app PRIVATE include)
