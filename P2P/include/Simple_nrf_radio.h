@@ -81,7 +81,7 @@ public:
 	 * @param size Length of the Payload to Send
 	 * @param timeout Waittimeout in ms for a packet to be sent
 	 */
-	void Send(RADIO_PACKET tx_pkt, int timeout);
+	void Send(RADIO_PACKET tx_pkt, k_timeout_t timeout);
 	/**
 	 * Receive a Payload
 	 *
@@ -90,7 +90,7 @@ public:
 	 * 
 	 * @return Zero of timeout occured or number of miliseconds till timeout occurs
 	 */
-	s32_t Receive(RADIO_PACKET *rx_pkt, int timeout);
+	s32_t Receive(RADIO_PACKET *rx_pkt, k_timeout_t timeout);
 	/**
 	 * Set the Radio Mode.
 	 *

@@ -117,7 +117,7 @@ int Simple_nrf_radio::RSSI(u8_t cycles)
 	 * @param size Length of the Payload to Send
 	 * @param timeout Waittimeout in ms for a packet to be sent
 	 */
-void Simple_nrf_radio::Send(RADIO_PACKET tx_pkt, int timeout)
+void Simple_nrf_radio::Send(RADIO_PACKET tx_pkt, k_timeout_t timeout)
 {
     radio_disable(); // Disable the Radio
     /* Setup Paket */
@@ -156,7 +156,7 @@ void Simple_nrf_radio::Send(RADIO_PACKET tx_pkt, int timeout)
      * 
 	 * @return Zero of timeout occured or number of miliseconds till timeout occurs
 	 */
-s32_t Simple_nrf_radio::Receive(RADIO_PACKET *rx_pkt, int timeout)
+s32_t Simple_nrf_radio::Receive(RADIO_PACKET *rx_pkt, k_timeout_t timeout)
 {
     radio_disable();
     /* Initialize Rx Buffer */

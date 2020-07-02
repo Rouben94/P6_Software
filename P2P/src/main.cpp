@@ -53,11 +53,14 @@ public:
 
 //Radio radio;
 Simple_nrf_radio simple_nrf_radio;
+u8_t MAC_Address[5] = NRF_FICR->DEVICEADDR[0]; // Random Device Address generation
 Stopwatch stopwatch;
 
 // Definition of Discovery Package
 #define Broadcast_Address 0x8E89BED6
-u32_t Device_Address = sys_rand32_get(); // Random Device Address generation
+
+
+
 struct DISCOVERY_RADIO_PACKET
 {
 	u8_t opcode = 0;		  // opcode for Discovery Package
@@ -90,7 +93,6 @@ SHELL_CMD_REGISTER(receive, NULL, "Receive Payload", cmd_handler_receive);
 K_TIMER_DEFINE(timer1, NULL, NULL);
 
 // Define States for a simple Statemachine
-
 #define ST_SLEEP 9
 #define ST_DISCOVERY 10
 u8_t currentState = ST_SLEEP;
@@ -103,13 +105,15 @@ void main(void)
 	int res = simple_nrf_radio.RSSI(8);
 	stopwatch.stop_hp();
 	printk("RSSI: %d\n", res);
+
+	// Init the Radio Packets
 	DISCOVERY_RADIO_PACKET discPkt_Rx,discPkt_Tx = {};
 	RADIO_PACKET radio_pkt_Rx,radio_pkt_Tx = {};
 	radio_pkt_Rx.length = sizeof(discPkt_Rx);
 	radio_pkt_Rx.PDU = (u8_t *)&discPkt_Rx;
 	radio_pkt_Tx.length = sizeof(discPkt_Tx);
 	radio_pkt_Tx.PDU = (u8_t *)&discPkt_Tx;
-	int sleeptime = 1000; // Time to Sleep in ms
+
 	// Master / Slave Selection
 	if (isMaster)
 	{
@@ -126,7 +130,7 @@ void main(void)
 					simple_nrf_radio.setCH(ch);
 					discPkt_Tx.opcode = 0;
 					/* start one shot timer that expires after 100 ms */
-					k_timer_start(&timer1, K_MSEC(100), 0);
+					k_timer_start(&timer1, K_MSEC(100), K_MSEC(0));
 					// Burst Discovery Messages
 					while (k_timer_remaining_get(&timer1) > 0)
 					{
@@ -169,11 +173,12 @@ void main(void)
 					/* set radio channel */
 					simple_nrf_radio.setCH(ch);
 					/* start receiving of Discovery Burst */
-					s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, 1000/3);
+					s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, K_MSEC(1000));
 					/* check if a Discovery Packet was received */
 					if (ret > 0) {
 						if (((DISCOVERY_RADIO_PACKET*)radio_pkt_Rx.PDU)->opcode == 0)
-						k_sleep(((DISCOVERY_RADIO_PACKET*)radio_pkt_Rx.PDU)->time_till_mockup_ms);
+						//Wait till Mockup Window
+						k_sleep(K_MSEC(((DISCOVERY_RADIO_PACKET*)radio_pkt_Rx.PDU)->time_till_mockup_ms));
 						// Wait for random time to send mockup answer
 						k_sleep(sys_rand32_get()%100);
 						discPkt_Tx.opcode = 01;
@@ -181,7 +186,7 @@ void main(void)
 						// Wait for Superframe Allocation Info
 
 					} else {
-						currentState = ST_SLEEP;
+						continue;
 					}
 				}
 				break;
