@@ -28,12 +28,12 @@ along with P2P-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 using namespace std;
 
 /* ------------- Definitions --------------*/
-#define isMaster 0								// Node is the Master (1) or Slave (0)
-#define CommonMode NRF_RADIO_MODE_BLE_LR125KBIT // Common Mode
-#define CommonStartCH 37						// Common Start Channel
-#define CommonEndCH 39							// Common End Channel
-#define CommonCHCnt (CommonEndCH - CommonStartCH)	// Common Channel Count
-#define MSB_MAC_Address 0xF4CE					// MSB of MAC for Nordic Semi Vendor
+#define isMaster 0								  // Node is the Master (1) or Slave (0)
+#define CommonMode NRF_RADIO_MODE_BLE_LR125KBIT	  // Common Mode
+#define CommonStartCH 37						  // Common Start Channel
+#define CommonEndCH 39							  // Common End Channel
+#define CommonCHCnt (CommonEndCH - CommonStartCH) // Common Channel Count
+#define MSB_MAC_Address 0xF4CE					  // MSB of MAC for Nordic Semi Vendor
 // Master: Find Nodes by Broadcasting ---- Slave: Listen for Broadcasts. If already Discovered Sleep
 #define ST_DISCOVERY 10
 // Master: Listen for Mockup Answers ---- Slave: Send a radnom delayed Mockup Answer. If already Discovered Sleep
@@ -65,12 +65,6 @@ using namespace std;
 K_TIMER_DEFINE(state_timer, NULL, NULL);
 // Define a Timer free for Timing
 K_TIMER_DEFINE(uni_timer, NULL, NULL);
-// Size of stack area used by each thread
-#define ST_STACKSIZE 1024
-// Scheduling priority used by each thread
-#define ST_PRIORITY 7
-// Define a Stack Area
-K_THREAD_STACK_DEFINE(st_stack_area, ST_STACKSIZE);
 /*============================================*/
 
 /* -------------- Data Container Definitions ------------------*/
@@ -150,16 +144,17 @@ int cmd_handler_receive()
 SHELL_CMD_REGISTER(receive, NULL, "Receive Payload", cmd_handler_receive);
 /*=================================================*/
 
-/*--------------------- State Threads -------------------*/
+/*--------------------- States -------------------*/
 
-void TH_ST_DISCOVERY(void)
+void ST_DISCOVERY_fn(void)
 {
 	/* start one shot timer that expires after Timeslot ms */
 	k_timer_start(&state_timer, K_MSEC(ST_TIME_DISCOVERY_MS), K_MSEC(0));
 	/* init */
 	simple_nrf_radio.setMode(CommonMode);
 	simple_nrf_radio.setAA(DiscoveryAddress);
-	if (isMaster){
+	if (isMaster)
+	{
 		MockupTS = synctimer_getSyncTime() + ST_TIME_DISCOVERY_MS + ST_TIME_MARGIN_MS;
 	}
 	radio_pkt_Tx.length = sizeof(Disc_pkt_TX);
@@ -168,20 +163,24 @@ void TH_ST_DISCOVERY(void)
 	for (int ch = CommonStartCH; ch <= CommonEndCH; ch++)
 	{
 		simple_nrf_radio.setCH(ch);
-		k_timer_start(&uni_timer, K_MSEC(k_timer_remaining_get(&state_timer)/CommonCHCnt), K_MSEC(0));
-		while (k_timer_remaining_get(&uni_timer) > 0)
+		k_timer_start(&uni_timer, K_MSEC(ST_TIME_DISCOVERY_MS / CommonCHCnt), K_MSEC(0));
+		while ((k_timer_remaining_get(&uni_timer) > 0) && (k_timer_remaining_get(&state_timer) > 0))
 		{
-			if (isMaster){
-				Disc_pkt_TX.MockupTimestamp = MockupTS; 
-				Disc_pkt_TX.LastTxTimestamp = synctimer_getTxTimeStamp(); 
+			if (isMaster)
+			{
+				Disc_pkt_TX.MockupTimestamp = MockupTS;
+				Disc_pkt_TX.LastTxTimestamp = synctimer_getTxTimeStamp();
 				simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&uni_timer)));
-			} else {
+			}
+			else
+			{
 				s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, K_MSEC(k_timer_remaining_get(&uni_timer)));
 				if (ret > 0)
 				{
 					MockupTS = ((DiscoveryPkt *)radio_pkt_Rx.PDU)->MockupTimestamp;
 					LatestTxMasterTimestamp = ((DiscoveryPkt *)radio_pkt_Rx.PDU)->MockupTimestamp;
-					if (LatestTxMasterTimestamp == 0){ // The received Package was the first one. Keep on Receiving...
+					if (LatestTxMasterTimestamp == 0)
+					{ // The received Package was the first one. Keep on Receiving...
 						s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, K_MSEC(k_timer_remaining_get(&uni_timer)));
 						if (ret > 0)
 						{
@@ -190,14 +189,14 @@ void TH_ST_DISCOVERY(void)
 					}
 					return;
 				}
-			}		
+			}
 		}
 	}
 	return;
 }
 
-K_THREAD_DEFINE(TH_ST_DISCOVERY_id, STACKSIZE, TH_ST_DISCOVERY, NULL, NULL, NULL,
-				PRIORITY, 0, 0);
+// Wait for random time to send mockup answer
+//k_sleep(sys_rand32_get() % 100);
 
 /*=======================================================*/
 
@@ -206,86 +205,15 @@ void main(void)
 	printk("P2P-Benchamrk Started\n");
 	// Init
 
-	radio_pkt_Rx.length = sizeof(discPkt_Rx);
-	radio_pkt_Rx.PDU = (u8_t *)&discPkt_Rx;
-	radio_pkt_Tx.length = sizeof(discPkt_Tx);
-	radio_pkt_Tx.PDU = (u8_t *)&discPkt_Tx;
 
-	// Master / Slave Selection
-	if (isMaster)
-	{
-		while (true)
-		{
-			switch (currentState)
-			{
-			case ST_DISCOVERY:
-				simple_nrf_radio.setMode(DiscoveryMode);
-				simple_nrf_radio.setAA(Broadcast_Address);
-
-				// Listen for Mockup Response Package
-				s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, 100);
-				/* check if a Discovery Packet was received */
-				if (ret > 0)
-				{
-					printk("%d\n", ((DISCOVERY_RADIO_PACKET *)radio_pkt_Rx.PDU)->opcode);
-					printk("%d\n", ((DISCOVERY_RADIO_PACKET *)radio_pkt_Rx.PDU)->address);
-					// Send Superframe Allocation
-				}
-				else
-				{
-					currentState = ST_SLEEP;
-				}
-			}
-			currentState = ST_SLEEP;
-			break;
-		case ST_SLEEP:
-			// do something in the stop state
-			k_sleep(1000);
-			currentState = ST_DISCOVERY;
-			break;
-		}
-	}
-}
-// Slave Code
-else
-{
+	// Statemachine
 	while (true)
 	{
 		switch (currentState)
 		{
 		case ST_DISCOVERY:
-			simple_nrf_radio.setMode(DiscoveryMode);
-			for (int ch = DiscoveryStartCH; ch <= DiscoveryEndCH; ch++)
-			{
-				/* set radio channel */
-				simple_nrf_radio.setCH(ch);
-				/* start receiving of Discovery Burst */
-				s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, K_MSEC(1000));
-				/* check if a Discovery Packet was received */
-				if (ret > 0)
-				{
-					if (((DISCOVERY_RADIO_PACKET *)radio_pkt_Rx.PDU)->opcode == 0)
-						//Wait till Mockup Window
-						k_sleep(K_MSEC(((DISCOVERY_RADIO_PACKET *)radio_pkt_Rx.PDU)->time_till_mockup_ms));
-					// Wait for random time to send mockup answer
-					k_sleep(sys_rand32_get() % 100);
-					discPkt_Tx.opcode = 01;
-					simple_nrf_radio.Send(radio_pkt_Tx, 1000);
-					// Wait for Superframe Allocation Info
-				}
-				else
-				{
-					continue;
-				}
-			}
-			break;
-
-		case ST_SLEEP:
-			// do something in the sleep state
-			k_sleep(1000);
-			currentState = ST_DISCOVERY;
+			ST_DISCOVERY_fn();
 			break;
 		}
 	}
-}
 }
