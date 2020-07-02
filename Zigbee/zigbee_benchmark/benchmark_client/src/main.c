@@ -425,6 +425,66 @@ static void light_switch_button_handler(zb_uint8_t button)
 	}
 }
 
+
+static void benchmark_send_message(zb_bufid_t bufid)
+{
+	zb_uint16_t          group_id = DEFAULT_GROUP_ID;
+	zb_uint16_t			 value = 1234;
+	u8_t cmd_id = 0;
+	u8_t cmd_id2 =(++cmd_id) %2;
+
+	LOG_INF("Benchmark Message send.");
+
+/* 	ZB_ZCL_CUSTOM_CLUSTER_SEND_CMD1_REQ(bufid,
+										group_id,
+										ZB_APS_ADDR_MODE_16_GROUP_ENDP_NOT_PRESENT,
+					   					0,
+					   					LIGHT_SWITCH_ENDPOINT,
+					   					ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
+					   					NULL,
+					   					NULL,
+					   					value);
+
+	ZB_ZCL_ON_OFF_SEND_REQ(bufid,
+			       group_id,
+			       ZB_APS_ADDR_MODE_16_GROUP_ENDP_NOT_PRESENT,
+			       0,
+			       LIGHT_SWITCH_ENDPOINT,
+			       ZB_AF_HA_PROFILE_ID,
+			       ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
+			       ++cmd_id2,
+			       NULL); */	
+
+	ZB_ZCL_SEND_CMD(bufid,
+					group_id,
+					ZB_APS_ADDR_MODE_16_GROUP_ENDP_NOT_PRESENT,
+					0,
+					LIGHT_SWITCH_ENDPOINT,
+					ZB_AF_HA_PROFILE_ID,
+					ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
+					ZB_ZCL_CLUSTER_ID_ON_OFF,
+					ZB_ZCL_CMD_ON_OFF_TOGGLE_ID,
+					NULL);
+}
+/* Application Timer */
+void send_benchmark_message_handler(struct k_work *work)
+{
+    zb_ret_t zb_err_code;
+
+	LOG_INF("Test Timer Handler.");
+	zb_err_code = zb_buf_get_out_delayed_ext(benchmark_send_message, NULL, 0);
+	ZB_ERROR_CHECK(zb_err_code);
+    
+}
+
+K_WORK_DEFINE(my_work, send_benchmark_message_handler);
+
+void app_timer_handler(struct k_timer *dummy)
+{
+    k_work_submit(&my_work);
+}
+K_TIMER_DEFINE(app_timer, app_timer_handler, NULL);
+
 /**@brief Zigbee stack event handler.
  *
  * @param[in]   bufid   Reference to the Zigbee stack buffer
@@ -451,6 +511,7 @@ void zboss_signal_handler(zb_bufid_t bufid)
             ZB_ERROR_CHECK(zb_err_code);
             bufid = 0; // Do not free buffer - it will be reused by find_light_bulb callback.
 			LOG_INF("Network Steering");
+			k_timer_start(&app_timer, K_SECONDS(1), K_SECONDS(1));
 		}
 		break;
 	default:
