@@ -1,3 +1,20 @@
+/*
+This file is part of P2P-Benchamrk.
+
+P2P-Benchamrk is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+P2P-Benchamrk is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with P2P-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include <string.h>
 #include <stdlib.h>
 #include <vector>
@@ -8,73 +25,87 @@
 #include <drivers/clock_control/nrf_clock_control.h>
 #include "simple_nrf_radio.h"
 
-#define isMaster 0								   //Defines if Node is the Master (1) or Slave (0)
-#define DiscoveryMode NRF_RADIO_MODE_BLE_LR125KBIT // Defines the Discovery Mode used
-#define DiscoveryStartCH 37						   // Defines the Start Channel of Discovery
-#define DiscoveryEndCH 39						   // Defines the End Channel of Discovery
+/* ------------- Definitions --------------*/
+#define isMaster 0								   	// Node is the Master (1) or Slave (0)
+#define CommonMode NRF_RADIO_MODE_BLE_LR125KBIT 	// Common Mode
+#define CommonStartCH 37						   	// Common Start Channel 
+#define CommonEndCH 39						   		// Common End Channel 
+#define MSB_MAC_Address 0xF4CE						// MSB of MAC for Nordic Semi Vendor
+// Master: Find Nodes by Broadcasting ---- Slave: Listen for Broadcasts and Answer with mockup. If already Discovered Sleep
+#define ST_DISCOVERY 10	
+// Master: Publish Settings and Timesync by Broadcasting ---- Slave: Listen for Settings and Timesync. If received go to sleep														
+#define ST_PARAM 20
+// Master: Publish Packets by Broadcasting with defined Settings ---- Slave: Listen for Packets with defined Settings. 
+#define ST_PACKETS 30
+// Master: Listen for Reports. Save Downlink RSSI ---- Slave: Send Report in Given Timeslot. Sleep before and after. 
+#define ST_REPORTS 40
+// Master: Time for Master to Publish the Reports to CLI  ---- Slave: Sleep
+#define ST_PUBLISH 50
+// Timeslots for the Sates in ms. The Timesync has to be accurate enough. 
+#define ST_TIME_DISCOVERY_MS 200					
+#define ST_TIME_PARAM_MS 50							
+#define ST_TIME_PACKETS_MS 500						
+#define ST_TIME_REPORTS_MS 200
+#define ST_TIME_PUBLISH_MS 50
+// Addresses used by State
+#define DiscoveryAddress 0x8E89BED6
+#define ParamAddress 0x8E89BED7
+#define PacketsAddress 0x8E89BED8
+#define ReportsAddress 0x8E89BED9
+/*============================================*/
 
-class Stopwatch
-{
-public:
-	u32_t start_time;
-	u32_t stop_time;
-	u32_t cycles_spent;
-	u32_t nanoseconds_spent;
-
-	s64_t time_stamp;
-	s64_t milliseconds_spent;
-
-	void start_hp()
-	{
-		/* capture initial time stamp */
-		start_time = k_cycle_get_32();
-	}
-	void stop_hp()
-	{
-		/* capture final time stamp */
-		stop_time = k_cycle_get_32();
-		/* compute how long the work took (assumes no counter rollover) */
-		cycles_spent = stop_time - start_time;
-		nanoseconds_spent = SYS_CLOCK_HW_CYCLES_TO_NS(cycles_spent);
-		printk("Time took %dns\n", nanoseconds_spent);
-	}
-	void start()
-	{
-		/* capture initial time stamp */
-		time_stamp = k_uptime_get();
-	}
-	void stop()
-	{
-		/* compute how long the work took (also updates the time stamp) */
-		milliseconds_spent = k_uptime_delta(&time_stamp);
-		printk("Time took %lldms\n", milliseconds_spent);
-	}
-};
-
-//Radio radio;
-Simple_nrf_radio simple_nrf_radio;
-u8_t MAC_Address[5] = NRF_FICR->DEVICEADDR[0]; // Random Device Address generation
-Stopwatch stopwatch;
-
-// Definition of Discovery Package
-#define Broadcast_Address 0x8E89BED6
-
-
-
-struct DISCOVERY_RADIO_PACKET
-{
-	u8_t opcode = 0;		  // opcode for Discovery Package
-	u8_t time_till_mockup_ms; // Time left till Mockup Delay start in ms
-	u32_t address = Device_Address; // Random Device Address generation
+/* -------------- Data Container Definitions ------------------*/
+struct DiscoveryPkt
+{	
+	u32_t LSB_MAC_Address; 
 } __attribute__((packed));
 
+struct ParamPkt
+{	
+	u32_t LastTxTimestamp;
+	u8_t StartCH;
+	u8_t StopCH;
+	u8_t Mode;
+	u8_t CCMA_CA;
+} __attribute__((packed));
+
+struct ReportsPkt
+{	
+	u32_t LSB_MAC_Address;
+	u8_t CRCOK_CNT;
+	u8_t CRCERR_CNT;
+	u8_t Avg_SIG_RSSI;
+	u8_t Avg_NOISE_RSSI;
+} __attribute__((packed));
+
+struct PublishList
+{	
+	u32_t LSB_MAC_Address;
+	u8_t Pkt_CNT;
+	u8_t CRCOK_CNT;
+	u8_t CRCERR_CNT;
+	u8_t Avg_SIG_RSSI;
+	u8_t Avg_NOISE_RSSI;
+};
+/*===========================================*/
+
+
+/* ------------------- Global Variables -----------------*/
+Simple_nrf_radio simple_nrf_radio;
+u32_t LSB_MAC_Address = NRF_FICR->DEVICEADDR[0];
+RADIO_PACKET radio_pkt_Rx, radio_pkt_Tx = {};
+u8_t currentState = ST_DISCOVERY;
+/*=================================================*/
+
+
+/*------------------ Shell ----------------------*/
 int cmd_handler_send()
 {
 	char *Test_String = "C Programming is the shit";
 	RADIO_PACKET s = {};
 	s.PDU = (u8_t *)Test_String;
 	s.length = strlen(Test_String) + 1; // Immer Länge + 1 bei String
-	simple_nrf_radio.Send(s, 5000);
+	simple_nrf_radio.Send(s, K_MSEC(5000));
 	return 0;
 }
 SHELL_CMD_REGISTER(send, NULL, "Send Payload", cmd_handler_send);
@@ -82,33 +113,27 @@ int cmd_handler_receive()
 {
 	RADIO_PACKET r;
 	memset((u8_t *)&r, 0, sizeof(r));
-	simple_nrf_radio.Receive((RADIO_PACKET *)&r, 10000);
+	simple_nrf_radio.Receive((RADIO_PACKET *)&r, K_MSEC(10000));
 	printk("Length %d\n", r.length);
 	printk("%s\n", r.PDU);
 	return 0;
 }
 SHELL_CMD_REGISTER(receive, NULL, "Receive Payload", cmd_handler_receive);
+/*=================================================*/
 
 // Define a Timer used for Discovery Sync
 K_TIMER_DEFINE(timer1, NULL, NULL);
-
-// Define States for a simple Statemachine
-#define ST_SLEEP 9
-#define ST_DISCOVERY 10
-u8_t currentState = ST_SLEEP;
 
 void main(void)
 {
 	// Init
 	printk("Started \n");
-	stopwatch.start_hp();
 	int res = simple_nrf_radio.RSSI(8);
-	stopwatch.stop_hp();
 	printk("RSSI: %d\n", res);
 
 	// Init the Radio Packets
 	DISCOVERY_RADIO_PACKET discPkt_Rx,discPkt_Tx = {};
-	RADIO_PACKET radio_pkt_Rx,radio_pkt_Tx = {};
+	
 	radio_pkt_Rx.length = sizeof(discPkt_Rx);
 	radio_pkt_Rx.PDU = (u8_t *)&discPkt_Rx;
 	radio_pkt_Tx.length = sizeof(discPkt_Tx);
