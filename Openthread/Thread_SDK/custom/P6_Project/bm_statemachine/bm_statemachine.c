@@ -9,11 +9,16 @@
 #include "nrf_log_default_backends.h"
 
 #include <openthread/network_time.h>
+#include <openthread/random_noncrypto.h>
 
 #define NUMBER_OF_NETWORK_TIME_ELEMENTS 1000
 
 APP_TIMER_DEF(m_benchmark_timer);
-APP_TIMER_DEF(m_led_timer);
+APP_TIMER_DEF(m_msg_1_timer);
+APP_TIMER_DEF(m_msg_2_timer);
+APP_TIMER_DEF(m_msg_3_timer);
+APP_TIMER_DEF(m_msg_4_timer);
+APP_TIMER_DEF(m_msg_5_timer);
 
 bm_message_info message_info[NUMBER_OF_NETWORK_TIME_ELEMENTS] = {0};
 
@@ -58,7 +63,31 @@ void bm_set_data_size(uint8_t size)
 /***************************************************************************************************
  * @section State machine - Timer handlers
  **************************************************************************************************/
-static void led_handler(void * p_context)
+static void m_msg_1_handler(void * p_context)
+{
+    bsp_board_led_invert(BSP_BOARD_LED_2);
+    bm_coap_probe_message_send(data_size);
+}
+
+static void m_msg_2_handler(void * p_context)
+{
+    bsp_board_led_invert(BSP_BOARD_LED_2);
+    bm_coap_probe_message_send(data_size);
+}
+
+static void m_msg_3_handler(void * p_context)
+{
+    bsp_board_led_invert(BSP_BOARD_LED_2);
+    bm_coap_probe_message_send(data_size);
+}
+
+static void m_msg_4_handler(void * p_context)
+{
+    bsp_board_led_invert(BSP_BOARD_LED_2);
+    bm_coap_probe_message_send(data_size);
+}
+
+static void m_msg_5_handler(void * p_context)
 {
     bsp_board_led_invert(BSP_BOARD_LED_2);
     bm_coap_probe_message_send(data_size);
@@ -66,7 +95,7 @@ static void led_handler(void * p_context)
 
 static void benchmark_handler(void * p_context)
 {
-    bm_new_state = BM_STATE_2;
+    bm_new_state = BM_STATE_3;
 }
 
 /***************************************************************************************************
@@ -74,16 +103,34 @@ static void benchmark_handler(void * p_context)
  **************************************************************************************************/
 static void default_state(void)
 {
-    NRF_LOG_INFO("state default done");
+    //NRF_LOG_INFO("state default done");
 }
 
-static void state_1(void)
+static void state_1_client(void)
 {
-    NRF_LOG_INFO("state one done");
+    //NRF_LOG_INFO("state one done");
 
     uint32_t error;
+    uint16_t ticks_array[5];
 
-    error = app_timer_start(m_led_timer, APP_TIMER_TICKS(300), NULL);
+    for (int i=0; i<5; i++)
+    {
+        ticks_array[i] = otRandomNonCryptoGetUint16InRange(100, bm_time-100);
+    }
+
+    error = app_timer_start(m_msg_1_timer, APP_TIMER_TICKS(ticks_array[0]), NULL);
+    ASSERT(error == NRF_SUCCESS);
+
+    error = app_timer_start(m_msg_2_timer, APP_TIMER_TICKS(ticks_array[1]), NULL);
+    ASSERT(error == NRF_SUCCESS);
+
+    error = app_timer_start(m_msg_3_timer, APP_TIMER_TICKS(ticks_array[2]), NULL);
+    ASSERT(error == NRF_SUCCESS);
+
+    error = app_timer_start(m_msg_4_timer, APP_TIMER_TICKS(ticks_array[3]), NULL);
+    ASSERT(error == NRF_SUCCESS);
+
+    error = app_timer_start(m_msg_5_timer, APP_TIMER_TICKS(ticks_array[4]), NULL);
     ASSERT(error == NRF_SUCCESS);
 
     error = app_timer_start(m_benchmark_timer, APP_TIMER_TICKS(bm_time), NULL);
@@ -91,23 +138,30 @@ static void state_1(void)
     bm_new_state = BM_EMPTY_STATE;
 }
 
-static void state_2(void)
+static void state_1_server(void)
 {
-    NRF_LOG_INFO("state two done");
+    //NRF_LOG_INFO("state one done");
 
     uint32_t error;
-    error = app_timer_stop(m_led_timer);
-    ASSERT(error == NRF_SUCCESS);
-    error = app_timer_stop(m_benchmark_timer);
-    ASSERT(error == NRF_SUCCESS);
 
-    bm_coap_probe_message_send(data_size+2);
-    bm_new_state = BM_STATE_3;
+    error = app_timer_start(m_benchmark_timer, APP_TIMER_TICKS(bm_time+100), NULL);
+    ASSERT(error == NRF_SUCCESS);
+    bm_new_state = BM_EMPTY_STATE;
+}
+
+static void state_2(void)
+{
+//    NRF_LOG_INFO("state two done");
+//
+//    uint32_t error;
+//    error = app_timer_stop(m_led_timer);
+//    ASSERT(error == NRF_SUCCESS);
+//    bm_new_state = BM_STATE_3;
 }
 
 static void state_3(void)
 {
-    NRF_LOG_INFO("state three done");
+    //NRF_LOG_INFO("state three done");
     bsp_board_led_off(BSP_BOARD_LED_2);
 
     for (int i = 0; i<bm_message_info_nr; i++)
@@ -131,8 +185,12 @@ void bm_sm_process(void)
             default_state();
             break;
         
-        case BM_STATE_1:
-            state_1();
+        case BM_STATE_1_CLIENT:
+            state_1_client();
+            break;
+
+        case BM_STATE_1_SERVER:
+            state_1_server();
             break;
 
         case BM_STATE_2:
@@ -158,8 +216,17 @@ void bm_statemachine_init(void)
 {
     uint32_t error;
 
-    error = app_timer_create(&m_led_timer, APP_TIMER_MODE_REPEATED, led_handler);
+    error = app_timer_create(&m_benchmark_timer, APP_TIMER_MODE_SINGLE_SHOT, benchmark_handler);
     ASSERT(error == NRF_SUCCESS);
-    error = app_timer_create(&m_benchmark_timer, APP_TIMER_MODE_REPEATED, benchmark_handler);
+
+    error = app_timer_create(&m_msg_1_timer, APP_TIMER_MODE_SINGLE_SHOT, m_msg_1_handler);
+    ASSERT(error == NRF_SUCCESS);
+    error = app_timer_create(&m_msg_2_timer, APP_TIMER_MODE_SINGLE_SHOT, m_msg_2_handler);
+    ASSERT(error == NRF_SUCCESS);
+    error = app_timer_create(&m_msg_3_timer, APP_TIMER_MODE_SINGLE_SHOT, m_msg_3_handler);
+    ASSERT(error == NRF_SUCCESS);
+    error = app_timer_create(&m_msg_4_timer, APP_TIMER_MODE_SINGLE_SHOT, m_msg_4_handler);
+    ASSERT(error == NRF_SUCCESS);
+    error = app_timer_create(&m_msg_5_timer, APP_TIMER_MODE_SINGLE_SHOT, m_msg_5_handler);
     ASSERT(error == NRF_SUCCESS);
 }

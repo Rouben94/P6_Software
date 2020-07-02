@@ -22,8 +22,15 @@ void bm_cli_write_result(bm_message_info message_info)
     sprintf(buf2, "Time: %u us, ", message_info.net_time);
     sprintf(buf3, "Hops: %u, ", message_info.number_of_hops);
     sprintf(buf4, "RSSI: %d dB, ", message_info.RSSI);
-    sprintf(buf5, "Data: %u \r\n", message_info.data_size);
 
+    if (message_info.data_size)
+    {
+        sprintf(buf5, "Data: 1024 byte \r\n");
+    } else if (!message_info.data_size)
+    {
+        sprintf(buf5, "Data: 1 bit \r\n");
+    }
+    
     otCliOutput(buf1, sizeof(buf1));
     otCliOutput(buf2, sizeof(buf2));
     otCliOutput(buf3, sizeof(buf3));

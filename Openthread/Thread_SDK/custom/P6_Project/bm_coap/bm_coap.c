@@ -24,8 +24,10 @@
 #include <openthread/link.h>
 #include <openthread/thread.h>
 #include <openthread/platform/alarm-milli.h>
+#include <openthread/random_noncrypto.h>
 
 #define NUMBER_OF_IP6_GROUPS 25
+#define DATA_SIZE 1024
 
 
 /**@brief Structure holding CoAP status information. */
@@ -316,8 +318,14 @@ static void bm_start_handler(void                 * p_context,
         if (m_config.coap_client_enabled)
         {
             bm_sm_time_set(message.bm_time);
-            message.bm_status ? bm_sm_new_state_set(BM_STATE_1) : bm_sm_new_state_set(BM_STATE_2);
-        }      
+            message.bm_status ? bm_sm_new_state_set(BM_STATE_1_CLIENT) : bm_sm_new_state_set(BM_STATE_2);
+        }
+              
+        if (m_config.coap_server_enabled)
+        {
+            bm_sm_time_set(message.bm_time);
+            message.bm_status ? bm_sm_new_state_set(BM_STATE_1_SERVER) : bm_sm_new_state_set(BM_STATE_3);
+        }
 
         if (otCoapMessageGetType(p_message) == OT_COAP_TYPE_CONFIRMABLE)
         {
@@ -380,9 +388,9 @@ void bm_coap_multicast_start_send(bm_master_message message)
  * @section Benchmark Coap test message.
  **************************************************************************************************/
 static void bm_probe_message_response_handler(void                 * p_context,
-                                             otMessage            * p_message,
-                                             const otMessageInfo  * p_message_info,
-                                             otError              * result)
+                                              otMessage            * p_message,
+                                              const otMessageInfo  * p_message_info,
+                                              otError              * result)
 {
     // test message ACK handler
 }
@@ -418,11 +426,10 @@ static void bm_probe_message_response_send(otMessage           * p_request_messa
 }
 
 static void bm_probe_message_handler(void                 * p_context,
-                                    otMessage            * p_message,
-                                    const otMessageInfo  * p_message_info)
+                                     otMessage            * p_message,
+                                     const otMessageInfo  * p_message_info)
 {
-    bool     bm_small_probe = 1;
-    uint64_t bm_big_probe = 1;
+    uint16_t  bm_probe;
 
     do
     {
@@ -439,29 +446,16 @@ static void bm_probe_message_handler(void                 * p_context,
 
         int8_t RSSI = otMessageGetRss(p_message);
 
-        if (otMessageRead(p_message, otMessageGetOffset(p_message), &bm_big_probe, sizeof(bm_big_probe)) == 1)
+        if (otMessageRead(p_message, otMessageGetOffset(p_message), &bm_probe, sizeof(bm_probe)) == 1)
         {
             NRF_LOG_INFO("Server: Got 1 bit message");
-            otMessageRead(p_message, otMessageGetOffset(p_message), &bm_small_probe, sizeof(bool));
-            if (bm_small_probe)
-            {
-                bm_save_message_info(otCoapMessageGetMessageId(p_message), 5, RSSI, 0);
-                bsp_board_led_invert(BSP_BOARD_LED_2);
-            }
+            bsp_board_led_invert(BSP_BOARD_LED_2);
+            bm_save_message_info(otCoapMessageGetMessageId(p_message), 5, RSSI, 0);
         } else
         {
-            NRF_LOG_INFO("Server: Got 96kB message");
-            otMessageRead(p_message, otMessageGetOffset(p_message), &bm_big_probe, sizeof(uint64_t));
-            if (bm_big_probe != 0)
-            {
-                bm_save_message_info(otCoapMessageGetMessageId(p_message), 5, RSSI, 1);
-                bsp_board_led_invert(BSP_BOARD_LED_2);
-            }
-        }
-
-        if (bm_small_probe == 0 || bm_big_probe == 0)
-        {
-            bm_sm_new_state_set(BM_STATE_3);
+            NRF_LOG_INFO("Server: Got 1024 byte message");
+            bsp_board_led_invert(BSP_BOARD_LED_2);
+            bm_save_message_info(otCoapMessageGetMessageId(p_message), 5, RSSI, 1);
         }
         
         if (otCoapMessageGetType(p_message) == OT_COAP_TYPE_CONFIRMABLE)
@@ -478,14 +472,10 @@ void bm_coap_probe_message_send(uint8_t state)
     otMessageInfo   messafe_info;
     otInstance    * p_instance = thread_ot_instance_get();
 
-    uint64_t bm_big_probe[128] = {86, 91};
-    bool bm_small_probe   = 1;
+    uint8_t bm_big_probe[DATA_SIZE];
+    bool bm_small_probe;
 
-    if(state == 3 || state == 4)
-    {
-        bm_small_probe = 0;
-        bm_big_probe[0] = 0;
-    }
+    otRandomNonCryptoFillBuffer(bm_big_probe, DATA_SIZE);
 
     do
     {
@@ -516,12 +506,12 @@ void bm_coap_probe_message_send(uint8_t state)
         UNUSED_VARIABLE(otCoapMessageAppendUriPathOptions(p_request, "bm_test"));
         UNUSED_VARIABLE(otCoapMessageSetPayloadMarker(p_request));
 
-        if (state == BM_1bit || state == 3)
+        if (state == BM_1bit)
         {
             error = otMessageAppend(p_request, &bm_small_probe, sizeof(bool));
-        } else if (state == BM_1024Bytes || state == 4)
+        } else if (state == BM_1024Bytes)
         {
-            error = otMessageAppend(p_request, bm_big_probe, (128*sizeof(uint64_t)));
+            error = otMessageAppend(p_request, bm_big_probe, (DATA_SIZE*sizeof(uint8_t)));
         }
 
         if (error != OT_ERROR_NONE)

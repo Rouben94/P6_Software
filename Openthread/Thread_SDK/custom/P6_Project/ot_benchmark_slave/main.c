@@ -71,8 +71,8 @@
 #define SCHED_QUEUE_SIZE 32                                   /**< Maximum number of events in the scheduler queue. */
 #define SCHED_EVENT_DATA_SIZE APP_TIMER_SCHED_EVENT_DATA_SIZE /**< Maximum app_scheduler event size. */
 
-#define BM_CLIENT
-//#define BM_SERVER
+//#define BM_CLIENT
+#define BM_SERVER
 
 bool toggle_data_size = true;
 
@@ -105,7 +105,7 @@ static void bsp_event_handler(bsp_event_t event)
                 bm_set_data_size(BM_1bit);
                 toggle_data_size = true;
             }
-#endif BM_CLIENT
+#endif //BM_CLIENT
 
             break;
         }
@@ -200,14 +200,14 @@ static void thread_coap_init(void)
         .coap_server_enabled = false,
         .coap_client_enabled = true,
     };
-#endif
+#endif //BM_CLIENT
 
 #ifdef BM_SERVER
     thread_coap_utils_configuration_t thread_coap_configuration = {
         .coap_server_enabled = true,
         .coap_client_enabled = false,
     };
-#endif
+#endif //BM_SERVER
 
     thread_coap_utils_init(&thread_coap_configuration);
 }
