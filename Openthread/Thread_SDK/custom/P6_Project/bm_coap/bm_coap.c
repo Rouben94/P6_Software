@@ -103,7 +103,7 @@ static otCoapResource m_bm_result_resource =
 /***************************************************************************************************
  * @section Benchmark Coap IPv6 Groups
  **************************************************************************************************/
- void bm_increment_group_address(void)
+void bm_increment_group_address(void)
  {
     otError error = OT_ERROR_NONE;
 
@@ -133,6 +133,46 @@ static otCoapResource m_bm_result_resource =
         if (bm_group_nr>=NUMBER_OF_IP6_GROUPS)
         {
             bm_group_nr = 0;
+        }
+
+        error = otIp6AddressFromString(bm_group_address_array[bm_group_nr], &bm_group_address);
+        ASSERT(error == OT_ERROR_NONE);
+    }
+    NRF_LOG_INFO(bm_group_address_array[bm_group_nr]);
+ }
+
+void bm_decrement_group_address(void)
+ {
+    otError error = OT_ERROR_NONE;
+
+    if (m_config.coap_server_enabled)
+    {
+        error = otIp6UnsubscribeMulticastAddress(thread_ot_instance_get(), &bm_group_address);
+        ASSERT(error == OT_ERROR_NONE);
+
+        if (bm_group_nr==0)
+        {
+            bm_group_nr = (NUMBER_OF_IP6_GROUPS-1);
+        } else
+        {
+            bm_group_nr--;
+        }
+
+        error = otIp6AddressFromString(bm_group_address_array[bm_group_nr], &bm_group_address);
+        ASSERT(error == OT_ERROR_NONE);
+
+        error = otIp6SubscribeMulticastAddress(thread_ot_instance_get(), &bm_group_address);
+        ASSERT(error == OT_ERROR_NONE);
+    }
+
+    if (m_config.coap_client_enabled)
+    {
+        if (bm_group_nr==0)
+        {
+            bm_group_nr = (NUMBER_OF_IP6_GROUPS-1);
+        } else
+        {
+            bm_group_nr--;
         }
 
         error = otIp6AddressFromString(bm_group_address_array[bm_group_nr], &bm_group_address);
@@ -381,7 +421,8 @@ static void bm_probe_message_handler(void                 * p_context,
                                     otMessage            * p_message,
                                     const otMessageInfo  * p_message_info)
 {
-    uint32_t bm_probe;
+    bool     bm_small_probe = 1;
+    uint64_t bm_big_probe = 1;
 
     do
     {
@@ -396,19 +437,29 @@ static void bm_probe_message_handler(void                 * p_context,
             break;
         }
 
-        if (otMessageRead(p_message, otMessageGetOffset(p_message), &bm_probe, sizeof(bm_probe)) == 1)
+        int8_t RSSI = otMessageGetRss(p_message);
+
+        if (otMessageRead(p_message, otMessageGetOffset(p_message), &bm_big_probe, sizeof(bm_big_probe)) == 1)
         {
             NRF_LOG_INFO("Server: Got 1 bit message");
-            bm_save_message_info(otCoapMessageGetMessageId(p_message), 5, 0);
-            bsp_board_led_invert(BSP_BOARD_LED_2);
+            otMessageRead(p_message, otMessageGetOffset(p_message), &bm_small_probe, sizeof(bool));
+            if (bm_small_probe)
+            {
+                bm_save_message_info(otCoapMessageGetMessageId(p_message), 5, RSSI, 0);
+                bsp_board_led_invert(BSP_BOARD_LED_2);
+            }
         } else
         {
             NRF_LOG_INFO("Server: Got 96kB message");
-            bm_save_message_info(otCoapMessageGetMessageId(p_message), 5, 1);
-            bsp_board_led_invert(BSP_BOARD_LED_2);
+            otMessageRead(p_message, otMessageGetOffset(p_message), &bm_big_probe, sizeof(uint64_t));
+            if (bm_big_probe != 0)
+            {
+                bm_save_message_info(otCoapMessageGetMessageId(p_message), 5, RSSI, 1);
+                bsp_board_led_invert(BSP_BOARD_LED_2);
+            }
         }
 
-        if (!bm_probe)
+        if (bm_small_probe == 0 || bm_big_probe == 0)
         {
             bm_sm_new_state_set(BM_STATE_3);
         }
@@ -427,10 +478,10 @@ void bm_coap_probe_message_send(uint8_t state)
     otMessageInfo   messafe_info;
     otInstance    * p_instance = thread_ot_instance_get();
 
-    uint32_t bm_big_probe[3000] = {86, 56, 12, 44, 67, 420};
-    bool bm_small_probe      = 1;
+    uint64_t bm_big_probe[128] = {86, 91};
+    bool bm_small_probe   = 1;
 
-    if(state == BM_STOP)
+    if(state == 3 || state == 4)
     {
         bm_small_probe = 0;
         bm_big_probe[0] = 0;
@@ -465,12 +516,12 @@ void bm_coap_probe_message_send(uint8_t state)
         UNUSED_VARIABLE(otCoapMessageAppendUriPathOptions(p_request, "bm_test"));
         UNUSED_VARIABLE(otCoapMessageSetPayloadMarker(p_request));
 
-        if (state == BM_1bit)
+        if (state == BM_1bit || state == 3)
         {
             error = otMessageAppend(p_request, &bm_small_probe, sizeof(bool));
-        } else if (state == BM_96kB)
+        } else if (state == BM_1024Bytes || state == 4)
         {
-            error = otMessageAppend(p_request, &bm_big_probe, 3000*sizeof(uint32_t));
+            error = otMessageAppend(p_request, bm_big_probe, (128*sizeof(uint64_t)));
         }
 
         if (error != OT_ERROR_NONE)
@@ -486,10 +537,10 @@ void bm_coap_probe_message_send(uint8_t state)
         
         if (state == BM_1bit)
         {
-            bm_save_message_info(otCoapMessageGetMessageId(p_request), 0, 0);
-        } else if (state == BM_96kB)
+            bm_save_message_info(otCoapMessageGetMessageId(p_request), 0, 0, 0);
+        } else if (state == BM_1024Bytes)
         {
-            bm_save_message_info(otCoapMessageGetMessageId(p_request), 0, 1);
+            bm_save_message_info(otCoapMessageGetMessageId(p_request), 0, 0, 1);
         }
 
     } while (false);

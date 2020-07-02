@@ -74,6 +74,8 @@
 #define BM_CLIENT
 //#define BM_SERVER
 
+bool toggle_data_size = true;
+
 
 /***************************************************************************************************
  * @section Buttons
@@ -91,6 +93,20 @@ static void bsp_event_handler(bsp_event_t event)
         case BSP_EVENT_KEY_0_LONG:
         {
             NRF_LOG_INFO("Button long press");
+            bm_decrement_group_address();
+
+#ifdef BM_CLIENT
+            if (toggle_data_size)
+            {
+                bm_set_data_size(BM_1024Bytes);
+                toggle_data_size = false;
+            } else
+            {
+                bm_set_data_size(BM_1bit);
+                toggle_data_size = true;
+            }
+#endif BM_CLIENT
+
             break;
         }
 

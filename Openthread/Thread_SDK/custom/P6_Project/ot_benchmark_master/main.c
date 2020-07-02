@@ -60,9 +60,20 @@
 
 #include <openthread/instance.h>
 #include <openthread/thread.h>
+#include <openthread/cli.h>
 
 #define SCHED_QUEUE_SIZE      32                              /**< Maximum number of events in the scheduler queue. */
 #define SCHED_EVENT_DATA_SIZE APP_TIMER_SCHED_EVENT_DATA_SIZE /**< Maximum app_scheduler event size. */
+
+static void bm_cli_benchmark_start(uint8_t aArgsLength, char *aArgs[]);
+static void bm_cli_benchmark_stop(uint8_t aArgsLength, char *aArgs[]);
+
+otCliCommand bm_cli_usercommands[2] = {
+  {"benchmark_start", bm_cli_benchmark_start},
+  {"benchmark_stop" , bm_cli_benchmark_stop}
+};
+
+bm_master_message master_message;
 
 
 /***************************************************************************************************
@@ -110,6 +121,31 @@ static void thread_state_changed_callback(uint32_t flags, void * p_context)
 
     NRF_LOG_INFO("State changed! Flags: 0x%08x Current role: %d\r\n", flags,
         otThreadGetDeviceRole(p_context));
+}
+
+static void bm_cli_benchmark_start(uint8_t aArgsLength, char *aArgs[]) {
+    NRF_LOG_INFO("Benchmark start");
+    NRF_LOG_INFO("Argument: %s", aArgs[0]);
+
+    master_message.bm_status = true;
+    master_message.bm_master_ip6_address = *otThreadGetMeshLocalEid(thread_ot_instance_get());
+    master_message.bm_time = (uint32_t)atoi(aArgs[0]);
+
+    bm_coap_multicast_start_send(master_message);
+
+    otCliOutput("done \r\n", sizeof("done \r\n"));
+}
+
+static void bm_cli_benchmark_stop(uint8_t aArgsLength, char *aArgs[]) {
+    NRF_LOG_INFO("Benchmark stop");
+    
+    master_message.bm_status = false;
+    otIp6AddressFromString("0", &master_message.bm_master_ip6_address);
+    master_message.bm_time = NULL;
+
+    bm_coap_multicast_start_send(master_message);
+
+    otCliOutput("done \r\n", sizeof("done \r\n"));
 }
 
 /***************************************************************************************************
@@ -186,6 +222,11 @@ static void scheduler_init(void)
     APP_SCHED_INIT(SCHED_EVENT_DATA_SIZE, SCHED_QUEUE_SIZE);
 }
 
+
+/**@brief Function for initialize custom cli commands */
+void bm_custom_cli_init(void){
+    otCliSetUserCommands(bm_cli_usercommands, 2 * sizeof(bm_cli_usercommands[0]));
+}
 
 /***************************************************************************************************
  * @section Main

@@ -17,9 +17,8 @@ typedef enum
 /* Typdef for benchmark state */
 typedef enum
 {
-    BM_STOP,
-    BM_1bit,
-    BM_96kB
+    BM_1bit = 1,
+    BM_1024Bytes
 } bm_data_size;
 
 /* Struct for benchmark message information */
@@ -28,6 +27,7 @@ typedef struct
     uint64_t net_time;
     uint16_t number_of_hops;
     uint16_t message_id;
+    int8_t   RSSI;
     bool data_size;
 } bm_message_info;
 
@@ -59,6 +59,12 @@ void bm_sm_new_state_set(uint8_t state);
  *
  * @details 
  */
-void bm_save_message_info(uint16_t id, uint16_t number_of_hops, bool data_size);
+void bm_save_message_info(uint16_t id, uint16_t number_of_hops, int8_t RSSI, bool data_size);
+
+/**@brief 
+ *
+ * @details 
+ */
+void bm_set_data_size(uint8_t size);
 
 #endif // BM_STATEMACHINE_H_

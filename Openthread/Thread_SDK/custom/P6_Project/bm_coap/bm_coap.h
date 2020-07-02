@@ -112,5 +112,12 @@ void bm_coap_results_send(bm_message_info message_info);
  */
 void bm_increment_group_address(void);
 
+/**@brief Function for sending the benchmark test message to the peered unicast IPv6 address.
+ *
+ * @param[in] message  message state
+ *
+ */
+void bm_decrement_group_address(void);
+
 
 #endif /* THREAD_COAP_UTILS_H__ */
