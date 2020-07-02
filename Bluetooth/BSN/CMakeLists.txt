@@ -15,8 +15,9 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(NONE)
 
 target_sources(app PRIVATE
-	src/main.c
+	src/main.cpp
 	src/model_handler.c
 	src/simple_buttons_and_leds.c
-	src/Timer_sync.c)
+	src/Timer_sync.c
+	src/Simple_nrf_radio.cpp)
 target_include_directories(app PRIVATE include)

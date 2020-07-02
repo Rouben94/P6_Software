@@ -12,6 +12,7 @@
 #include <drivers/hwinfo.h>
 #include "model_handler.h"
 #include "const.h"
+#include "Simple_nrf_radio.h"
 
 bool initialized=false;
 
@@ -79,11 +80,21 @@ static void bt_ready(int err){
 	initialized = true;
 }
 
+// Create Radio Instance
+Simple_nrf_radio simple_nrf_radio;
+
 void main(void)
 {
 	int err;
 
 	printk("Initializing...\n");
+
+	/* ----------- Start P2P Config ------------- */
+		// Init
+	printk("Started \n");
+	int res = simple_nrf_radio.RSSI(8);
+	printk("RSSI: %d\n", res);
+
 
 	/* ---------- Init Bluetooth ---------- */
 	printk("Enabling Bluetooth...\n");

@@ -58,7 +58,7 @@ extern void synctimer_TimeStampCapture_enable()
 	//nrfx_ppi_channel_fork_assign(nRF52_PreDefinedPPICH_Tx, (uint32_t)synctimer.p_reg->TASKS_CAPTURE[1]);
 	NRF_PPI->CH[18].EEP = (uint32_t) & (NRF_RADIO->EVENTS_TXREADY);
 	NRF_PPI->CH[18].TEP = (uint32_t) & (synctimer.p_reg->TASKS_CAPTURE[1]);
-	NRF_PPI->CHENSET = (PPI_CHENSET_CH18_Set << PPI_CHENSET_CH18_Pos);
+	NRF_PPI->CHENSET |= (PPI_CHENSET_CH18_Set << PPI_CHENSET_CH18_Pos);
 	//nrfx_ppi_channel_enable(nRF52_PreDefinedPPICH_Tx);
 	//nrfx_ppi_channel_fork_assign(nRF52_PreDefinedPPICH_Rx, (uint32_t)synctimer.p_reg->TASKS_START);
 	//nrfx_ppi_channel_enable(nRF52_PreDefinedPPICH_Rx);
@@ -66,7 +66,7 @@ extern void synctimer_TimeStampCapture_enable()
 	//NRF_PPI->CHENSET = (PPI_CHENSET_CH26_Set << PPI_CHENSET_CH26_Pos);
 	NRF_PPI->CH[19].EEP = (uint32_t) & (NRF_RADIO->EVENTS_CRCOK);
 	NRF_PPI->CH[19].TEP = (uint32_t) & (synctimer.p_reg->TASKS_CAPTURE[2]);
-	NRF_PPI->CHENSET = (PPI_CHENSET_CH19_Set << PPI_CHENSET_CH19_Pos);
+	NRF_PPI->CHENSET |= (PPI_CHENSET_CH19_Set << PPI_CHENSET_CH19_Pos);
 #endif // defined(DPPI_PRESENT) || defined(__NRFX_DOXYGEN__)
 }
 
@@ -76,20 +76,20 @@ extern void synctimer_TimeStampCapture_disable()
 #if defined(DPPI_PRESENT) || defined(__NRFX_DOXYGEN__)
 	/* Setup DPPI for Sending and Receiving Timesync Packet */
 	nrf_timer_subscribe_clear(synctimer.p_reg, NRF_TIMER_TASK_CAPTURE1);
-	NRF_RADIO->PUBLISH_END |= 0 << 31; // Disable Publishing on CH0
+	NRF_RADIO->PUBLISH_END &= ~(1 << 31); // Disable Publishing on CH0
 	nrf_timer_subscribe_clear(synctimer.p_reg, NRF_TIMER_TASK_CAPTURE2);
-	NRF_RADIO->PUBLISH_CRCOK |= 0 << 31; // Disable Publishing
-	NRF_RADIO->PUBLISH_CRCOK |= 0 << 0;	 // Disable Publishing on CH1
-	NRF_DPPIC->CHEN |= 0 << 0;			 // Disable Channel 0 DPPI
-	NRF_DPPIC->CHEN |= 0 << 1;			 // Disable Channel 1 DPPI
+	NRF_RADIO->PUBLISH_CRCOK &= ~(1 << 31); // Disable Publishing
+	NRF_RADIO->PUBLISH_CRCOK &= ~(1 << 0);	 // Disable Publishing on CH1
+	NRF_DPPIC->CHEN &= ~(1 << 0);			 // Disable Channel 0 DPPI
+	NRF_DPPIC->CHEN &= ~(1 << 1);			 // Disable Channel 1 DPPI
 #else
-	/* Setup PPI for Sending and Receiving Timesync Packet */
+	/* Reset PPI for Sending and Receiving Timesync Packet */
 	NRF_PPI->CH[18].EEP = 0;
 	NRF_PPI->CH[18].TEP = 0;
-	NRF_PPI->CHENSET = (0 << PPI_CHENSET_CH18_Pos);
+	NRF_PPI->CHENSET &= ~(1 << PPI_CHENSET_CH18_Pos);
 	NRF_PPI->CH[19].EEP = 0;
 	NRF_PPI->CH[19].TEP = 0;
-	NRF_PPI->CHENSET = (0 << PPI_CHENSET_CH19_Pos);
+	NRF_PPI->CHENSET &= ~(1 << PPI_CHENSET_CH19_Pos);
 #endif // defined(DPPI_PRESENT) || defined(__NRFX_DOXYGEN__)
 }
 
@@ -162,27 +162,28 @@ extern uint32_t synctimer_getSyncTime()
 
 void config_debug_ppi_and_gpiote_radio_state()
 {
-	NRF_P0->DIRSET |= (1 << 0);
-	NRF_P0->DIRSET |= (1 << 1);
 	//Radio Tx
-	NRF_GPIOTE->CONFIG[0] = (GPIOTE_CONFIG_MODE_Task << GPIOTE_CONFIG_MODE_Pos) |
+	NRF_GPIOTE->CONFIG[0] = ((GPIOTE_CONFIG_MODE_Task << GPIOTE_CONFIG_MODE_Pos) |
 							(0 << GPIOTE_CONFIG_PSEL_Pos) |
 							(0 << GPIOTE_CONFIG_PORT_Pos) |
-							(GPIOTE_CONFIG_POLARITY_HiToLo << GPIOTE_CONFIG_POLARITY_Pos) |
-							(GPIOTE_CONFIG_OUTINIT_High << GPIOTE_CONFIG_OUTINIT_Pos);
+							(GPIOTE_CONFIG_POLARITY_Toggle << GPIOTE_CONFIG_POLARITY_Pos) |
+							(GPIOTE_CONFIG_OUTINIT_High << GPIOTE_CONFIG_OUTINIT_Pos));
+	
 	NRF_PPI->CH[7].EEP = (uint32_t) & NRF_RADIO->EVENTS_TXREADY;
 	NRF_PPI->CH[7].TEP = (uint32_t) & NRF_GPIOTE->TASKS_OUT[0];
-	NRF_PPI->CHENSET = (PPI_CHENSET_CH7_Set << PPI_CHENSET_CH7_Pos);
+	NRF_PPI->CHENSET |= (PPI_CHENSET_CH7_Set << PPI_CHENSET_CH7_Pos);
 	//Radio Rx
-	NRF_GPIOTE->CONFIG[1] = (GPIOTE_CONFIG_MODE_Task << GPIOTE_CONFIG_MODE_Pos) |
+	NRF_GPIOTE->CONFIG[1] = ((GPIOTE_CONFIG_MODE_Task << GPIOTE_CONFIG_MODE_Pos) |
 							(1 << GPIOTE_CONFIG_PSEL_Pos) |
 							(0 << GPIOTE_CONFIG_PORT_Pos) |
-							(GPIOTE_CONFIG_POLARITY_HiToLo << GPIOTE_CONFIG_POLARITY_Pos) |
-							(GPIOTE_CONFIG_OUTINIT_High << GPIOTE_CONFIG_OUTINIT_Pos);
+							(GPIOTE_CONFIG_POLARITY_Toggle << GPIOTE_CONFIG_POLARITY_Pos) |
+							(GPIOTE_CONFIG_OUTINIT_High << GPIOTE_CONFIG_OUTINIT_Pos));
 	NRF_PPI->CH[8].EEP = (uint32_t) & NRF_RADIO->EVENTS_RXREADY;
 	NRF_PPI->CH[8].TEP = (uint32_t) & NRF_GPIOTE->TASKS_OUT[1];
-	NRF_PPI->CHENSET = (PPI_CHENSET_CH8_Set << PPI_CHENSET_CH8_Pos);
+	NRF_PPI->CHENSET |= (PPI_CHENSET_CH8_Set << PPI_CHENSET_CH8_Pos);
+
 	//Reset Tx LEDs
+	/*
 	NRF_GPIOTE->CONFIG[2] = (GPIOTE_CONFIG_MODE_Task << GPIOTE_CONFIG_MODE_Pos) |
 							(0 << GPIOTE_CONFIG_PSEL_Pos) |
 							(0 << GPIOTE_CONFIG_PORT_Pos) |
@@ -200,4 +201,5 @@ void config_debug_ppi_and_gpiote_radio_state()
 	NRF_PPI->CH[10].EEP = (uint32_t) & NRF_RADIO->EVENTS_TXREADY;
 	NRF_PPI->CH[10].TEP = (uint32_t) & NRF_GPIOTE->TASKS_OUT[3];
 	NRF_PPI->CHENSET = (PPI_CHENSET_CH10_Set << PPI_CHENSET_CH10_Pos);
+	*/
 }
