@@ -2,8 +2,8 @@
 extern "C" {
 #endif
 
-#ifndef TIMER_SYNC_H
-#define TIMER_SYNC_H
+#ifndef SIMPLE_BUTTONS_AND_LEDS_H
+#define SIMPLE_BUTTONS_AND_LEDS_H
 
 #include <zephyr.h>
 #include <device.h>

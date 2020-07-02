@@ -7,7 +7,7 @@ cmake_minimum_required(VERSION 3.8.2)
 
 #Board selection
 set(BOARD nrf52840dk_nrf52840)
-set(BOARD nrf5340pdk_nrf5340_cpunet)
+#set(BOARD nrf5340pdk_nrf5340_cpunet)
 #set(BOARD nrf5340pdk_nrf5340_cpuapp)
 #set(BOARD nrf52840_pca10059)
 
@@ -17,5 +17,6 @@ project(NONE)
 target_sources(app PRIVATE
 	src/main.c
 	src/model_handler.c
-	src/simple_buttons_and_leds.c)
+	src/simple_buttons_and_leds.c
+	src/Timer_sync.c)
 target_include_directories(app PRIVATE include)
