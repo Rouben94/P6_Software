@@ -54,29 +54,8 @@ void Simple_nrf_radio::radio_handler(void *context)
 	 */
 void Simple_nrf_radio::clock_init(void)
 {
-    int err;
-    struct device *clock;
-    enum clock_control_status clock_status;
-
-    clock = device_get_binding(DT_INST_0_NORDIC_NRF_CLOCK_LABEL);
-    if (!clock)
-    {
-        printk("Unable to find clock device binding\n");
-        return;
-    }
-
-    err = clock_control_on(clock, CLOCK_CONTROL_NRF_SUBSYS_HF);
-    if (err)
-    {
-        printk("Unable to turn on the clock: %d", err);
-    }
-
-    do
-    {
-        clock_status = clock_control_get_status(clock,
-                                                CLOCK_CONTROL_NRF_SUBSYS_HF);
-    } while (clock_status != CLOCK_CONTROL_STATUS_ON);
-
+    NRF_CLOCK->TASKS_HFCLKSTART = 1;
+    NRF_CLOCK->EVENTS_HFCLKSTARTED = 0;
     printk("Clock has started\n");
 }
 /**
@@ -146,7 +125,7 @@ void Simple_nrf_radio::Send(RADIO_PACKET tx_pkt, int timeout)
     ISR_Thread_ID = k_current_get();                                                                                                               // Set Interrupt Thread to wakeup
     nrf_radio_shorts_enable(NRF_RADIO, NRF_RADIO_SHORT_READY_START_MASK | NRF_RADIO_SHORT_END_DISABLE_MASK | NRF_RADIO_SHORT_PHYEND_DISABLE_MASK); // Start after Ready and Disable after END or PHY-End
     nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_TXEN);
-    k_sleep(timeout); // Wait for interrupt
+    k_sleep(K_MSEC(timeout)); // Wait for interrupt
 }
 /**
 	 * Receive a Payload
@@ -177,7 +156,7 @@ s32_t Simple_nrf_radio::Receive(RADIO_PACKET *rx_pkt, int timeout)
     ISR_Thread_ID = k_current_get();                                                                                                                                                    // Set Interrupt Thread to wakeup
     nrf_radio_shorts_enable(NRF_RADIO, NRF_RADIO_SHORT_READY_START_MASK | NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK | NRF_RADIO_SHORT_PHYEND_START_MASK | NRF_RADIO_SHORT_END_START_MASK); // Start after Ready and Start after END -> wait for CRCOK Event otherwise keep on receiving
     nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_RXEN);
-    s32_t ret = k_sleep(timeout); // Wait for interrupt and check if it was a timeout
+    s32_t ret = k_sleep(K_MSEC(timeout)); // Wait for interrupt and check if it was a timeout
     if (ret > 0)
     {
         printk("Received Sample RSSI: %d \n", nrf_radio_rssi_sample_get(NRF_RADIO));
