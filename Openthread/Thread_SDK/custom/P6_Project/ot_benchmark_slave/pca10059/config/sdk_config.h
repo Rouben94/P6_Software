@@ -67,7 +67,7 @@
 // <i> 802.15.4 channel used by Thread. Defaults to 11.
 
 #ifndef THREAD_CHANNEL
-#define THREAD_CHANNEL 11
+#define THREAD_CHANNEL 18
 #endif
 
 // </h> 

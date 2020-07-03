@@ -37,4 +37,3 @@ void bm_cli_write_result(bm_message_info message_info)
     otCliOutput(buf4, sizeof(buf4));
     otCliOutput(buf5, sizeof(buf5));
 }
-

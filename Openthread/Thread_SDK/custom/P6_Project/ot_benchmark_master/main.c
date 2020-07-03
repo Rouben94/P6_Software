@@ -61,6 +61,7 @@
 #include <openthread/instance.h>
 #include <openthread/thread.h>
 #include <openthread/cli.h>
+#include <openthread/channel_manager.h>
 
 #define SCHED_QUEUE_SIZE      32                              /**< Maximum number of events in the scheduler queue. */
 #define SCHED_EVENT_DATA_SIZE APP_TIMER_SCHED_EVENT_DATA_SIZE /**< Maximum app_scheduler event size. */
@@ -228,6 +229,17 @@ void bm_custom_cli_init(void){
     otCliSetUserCommands(bm_cli_usercommands, 2 * sizeof(bm_cli_usercommands[0]));
 }
 
+void bm_channel_manager_init(void)
+{
+    otError error;
+    uint32_t bm_channel_mask = 0b11111111111111110000000000;
+    otChannelManagerSetAutoChannelSelectionEnabled(thread_ot_instance_get(), true);
+    otChannelManagerSetSupportedChannels(thread_ot_instance_get(), bm_channel_mask);
+    otChannelManagerSetFavoredChannels(thread_ot_instance_get(), bm_channel_mask);
+    error = otChannelManagerSetAutoChannelSelectionInterval(thread_ot_instance_get(), 60);
+    ASSERT(error == OT_ERROR_NONE);
+}
+
 /***************************************************************************************************
  * @section Main
  **************************************************************************************************/
@@ -244,6 +256,7 @@ int main(int argc, char *argv[])
     thread_coap_init();
     bm_custom_cli_init();
     thread_bsp_init();
+    bm_channel_manager_init();
 
     while (true)
     {

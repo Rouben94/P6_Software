@@ -562,7 +562,8 @@ void thread_coap_utils_init(const thread_coap_utils_configuration_t * p_config)
     if (m_config.coap_server_enabled)
     {
         m_bm_test_resource.mContext = p_instance;
-        error = otCoapAddResource(p_instance, &m_bm_test_resource);
+        //error = otCoapAddResource(p_instance, &m_bm_test_resource);
+        otCoapAddResource(p_instance, &m_bm_test_resource);
         ASSERT(error == OT_ERROR_NONE);
 
         error = otIp6SubscribeMulticastAddress(thread_ot_instance_get(), &bm_group_address);
@@ -572,14 +573,16 @@ void thread_coap_utils_init(const thread_coap_utils_configuration_t * p_config)
     if (m_config.coap_client_enabled || m_config.coap_server_enabled)
     {
         m_bm_start_resource.mContext    = p_instance;
-        error = otCoapAddResource(p_instance, &m_bm_start_resource);
+        //error = otCoapAddResource(p_instance, &m_bm_start_resource);
+        otCoapAddResource(p_instance, &m_bm_start_resource);
         ASSERT(error == OT_ERROR_NONE);
     }
 
     if (!m_config.coap_client_enabled || !m_config.coap_server_enabled)
     {
         m_bm_result_resource.mContext   = p_instance;
-        error = otCoapAddResource(p_instance, &m_bm_result_resource);
+        //error = otCoapAddResource(p_instance, &m_bm_result_resource);
+        otCoapAddResource(p_instance, &m_bm_result_resource);
         ASSERT(error == OT_ERROR_NONE);
     }
 }
