@@ -30,7 +30,6 @@ extern void synctimer_init()
 	{
 		printk("nrfx_timer_init failed with: %d\n", err);
 	}
-
 	nrfx_timer_clear(&synctimer);
 }
 
