@@ -23,16 +23,23 @@ extern "C" {
 #endif // defined(DPPI_PRESENT) || defined(__NRFX_DOXYGEN__)
 
 /* Timer used for Synchronisation */
-const nrfx_timer_t synctimer = NRFX_TIMER_INSTANCE(2);
-extern uint32_t Timestamp_Slave;
-extern uint32_t Timestamp_Master;
-extern uint32_t Timestamp_Diff;
+extern nrfx_timer_t synctimer;
+extern uint64_t Timestamp_Slave;
+extern uint64_t Timestamp_Master;
+extern uint64_t Timestamp_Diff;
+extern uint32_t OverflowCNT;
 
 /**
 * Init the Sync Timer
 *
 */
 extern void synctimer_init();
+
+/**
+* Timestamp Capture clear
+*
+*/
+extern void synctimer_TimeStampCapture_clear();
 
 /**
 * Timestamp Capture enable
@@ -44,6 +51,7 @@ extern void synctimer_TimeStampCapture_enable();
 *
 */
 extern void synctimer_TimeStampCapture_disable();
+
 
 /**
 * Clears and starts the timer
@@ -59,25 +67,27 @@ extern void synctimer_stop();
 *
 * @return Latest Tx Timestamp
 */
-extern uint32_t synctimer_getTxTimeStamp();
+extern uint64_t synctimer_getTxTimeStamp();
 /**
 * Get previous Rx sync timestamp
 *
 * @return Latest Rx Timestamp
 */
-extern uint32_t synctimer_getRxTimeStamp();
+extern uint64_t synctimer_getRxTimeStamp();
 /**
 * Synchronise the timer with the received offset Timestamp
 *
 * @param TxMasterTimeStamp Latest 
 */
-extern void synctimer_setSync(uint32_t TxMasterTimeStamp);
+extern void synctimer_setSync(uint64_t TxMasterTimeStamp);
 /**
 * Get Synchronised Timestamp
 *
 * @return Synchronised Timestamp
 */
-extern uint32_t synctimer_getSyncTime();
+extern uint64_t synctimer_getSyncTime();
+
+extern void config_debug_ppi_and_gpiote_radio_state();
 
 #endif
 

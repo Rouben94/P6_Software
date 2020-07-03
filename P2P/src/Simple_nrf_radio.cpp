@@ -54,30 +54,12 @@ void Simple_nrf_radio::radio_handler(void *context)
 	 */
 void Simple_nrf_radio::clock_init(void)
 {
-    int err;
-    struct device *clock;
-    enum clock_control_status clock_status;
-
-    clock = device_get_binding(DT_INST_0_NORDIC_NRF_CLOCK_LABEL);
-    if (!clock)
+    NRF_CLOCK->TASKS_HFCLKSTART = 1; //Start high frequency clock
+    while (NRF_CLOCK->EVENTS_HFCLKSTARTED == 0)
     {
-        printk("Unable to find clock device binding\n");
-        return;
+        //Wait for HFCLK to start
     }
-
-    err = clock_control_on(clock, CLOCK_CONTROL_NRF_SUBSYS_HF);
-    if (err)
-    {
-        printk("Unable to turn on the clock: %d", err);
-    }
-
-    do
-    {
-        clock_status = clock_control_get_status(clock,
-                                                CLOCK_CONTROL_NRF_SUBSYS_HF);
-    } while (clock_status != CLOCK_CONTROL_STATUS_ON);
-
-    printk("Clock has started\n");
+    NRF_CLOCK->EVENTS_HFCLKSTARTED = 0; //Clear event
 }
 /**
 	 * Meassure RSSI Value
@@ -126,7 +108,7 @@ void Simple_nrf_radio::Send(RADIO_PACKET tx_pkt, k_timeout_t timeout)
         //memset((u8_t *)&tx_pkt_aligned_IEEE, 0, sizeof((u8_t *)&tx_pkt_aligned_IEEE));     // Initialize Data Structure
         tx_pkt_aligned_IEEE.length = tx_pkt.length + 2 + sizeof(address);                  // Because Length includes CRC Field
         tx_pkt_aligned_IEEE.address = address;                                             // Save  address because IEEE wont transmit it by itself
-        memset(tx_pkt_aligned_IEEE.PDU, 0, sizeof(tx_pkt_aligned_IEEE.PDU));                // Initialize Data Structure
+        memset(tx_pkt_aligned_IEEE.PDU, 0, sizeof(tx_pkt_aligned_IEEE.PDU));               // Initialize Data Structure
         memcpy(tx_pkt_aligned_IEEE.PDU, tx_pkt.PDU, tx_pkt.length);                        // Copy the MAC PDU to the RAM PDU
         tx_buf = (u8_t *)&tx_pkt_aligned_IEEE;                                             // Set the Tx Buffer Pointer
         tx_buf_len = tx_pkt.length + sizeof(address) + sizeof(tx_pkt_aligned_IEEE.length); // Save the Size of the tx_buf
@@ -135,7 +117,7 @@ void Simple_nrf_radio::Send(RADIO_PACKET tx_pkt, k_timeout_t timeout)
     {
         //memset((u8_t *)&tx_pkt_aligned, 0, sizeof((u8_t *)&tx_pkt_aligned)); // Initialize Data Structure
         tx_pkt_aligned.length = tx_pkt.length;
-        memset(tx_pkt_aligned.PDU, 0, sizeof(tx_pkt_aligned.PDU));                // Initialize Data Structure
+        memset(tx_pkt_aligned.PDU, 0, sizeof(tx_pkt_aligned.PDU));          // Initialize Data Structure
         memcpy(tx_pkt_aligned.PDU, tx_pkt.PDU, tx_pkt.length);              // Copy the MAC PDU to the RAM PDU
         tx_buf = (u8_t *)&tx_pkt_aligned;                                   // Set the Tx Buffer Pointer
         tx_buf_len = tx_pkt_aligned.length + sizeof(tx_pkt_aligned.length); // Save the Size of the tx_buf
