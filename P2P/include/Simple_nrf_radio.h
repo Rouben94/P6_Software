@@ -26,6 +26,7 @@ struct RxPktStatLog
 	u16_t CRCOKcnt = 0;
 	u16_t CRCErrcnt = 0;
 	u16_t RSSI_Sum_Avg = 174; //Thermal Noise
+	bool act = false; // true if Logging is enabled
 };
 
 struct Radio_Handler_Context

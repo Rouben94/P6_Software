@@ -67,6 +67,9 @@ void Simple_nrf_radio::radio_handler(void *context)
     nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_PHYEND);   // Clear ISR Event PHYEND
     nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_CRCOK);    // Clear ISR Event CRCOK
     nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_CRCERROR); // Clear ISR Event CRCError
+    if (c_rhctx->stat.act){
+        return; //Keep on receiving till timeout
+    }
     k_wakeup((k_tid_t) * (c_rhctx->thread_id));                 // Wake up the sleeping Thread waiting for the ISR
 }
 /**
@@ -220,21 +223,22 @@ RxPktStatLog Simple_nrf_radio::ReceivePktStatLog(k_timeout_t timeout)
     rhctx.stat.CRCErrcnt = 0;
     rhctx.stat.CRCOKcnt = 0;
     rhctx.stat.RSSI_Sum_Avg = 174; //Thermal Noise
-    nrf_radio_packetptr_set(NRF_RADIO, rx_buf_ptr);
+    rhctx.stat.act = true;
+    nrf_radio_packetptr_set(NRF_RADIO, rx_buf);
     nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_CRCOK); // Clear CRCOK Event
-    nrf_radio_int_enable(NRF_RADIO, NRF_RADIO_INT_CRCOK_MASK);
-    nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_CRCERROR);                                                                                                                         // Clear CRCOK Event
-    nrf_radio_int_enable(NRF_RADIO, NRF_RADIO_INT_CRCERROR_MASK);                                                                                                                       // Enable CRCOK Event interrupt
+    nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_CRCERROR);
+    nrf_radio_int_enable(NRF_RADIO, NRF_RADIO_INT_CRCOK_MASK | NRF_RADIO_INT_CRCERROR_MASK);                                                                                                                         // Enable CRCOK Event interrupt
     ISR_Thread_ID = k_current_get();                                                                                                                                                    // Set Interrupt Thread to wakeup
     nrf_radio_shorts_enable(NRF_RADIO, NRF_RADIO_SHORT_READY_START_MASK | NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK | NRF_RADIO_SHORT_PHYEND_START_MASK | NRF_RADIO_SHORT_END_START_MASK); // Start after Ready and Start after END -> wait for CRCOK Event otherwise keep on receiving
     nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_RXEN);
     k_sleep(timeout); // Wait for interrupt and check if it was a timeout
     if ((rhctx.stat.CRCOKcnt + rhctx.stat.CRCErrcnt) != 0)
     {
-        rhctx.stat.RSSI_Sum_Avg = rhctx.stat.RSSI_Sum_Avg / (rhctx.stat.CRCOKcnt + rhctx.stat.CRCErrcnt);
+        rhctx.stat.RSSI_Sum_Avg = (rhctx.stat.RSSI_Sum_Avg-174) / (rhctx.stat.CRCOKcnt + rhctx.stat.CRCErrcnt);
     }
     nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_RSSISTOP);
     radio_disable();
+    rhctx.stat.act = false;
     return rhctx.stat;
 }
 /**

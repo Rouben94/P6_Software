@@ -137,7 +137,7 @@ ParamPkt Param_pkt_RX, Param_pkt_TX = {};
 ParamPkt ParamLocal = {CommonStartCH,CommonEndCH,CommonMode,20,0};
 bool GotParam = false;
 
-uint16_t TxPcktCNT[MaxCHCnt];
+std::vector <ChannelReport> chrep_local;
 
 ReportsPkt Repo_pkt_RX, Repo_pkt_TX = {};
 MasterReport masrep;
@@ -399,7 +399,8 @@ void ST_PACKETS_fn(void)
 	u8_t paramChCNT = (ParamLocal.StopCH - ParamLocal.StartCH);
 	if (paramChCNT == 0){
 		paramChCNT++;
-	}
+	}	
+	chrep_local.clear(); // Clear the local Channel Report
 	/* Do work and keep track of Time Left */
 	for (int ch = ParamLocal.StartCH; ch <= ParamLocal.StopCH; ch++)
 	{
@@ -408,7 +409,7 @@ void ST_PACKETS_fn(void)
 		{
 			CHcnt++;
 		}
-
+		chrep_local.push_back({}); // Add the Channel
 		if (isMaster)
 		{
 			//Timer with Margin to let Slave Receive longer than sending
@@ -417,30 +418,14 @@ void ST_PACKETS_fn(void)
 			while ((k_timer_remaining_get(&uni_timer) > 0) && (k_timer_remaining_get(&state_timer) > 0))
 			{
 				simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&uni_timer)));				
-				TxPcktCNT[ch]++; //Save temp the Packet Send Count
+				chrep_local.back().TxPkt_CNT++; //Save temp the Packet Send Count
 			}
 			k_sleep(K_MSEC(ST_TIME_MARGIN_MS)); //Let Slave End Reception
 		} else {
 			k_timer_start(&uni_timer, K_MSEC((ST_TIME_PACKETS_MS / (paramChCNT))), K_MSEC(0));
 			while ((k_timer_remaining_get(&uni_timer) > 0) && (k_timer_remaining_get(&state_timer) > 0))
 			{
-				
-			}
-
-		}
-		k_timer_start(&uni_timer, K_MSEC((ST_TIME_PACKETS_MS / (paramChCNT))-ST_TIME_MARGIN_MS), K_MSEC(0));
-		while ((k_timer_remaining_get(&uni_timer) > 0) && (k_timer_remaining_get(&state_timer) > 0))
-		{
-			
-				simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&uni_timer)));
-			} else {
-				GotParam = false;
-				s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, K_MSEC(k_timer_remaining_get(&uni_timer)));
-				if (ret > 0){
-					ParamLocal = *((ParamPkt *)radio_pkt_Rx.PDU);
-					GotParam = true;
-					return;
-				}
+				RxPktStatLog log = simple_nrf_radio.ReceivePktStatLog(K_MSEC(k_timer_remaining_get(&uni_timer)));	
 			}
 		}
 	}
