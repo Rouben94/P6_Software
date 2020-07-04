@@ -21,6 +21,12 @@ struct RADIO_PACKET
 	u8_t Rx_RSSI = 174; // Received RSSI of Packet
 };
 
+struct TxPktStatLog
+{
+	u16_t Pktcnt = 0;
+	bool act = false; // true if Logging is enabled
+};
+
 struct RxPktStatLog
 {
 	u16_t CRCOKcnt = 0;
@@ -31,7 +37,8 @@ struct RxPktStatLog
 
 struct Radio_Handler_Context
 {
-	RxPktStatLog stat;
+	TxPktStatLog tx_stat;
+	RxPktStatLog rx_stat;
 	k_tid_t* thread_id; //Pointer for Thread ID waiting for ISR
 };
 
@@ -92,11 +99,18 @@ public:
 	/**
 	 * Send a Payload
 	 *
-	 * @param payload Pointer what payload to send
-	 * @param size Length of the Payload to Send
+	 * @param tx_pkt Radio Paket to Send
 	 * @param timeout Waittimeout in ms for a packet to be sent
 	 */
 	void Send(RADIO_PACKET tx_pkt, k_timeout_t timeout);
+	/**
+	 * Burst send out the same packet till timeout
+	 *
+	 * @param tx_pkt Radio Paket to Send
+	 * @param timeout Waittimeout in ms for bursting
+     * @return Number of Packeets sent
+	 */
+	u16_t BurstCntPkt(RADIO_PACKET tx_pkt, k_timeout_t timeout);
 	/**
 	 * Receive a Payload
 	 *

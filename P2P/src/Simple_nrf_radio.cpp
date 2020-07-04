@@ -37,11 +37,11 @@ void Simple_nrf_radio::radio_handler(void *context)
             //printk("IEEE Address match\n");
             if (nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_CRCOK))
             {
-                c_rhctx->stat.CRCOKcnt++;
+                c_rhctx->rx_stat.CRCOKcnt++;
             }
             else if (nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_CRCERROR))
             {
-                c_rhctx->stat.CRCErrcnt++;
+                c_rhctx->rx_stat.CRCErrcnt++;
             }
         }
         else
@@ -54,20 +54,23 @@ void Simple_nrf_radio::radio_handler(void *context)
     {
         if (nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_CRCOK))
         {
-            c_rhctx->stat.CRCOKcnt++;
+            c_rhctx->rx_stat.CRCOKcnt++;
         }
         else if (nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_CRCERROR))
         {
-            c_rhctx->stat.CRCErrcnt++;
+            c_rhctx->rx_stat.CRCErrcnt++;
         }
     }
-    c_rhctx->stat.RSSI_Sum_Avg += nrf_radio_rssi_sample_get(NRF_RADIO); // RSSI should be done 
+    c_rhctx->rx_stat.RSSI_Sum_Avg += nrf_radio_rssi_sample_get(NRF_RADIO); // RSSI should be done 
     nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_RSSISTOP);
+    if (nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_END) || nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_PHYEND)){
+        c_rhctx->tx_stat.Pktcnt++;
+    }
     nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_END);      // Clear ISR Event END
     nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_PHYEND);   // Clear ISR Event PHYEND
     nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_CRCOK);    // Clear ISR Event CRCOK
     nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_CRCERROR); // Clear ISR Event CRCError
-    if (c_rhctx->stat.act){
+    if (c_rhctx->rx_stat.act || c_rhctx->tx_stat.act){
         return; //Keep on receiving till timeout
     }
     k_wakeup((k_tid_t) * (c_rhctx->thread_id));                 // Wake up the sleeping Thread waiting for the ISR
@@ -115,8 +118,7 @@ int Simple_nrf_radio::RSSI(u8_t cycles)
 /**
 	 * Send a Payload
 	 *
-	 * @param payload Pointer what payload to send
-	 * @param size Length of the Payload to Send
+	 * @param tx_pkt Radio Paket to Send
 	 * @param timeout Waittimeout in ms for a packet to be sent
 	 */
 void Simple_nrf_radio::Send(RADIO_PACKET tx_pkt, k_timeout_t timeout)
@@ -149,6 +151,49 @@ void Simple_nrf_radio::Send(RADIO_PACKET tx_pkt, k_timeout_t timeout)
     nrf_radio_shorts_enable(NRF_RADIO, NRF_RADIO_SHORT_READY_START_MASK | NRF_RADIO_SHORT_END_DISABLE_MASK | NRF_RADIO_SHORT_PHYEND_DISABLE_MASK); // Start after Ready and Disable after END or PHY-End
     nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_TXEN);
     k_sleep(timeout); // Wait for interrupt
+}
+/**
+	 * Burst send out the same packet till timeout
+	 *
+	 * @param tx_pkt Radio Paket to Send
+	 * @param timeout Blocktimeout in ms for bursting
+     * @return Number of Packeets sent
+	 */
+u16_t Simple_nrf_radio::BurstCntPkt(RADIO_PACKET tx_pkt, k_timeout_t timeout)
+{
+    radio_disable(); // Disable the Radio
+    rhctx.tx_stat.Pktcnt = 0;
+    rhctx.tx_stat.act = true;
+    /* Setup Paket */
+    if (nrf_radio_mode_get(NRF_RADIO) == NRF_RADIO_MODE_IEEE802154_250KBIT)
+    {
+        //memset((u8_t *)&tx_pkt_aligned_IEEE, 0, sizeof((u8_t *)&tx_pkt_aligned_IEEE));     // Initialize Data Structure
+        tx_pkt_aligned_IEEE.length = tx_pkt.length + 2 + sizeof(address);                  // Because Length includes CRC Field
+        tx_pkt_aligned_IEEE.address = address;                                             // Save  address because IEEE wont transmit it by itself
+        memset(tx_pkt_aligned_IEEE.PDU, 0, sizeof(tx_pkt_aligned_IEEE.PDU));               // Initialize Data Structure
+        memcpy(tx_pkt_aligned_IEEE.PDU, tx_pkt.PDU, tx_pkt.length);                        // Copy the MAC PDU to the RAM PDU
+        tx_buf = (u8_t *)&tx_pkt_aligned_IEEE;                                             // Set the Tx Buffer Pointer
+        tx_buf_len = tx_pkt.length + sizeof(address) + sizeof(tx_pkt_aligned_IEEE.length); // Save the Size of the tx_buf
+    }
+    else
+    {
+        //memset((u8_t *)&tx_pkt_aligned, 0, sizeof((u8_t *)&tx_pkt_aligned)); // Initialize Data Structure
+        tx_pkt_aligned.length = tx_pkt.length;
+        memset(tx_pkt_aligned.PDU, 0, sizeof(tx_pkt_aligned.PDU));          // Initialize Data Structure
+        memcpy(tx_pkt_aligned.PDU, tx_pkt.PDU, tx_pkt.length);              // Copy the MAC PDU to the RAM PDU
+        tx_buf = (u8_t *)&tx_pkt_aligned;                                   // Set the Tx Buffer Pointer
+        tx_buf_len = tx_pkt_aligned.length + sizeof(tx_pkt_aligned.length); // Save the Size of the tx_buf
+    }
+    nrf_radio_packetptr_set(NRF_RADIO, tx_buf);
+    nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_END);                                                                                         // Clear END Event
+    nrf_radio_int_enable(NRF_RADIO, NRF_RADIO_INT_END_MASK);                                                                                       // Enable END Event interrupt
+    ISR_Thread_ID = k_current_get();                                                                                                               // Set Interrupt Thread to wakeup
+    nrf_radio_shorts_enable(NRF_RADIO, NRF_RADIO_SHORT_READY_START_MASK | NRF_RADIO_SHORT_PHYEND_START_MASK | NRF_RADIO_SHORT_END_START_MASK); // Start after Ready and Disable after END or PHY-End
+    nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_TXEN);
+    k_sleep(timeout); // Wait for interrupt
+    radio_disable();
+    rhctx.tx_stat.act = false;
+    return rhctx.tx_stat.Pktcnt;
 }
 /**
 	 * Receive a Payload
@@ -220,10 +265,10 @@ s32_t Simple_nrf_radio::Receive(RADIO_PACKET *rx_pkt, k_timeout_t timeout)
 RxPktStatLog Simple_nrf_radio::ReceivePktStatLog(k_timeout_t timeout)
 {
     radio_disable();
-    rhctx.stat.CRCErrcnt = 0;
-    rhctx.stat.CRCOKcnt = 0;
-    rhctx.stat.RSSI_Sum_Avg = 174; //Thermal Noise
-    rhctx.stat.act = true;
+    rhctx.rx_stat.CRCErrcnt = 0;
+    rhctx.rx_stat.CRCOKcnt = 0;
+    rhctx.rx_stat.RSSI_Sum_Avg = 174; //Thermal Noise
+    rhctx.rx_stat.act = true;
     nrf_radio_packetptr_set(NRF_RADIO, rx_buf);
     nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_CRCOK); // Clear CRCOK Event
     nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_CRCERROR);
@@ -232,14 +277,14 @@ RxPktStatLog Simple_nrf_radio::ReceivePktStatLog(k_timeout_t timeout)
     nrf_radio_shorts_enable(NRF_RADIO, NRF_RADIO_SHORT_READY_START_MASK | NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK | NRF_RADIO_SHORT_PHYEND_START_MASK | NRF_RADIO_SHORT_END_START_MASK); // Start after Ready and Start after END -> wait for CRCOK Event otherwise keep on receiving
     nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_RXEN);
     k_sleep(timeout); // Wait for interrupt and check if it was a timeout
-    if ((rhctx.stat.CRCOKcnt + rhctx.stat.CRCErrcnt) != 0)
+    if ((rhctx.rx_stat.CRCOKcnt + rhctx.rx_stat.CRCErrcnt) != 0)
     {
-        rhctx.stat.RSSI_Sum_Avg = (rhctx.stat.RSSI_Sum_Avg-174) / (rhctx.stat.CRCOKcnt + rhctx.stat.CRCErrcnt);
+        rhctx.rx_stat.RSSI_Sum_Avg = (rhctx.rx_stat.RSSI_Sum_Avg-174) / (rhctx.rx_stat.CRCOKcnt + rhctx.rx_stat.CRCErrcnt);
     }
     nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_RSSISTOP);
     radio_disable();
-    rhctx.stat.act = false;
-    return rhctx.stat;
+    rhctx.rx_stat.act = false;
+    return rhctx.rx_stat;
 }
 /**
 	 * Set the Radio Mode.

@@ -112,7 +112,7 @@ u32_t LSB_MAC_Address = NRF_FICR->DEVICEADDR[0];
 RADIO_PACKET radio_pkt_Rx, radio_pkt_Tx = {};
 DiscoveryPkt Disc_pkt_RX, Disc_pkt_TX = {};
 uint64_t MockupTS;
-u8_t CHcnt = CommonEndCH - CommonStartCH;
+u8_t CHcnt = CommonEndCH - CommonStartCH + 1;
 u32_t LatestTxMasterTimestamp;
 ParamPkt Param_pkt_RX, Param_pkt_TX = {};
 ReportsPkt Repo_pkt_RX, Repo_pkt_TX = {};
@@ -229,7 +229,8 @@ void ST_DISCOVERY_fn(void)
 			{
 				Disc_pkt_TX.MockupTimestamp = MockupTS;
 				Disc_pkt_TX.LastTxTimestamp = synctimer_getTxTimeStamp();
-				simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&uni_timer)));
+				u16_t ret = simple_nrf_radio.BurstCntPkt(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&uni_timer)));
+				printk("PktCnt: %d\n",ret);
 			}
 			else
 			{
