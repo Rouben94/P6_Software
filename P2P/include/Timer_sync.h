@@ -10,6 +10,7 @@ extern "C" {
 #include <zephyr.h>
 
 #include <nrfx_timer.h>
+#include <hal/nrf_timer.h>
 #include <hal/nrf_radio.h>
 
 #if defined(DPPI_PRESENT) || defined(__NRFX_DOXYGEN__)
@@ -23,11 +24,10 @@ extern "C" {
 #endif // defined(DPPI_PRESENT) || defined(__NRFX_DOXYGEN__)
 
 /* Timer used for Synchronisation */
-extern nrfx_timer_t synctimer;
+extern NRF_TIMER_Type * synctimer;
 extern uint64_t Timestamp_Slave;
 extern uint64_t Timestamp_Master;
 extern uint64_t Timestamp_Diff;
-extern uint32_t OverflowCNT;
 
 /**
 * Init the Sync Timer
@@ -86,6 +86,13 @@ extern void synctimer_setSync(uint64_t TxMasterTimeStamp);
 * @return Synchronised Timestamp
 */
 extern uint64_t synctimer_getSyncTime();
+/**
+* Sets a synced Time Compare Interrupt (with respect of Synced Time)
+*
+* @param ts Timestamp for Interrupt
+* @param cc_cb Callback on Interrupt
+*/
+extern void synctimer_setSyncTimeCompareInt(uint64_t ts ,void (*cc_cb)());
 
 extern void config_debug_ppi_and_gpiote_radio_state();
 

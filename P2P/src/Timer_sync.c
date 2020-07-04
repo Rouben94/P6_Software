@@ -1,55 +1,78 @@
 #include "Timer_sync.h"
 
-nrfx_timer_t synctimer = NRFX_TIMER_INSTANCE(2);
+NRF_TIMER_Type * synctimer = NRF_TIMER3;
 uint64_t Timestamp_Slave = 0;
 uint64_t Timestamp_Master = 0;
 uint64_t Timestamp_Diff = 0;
-uint32_t OverflowCNT = 0;
+static uint32_t OverflowCNT = 0;
+static uint32_t OverflowCNT_int_synced_ts = 0;
+static const uint32_t RxChainDelay_us = 40; // Meassured
 
-/* Timer Callback */
-void synctimer_handler(nrf_timer_event_t event_type, void *context)
+static void (*sync_compare_callback)();
+
+
+ISR_DIRECT_DECLARE(timer_handler)
 {
-	// Overflow Handler
-	if (event_type == NRF_TIMER_EVENT_COMPARE5)
+		// Overflow Handler
+	if (synctimer->EVENTS_COMPARE[5] == true)
 	{
+		synctimer->EVENTS_COMPARE[5] = false;
 		OverflowCNT++;
 	}
-	if (event_type == NRF_TIMER_EVENT_COMPARE1 || event_type == NRF_TIMER_EVENT_COMPARE2)
+	if (synctimer->EVENTS_COMPARE[4] == true)
 	{
-		// For Future Use
+		synctimer->EVENTS_COMPARE[4] = false;
+		if ((sync_compare_callback != NULL) && (OverflowCNT == OverflowCNT_int_synced_ts)){
+			sync_compare_callback();
+		}
 	}
+	ISR_DIRECT_PM();
+	return 1;
 }
+
+
+/*
+static void synctimer_handler(){
+	// Overflow Handler
+	if (synctimer->EVENTS_COMPARE[5] == true)
+	{
+		synctimer->EVENTS_COMPARE[5] = false;
+		OverflowCNT++;
+	}
+	if (synctimer->EVENTS_COMPARE[4] == true)
+	{
+		synctimer->EVENTS_COMPARE[4] = false;
+		if ((sync_compare_callback != NULL) && (OverflowCNT == OverflowCNT_int_synced_ts)){
+			sync_compare_callback();
+		}
+	}
+	printk("hoi\n");
+}
+*/
 
 /* Timer init */
 extern void synctimer_init()
 {
-	nrfx_err_t err;
 	// Takes 4294s / 71min to expire
-	nrfx_timer_config_t synctimer_cfg = {
-		.frequency = NRF_TIMER_FREQ_1MHz,
-		.mode = NRF_TIMER_MODE_TIMER,
-		.bit_width = NRF_TIMER_BIT_WIDTH_32
-		//.p_context = (void *) config, // Callback context
-	};
-
-	err = nrfx_timer_init(&synctimer, &synctimer_cfg, synctimer_handler);
-	if (err != NRFX_SUCCESS)
-	{
-		printk("nrfx_timer_init failed with: %d\n", err);
-	}
-	nrfx_timer_clear(&synctimer);
-	synctimer.p_reg->CC[1] = 0;
-	synctimer.p_reg->CC[2] = 0;
-	synctimer.p_reg->CC[5] = 0xFFFFFFFF; // For Overflow Detection
-	nrfx_timer_compare_int_enable(&synctimer,5);
+	nrf_timer_bit_width_set(synctimer,NRF_TIMER_BIT_WIDTH_32);
+	nrf_timer_frequency_set(synctimer,NRF_TIMER_FREQ_1MHz);
+	nrf_timer_mode_set(synctimer,NRF_TIMER_MODE_TIMER);
+	//irq_connect_dynamic(TIMER3_IRQn, 7, synctimer_handler, NULL, 0); 	// Connect Radio ISR
+	IRQ_DIRECT_CONNECT(TIMER3_IRQn, 6, timer_handler, 0);
+    irq_enable(TIMER3_IRQn);                                        // Enable Radio ISR
+	nrf_timer_task_trigger(synctimer, NRF_TIMER_TASK_CLEAR);
+	nrf_timer_cc_set(synctimer,NRF_TIMER_CC_CHANNEL1,0);
+	nrf_timer_cc_set(synctimer,NRF_TIMER_CC_CHANNEL2,0);
+	nrf_timer_cc_set(synctimer,NRF_TIMER_CC_CHANNEL5,0xFFFFFFFF); // For Overflow Detection
+	synctimer->INTENSET |= (uint32_t) NRF_TIMER_INT_COMPARE5_MASK; // Enable Compare Event 5 Interrupt
 	OverflowCNT = 0;
 }
 
 /* Timestamp Capture Clear */
 void synctimer_TimeStampCapture_clear()
 {
-	synctimer.p_reg->CC[1] = 0;
-	synctimer.p_reg->CC[2] = 0;
+	synctimer->CC[1] = 0;
+	synctimer->CC[2] = 0;
 }
 
 /* Timestamp Capture Enable */
@@ -68,15 +91,15 @@ extern void synctimer_TimeStampCapture_enable()
 	/* Setup PPI for Sending and Receiving Timesync Packet */
 	//nrfx_ppi_channel_fork_assign(nRF52_PreDefinedPPICH_Tx, (uint32_t)synctimer.p_reg->TASKS_CAPTURE[1]);
 	NRF_PPI->CH[18].EEP = (uint32_t) & (NRF_RADIO->EVENTS_END);
-	NRF_PPI->CH[18].TEP = (uint32_t) & (synctimer.p_reg->TASKS_CAPTURE[1]);
+	NRF_PPI->CH[18].TEP = (uint32_t) & (synctimer->TASKS_CAPTURE[1]);
 	NRF_PPI->CHENSET |= (PPI_CHENSET_CH18_Set << PPI_CHENSET_CH18_Pos);
 	//nrfx_ppi_channel_enable(nRF52_PreDefinedPPICH_Tx);
 	//nrfx_ppi_channel_fork_assign(nRF52_PreDefinedPPICH_Rx, (uint32_t)synctimer.p_reg->TASKS_START);
 	//nrfx_ppi_channel_enable(nRF52_PreDefinedPPICH_Rx);
 	//NRF_PPI->FORK[26].TEP = (uint32_t)&(synctimer.p_reg->TASKS_CAPTURE[1]);
 	//NRF_PPI->CHENSET = (PPI_CHENSET_CH26_Set << PPI_CHENSET_CH26_Pos);
-	NRF_PPI->CH[19].EEP = (uint32_t) & (NRF_RADIO->EVENTS_CRCOK);
-	NRF_PPI->CH[19].TEP = (uint32_t) & (synctimer.p_reg->TASKS_CAPTURE[2]);
+	NRF_PPI->CH[19].EEP = (uint32_t) & (NRF_RADIO->EVENTS_CRCOK); // 40us Delay
+	NRF_PPI->CH[19].TEP = (uint32_t) & (synctimer->TASKS_CAPTURE[2]);
 	NRF_PPI->CHENSET |= (PPI_CHENSET_CH19_Set << PPI_CHENSET_CH19_Pos);
 #endif // defined(DPPI_PRESENT) || defined(__NRFX_DOXYGEN__)
 }
@@ -108,8 +131,8 @@ extern void synctimer_TimeStampCapture_disable()
 extern void synctimer_start()
 {
 	// Start the Synctimer
-	nrfx_timer_clear(&synctimer);
-	nrfx_timer_enable(&synctimer);
+	nrf_timer_task_trigger(synctimer, NRF_TIMER_TASK_CLEAR);
+	nrf_timer_task_trigger(synctimer, NRF_TIMER_TASK_START);
 	OverflowCNT = 0;
 }
 
@@ -117,27 +140,27 @@ extern void synctimer_start()
 extern void synctimer_stop()
 {
 	// Stop the Synctimer
-	nrfx_timer_disable(&synctimer);
-	nrfx_timer_clear(&synctimer);
+	nrf_timer_task_trigger(synctimer, NRF_TIMER_TASK_SHUTDOWN);
+	nrf_timer_task_trigger(synctimer, NRF_TIMER_TASK_CLEAR);
 	OverflowCNT = 0;
 }
 
 /* Get previous Tx sync timestamp */
 extern uint64_t synctimer_getTxTimeStamp()
 {
-	return ((uint64_t) OverflowCNT << 32 | nrfx_timer_capture_get(&synctimer, NRF_TIMER_CC_CHANNEL1));
+	return ((uint64_t) OverflowCNT << 32 | nrf_timer_cc_get(synctimer, NRF_TIMER_CC_CHANNEL1));
 }
 
 /* Get previous Rx sync timestamp */
 extern uint64_t synctimer_getRxTimeStamp()
 {
-	return ((uint64_t) OverflowCNT << 32 | nrfx_timer_capture_get(&synctimer, NRF_TIMER_CC_CHANNEL2));
+	return ((uint64_t) OverflowCNT << 32 | nrf_timer_cc_get(synctimer, NRF_TIMER_CC_CHANNEL2));
 }
 
 /* Synchronise the timer offset with the received offset Timestamp */
 extern void synctimer_setSync(uint64_t TxMasterTimeStamp)
 {
-	Timestamp_Slave = ((uint64_t) OverflowCNT << 32 | nrfx_timer_capture_get(&synctimer, NRF_TIMER_CC_CHANNEL2));
+	Timestamp_Slave = ((uint64_t) OverflowCNT << 32 | nrf_timer_cc_get(synctimer, NRF_TIMER_CC_CHANNEL2)) - RxChainDelay_us;
 	Timestamp_Master = TxMasterTimeStamp;
 	if (Timestamp_Slave > Timestamp_Master)
 	{
@@ -158,31 +181,61 @@ extern uint64_t synctimer_getSyncTime()
 {
 	if (Timestamp_Slave > Timestamp_Master)
 	{
-		nrfx_timer_capture(&synctimer, NRF_TIMER_CC_CHANNEL0);
-		return ((uint64_t) OverflowCNT << 32 | (nrfx_timer_capture_get(&synctimer, NRF_TIMER_CC_CHANNEL0) - Timestamp_Diff));
+		nrf_timer_task_trigger(synctimer,nrf_timer_capture_task_get(NRF_TIMER_CC_CHANNEL0));
+		return (((uint64_t) OverflowCNT << 32 | nrf_timer_cc_get(synctimer, NRF_TIMER_CC_CHANNEL0)) - Timestamp_Diff);
 	}
 	else if ((Timestamp_Master > Timestamp_Slave))
 	{
-		nrfx_timer_capture(&synctimer, NRF_TIMER_CC_CHANNEL0);
-		return ((uint64_t) OverflowCNT << 32 | (nrfx_timer_capture_get(&synctimer, NRF_TIMER_CC_CHANNEL0) + Timestamp_Diff));
+		nrf_timer_task_trigger(synctimer,nrf_timer_capture_task_get(NRF_TIMER_CC_CHANNEL0));
+		return (((uint64_t) OverflowCNT << 32 | nrf_timer_cc_get(synctimer, NRF_TIMER_CC_CHANNEL0)) + Timestamp_Diff);
 	}
 	else
 	{
-		nrfx_timer_capture(&synctimer, NRF_TIMER_CC_CHANNEL0);
-		return ((uint64_t) OverflowCNT << 32 | (nrfx_timer_capture_get(&synctimer, NRF_TIMER_CC_CHANNEL0)));
+		nrf_timer_task_trigger(synctimer,nrf_timer_capture_task_get(NRF_TIMER_CC_CHANNEL0));
+		return ((uint64_t) OverflowCNT << 32 | nrf_timer_cc_get(synctimer, NRF_TIMER_CC_CHANNEL0));
 	}
+}
+
+/* Sets a synced Time Compare Interrupt (with respect of Synced Time) */
+extern void synctimer_setSyncTimeCompareInt(uint64_t ts ,void (*cc_cb)())
+{
+	//printk("%llu\n",ts- synctimer_getSyncTime());
+	if (Timestamp_Slave > Timestamp_Master)
+	{
+		OverflowCNT_int_synced_ts = (uint32_t)(ts>>32) + (uint32_t)(Timestamp_Diff>>32); 
+		synctimer->CC[4] = (uint32_t)ts + (uint32_t)Timestamp_Diff; 
+	}
+	else if ((Timestamp_Master > Timestamp_Slave))
+	{
+		OverflowCNT_int_synced_ts = (uint32_t)(ts>>32) - (uint32_t)(Timestamp_Diff>>32); 
+		synctimer->CC[4] = (uint32_t)ts - (uint32_t)Timestamp_Diff; 
+	}
+	else
+	{
+		OverflowCNT_int_synced_ts = (uint32_t)(ts>>32); 
+		synctimer->CC[4] = (uint32_t)ts; 
+	}
+	//printk("%u\n",synctimer->CC[4]);
+	//nrf_timer_task_trigger(synctimer,nrf_timer_capture_task_get(NRF_TIMER_CC_CHANNEL0));
+	//printk("%u\n",synctimer->CC[4] - synctimer->CC[0]);
+	synctimer->INTENSET |= (uint32_t) NRF_TIMER_INT_COMPARE4_MASK; // Enable Compare Event 4 Interrupt
+	sync_compare_callback = cc_cb;
 }
 
 void config_debug_ppi_and_gpiote_radio_state()
 {
+	NRF_P0->PIN_CNF[14] = NRF_P0->PIN_CNF[15]; // Copy Configuration from LED
+	NRF_P0->DIRSET |= 1 << 14;
+	NRF_P0->DIR |= 1 << 14;
 	//Radio Tx
 	NRF_GPIOTE->CONFIG[0] = ((GPIOTE_CONFIG_MODE_Task << GPIOTE_CONFIG_MODE_Pos) |
-							(0 << GPIOTE_CONFIG_PSEL_Pos) |
+							(14 << GPIOTE_CONFIG_PSEL_Pos) |
 							(0 << GPIOTE_CONFIG_PORT_Pos) |
 							(GPIOTE_CONFIG_POLARITY_Toggle << GPIOTE_CONFIG_POLARITY_Pos) |
-							(GPIOTE_CONFIG_OUTINIT_High << GPIOTE_CONFIG_OUTINIT_Pos));
+							(GPIOTE_CONFIG_OUTINIT_Low << GPIOTE_CONFIG_OUTINIT_Pos));
 	
-	NRF_PPI->CH[7].EEP = (uint32_t) & NRF_RADIO->EVENTS_TXREADY;
+	//NRF_PPI->CH[7].EEP = (uint32_t) & NRF_RADIO->EVENTS_TXREADY;
+	NRF_PPI->CH[7].EEP = (uint32_t) & NRF_TIMER3->EVENTS_COMPARE[4];
 	NRF_PPI->CH[7].TEP = (uint32_t) & NRF_GPIOTE->TASKS_OUT[0];
 	NRF_PPI->CHENSET |= (PPI_CHENSET_CH7_Set << PPI_CHENSET_CH7_Pos);
 	//Radio Rx
@@ -191,7 +244,8 @@ void config_debug_ppi_and_gpiote_radio_state()
 							(0 << GPIOTE_CONFIG_PORT_Pos) |
 							(GPIOTE_CONFIG_POLARITY_Toggle << GPIOTE_CONFIG_POLARITY_Pos) |
 							(GPIOTE_CONFIG_OUTINIT_High << GPIOTE_CONFIG_OUTINIT_Pos));
-	NRF_PPI->CH[8].EEP = (uint32_t) & NRF_RADIO->EVENTS_RXREADY;
+	//NRF_PPI->CH[8].EEP = (uint32_t) & NRF_RADIO->EVENTS_RXREADY;
+	NRF_PPI->CH[8].EEP = (uint32_t) & NRF_TIMER3->EVENTS_COMPARE[4];
 	NRF_PPI->CH[8].TEP = (uint32_t) & NRF_GPIOTE->TASKS_OUT[1];
 	NRF_PPI->CHENSET |= (PPI_CHENSET_CH8_Set << PPI_CHENSET_CH8_Pos);
 
