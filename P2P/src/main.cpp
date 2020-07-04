@@ -28,10 +28,10 @@ along with P2P-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 using namespace std;
 
 /* ------------- Definitions --------------*/
-#define isMaster 1								  // Node is the Master (1) or Slave (0)
-#define CommonMode NRF_RADIO_MODE_IEEE802154_250KBIT	  // Common Mode
-#define CommonStartCH 11						  // Common Start Channel
-#define CommonEndCH 11							  // Common End Channel
+#define isMaster 0								  // Node is the Master (1) or Slave (0)
+#define CommonMode NRF_RADIO_MODE_BLE_LR125KBIT	  // Common Mode
+#define CommonStartCH 37						  // Common Start Channel
+#define CommonEndCH 39							  // Common End Channel
 #define MSB_MAC_Address 0xF4CE					  // MSB of MAC for Nordic Semi Vendor
 // Master: Find Nodes by Broadcasting ---- Slave: Listen for Broadcasts. If already Discovered Sleep
 #define ST_DISCOVERY 10

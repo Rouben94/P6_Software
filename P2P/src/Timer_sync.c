@@ -6,7 +6,7 @@ uint64_t Timestamp_Master = 0;
 uint64_t Timestamp_Diff = 0;
 static uint32_t OverflowCNT = 0;
 static uint32_t OverflowCNT_int_synced_ts = 0;
-static const uint32_t RxChainDelay_us = 40; // Meassured
+static const uint32_t RxChainDelay_us = 35; // Meassured Chain Delay (40 with IEEE803.4.15)
 
 static void (*sync_compare_callback)();
 
