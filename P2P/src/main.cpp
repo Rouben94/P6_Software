@@ -28,7 +28,7 @@ along with P2P-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 using namespace std;
 
 /* ------------- Definitions --------------*/
-#define isMaster 0								  // Node is the Master (1) or Slave (0)
+#define isMaster 1								  // Node is the Master (1) or Slave (0)
 #define CommonMode NRF_RADIO_MODE_BLE_LR125KBIT	  // Common Mode
 #define CommonStartCH 37						  // Common Start Channel
 #define CommonEndCH 39							  // Common End Channel
@@ -121,16 +121,58 @@ u8_t currentState = ST_DISCOVERY;
 k_tid_t ST_Machine_tid;
 /*=================================================*/
 
+class Stopwatch
+{
+public:
+	u32_t start_time;
+	u32_t stop_time;
+	u32_t cycles_spent;
+	u32_t nanoseconds_spent;
+
+	s64_t time_stamp;
+	s64_t milliseconds_spent;
+
+	void start_hp()
+	{
+		/* capture initial time stamp */
+		start_time = k_cycle_get_32();
+	}
+	void stop_hp()
+	{
+		/* capture final time stamp */
+		stop_time = k_cycle_get_32();
+		/* compute how long the work took (assumes no counter rollover) */
+		cycles_spent = stop_time - start_time;
+		nanoseconds_spent = SYS_CLOCK_HW_CYCLES_TO_NS(cycles_spent);
+		printk("Time took %dns\n", nanoseconds_spent);
+	}
+	void start()
+	{
+		/* capture initial time stamp */
+		time_stamp = k_uptime_get();
+	}
+	void stop()
+	{
+		/* compute how long the work took (also updates the time stamp) */
+		milliseconds_spent = k_uptime_delta(&time_stamp);
+		printk("Time took %lldms\n", milliseconds_spent);
+	}
+};
+
+Stopwatch stpw;
+
 /*------------------ Shell ----------------------*/
 int cmd_handler_send()
 {
-	/*
-	char *Test_String = "C Programming is the shit";
+	stpw.start();
+	//char *Test_String = "C Programming is the shit";
+	char *Test_String = "C Prog";
 	RADIO_PACKET s = {};
 	s.PDU = (u8_t *)Test_String;
 	s.length = strlen(Test_String) + 1; // Immer Länge + 1 bei String
 	simple_nrf_radio.Send(s, K_MSEC(5000));
-	*/
+	stpw.stop();
+	printk("Length %d\n",s.length);
 	printk("%u%u\n",(uint32_t)(synctimer_getSyncTime()>>32),(uint32_t)synctimer_getSyncTime());
 	return 0;
 }

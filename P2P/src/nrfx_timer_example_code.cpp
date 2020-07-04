@@ -49,40 +49,4 @@ void main(){
 }
 
 
-class Stopwatch
-{
-public:
-	u32_t start_time;
-	u32_t stop_time;
-	u32_t cycles_spent;
-	u32_t nanoseconds_spent;
 
-	s64_t time_stamp;
-	s64_t milliseconds_spent;
-
-	void start_hp()
-	{
-		/* capture initial time stamp */
-		start_time = k_cycle_get_32();
-	}
-	void stop_hp()
-	{
-		/* capture final time stamp */
-		stop_time = k_cycle_get_32();
-		/* compute how long the work took (assumes no counter rollover) */
-		cycles_spent = stop_time - start_time;
-		nanoseconds_spent = SYS_CLOCK_HW_CYCLES_TO_NS(cycles_spent);
-		printk("Time took %dns\n", nanoseconds_spent);
-	}
-	void start()
-	{
-		/* capture initial time stamp */
-		time_stamp = k_uptime_get();
-	}
-	void stop()
-	{
-		/* compute how long the work took (also updates the time stamp) */
-		milliseconds_spent = k_uptime_delta(&time_stamp);
-		printk("Time took %lldms\n", milliseconds_spent);
-	}
-};
