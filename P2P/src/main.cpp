@@ -27,11 +27,11 @@ along with P2P-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 #include "Timer_sync.h"
 
 /* ------------- Definitions --------------*/
-#define isMaster 0								  // Node is the Master (1) or Slave (0)
-#define CommonMode NRF_RADIO_MODE_BLE_LR125KBIT	  // Common Mode
-#define CommonStartCH 37						  // Common Start Channel
-#define CommonEndCH 39							  // Common End Channel
-#define MSB_MAC_Address 0xF4CE					  // MSB of MAC for Nordic Semi Vendor
+#define isMaster 0								// Node is the Master (1) or Slave (0)
+#define CommonMode NRF_RADIO_MODE_BLE_LR125KBIT // Common Mode
+#define CommonStartCH 37						// Common Start Channel
+#define CommonEndCH 39							// Common End Channel
+#define MSB_MAC_Address 0xF4CE					// MSB of MAC for Nordic Semi Vendor
 // Master: Find Nodes by Broadcasting ---- Slave: Listen for Broadcasts. If already Discovered Sleep
 #define ST_DISCOVERY 10
 // Master: Listen for Mockup Answers ---- Slave: Send a radnom delayed Mockup Answer. If already Discovered Sleep
@@ -48,7 +48,7 @@ along with P2P-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 #define ST_TIME_DISCOVERY_MS 300
 #define ST_TIME_MOCKUP_MS 1200
 #define ST_TIME_PARAM_MS 60
-#define ST_TIME_PACKETS_MS 600
+#define ST_TIME_PACKETS_MS 2000 // Worst Case 40 CHs, Size 255 and BLE LR 125kBit -> ca. 2 Packets
 #define ST_TIME_REPORTS_MS 900
 #define ST_TIME_PUBLISH_MS 60
 // Margin for State Transition (Let the State Terminate)
@@ -121,6 +121,9 @@ MockupPkt Mockup_pkt_RX, Mockup_pkt_TX = {};
 bool GotReportReq = false;
 
 ParamPkt Param_pkt_RX, Param_pkt_TX = {};
+ParamPkt ParamLocal = {CommonStartCH,CommonEndCH,CommonMode,20,0};
+bool GotParam = false;
+
 ReportsPkt Repo_pkt_RX, Repo_pkt_TX = {};
 std::vector<PublishList> pb_list;
 
@@ -138,19 +141,31 @@ static int cmd_handler_test()
 	s.length = strlen(Test_String) + 1; // Immer Länge + 1 bei String
 	simple_nrf_radio.Send(s, K_MSEC(5000));
 	*/
-	printk("%u%u\n",(uint32_t)(synctimer_getSyncTime()>>32),(uint32_t)synctimer_getSyncTime());
+	printk("%u%u\n", (uint32_t)(synctimer_getSyncTime() >> 32), (uint32_t)synctimer_getSyncTime());
 	return 0;
 }
 SHELL_CMD_REGISTER(test, NULL, "Testing Command", cmd_handler_test);
-static int cmd_params_set(const struct shell *shell, size_t argc, char **argv)
-{
-	
+
+static int cmd_setParams(const struct shell *shell, size_t argc, char **argv)
+{	// Maybee at error check later for validating the Params are valid
+	if (sizeof(argv) == sizeof(Param_pkt_TX) + 1)
+	{
+		ParamLocal.StartCH = *argv[1];
+		ParamLocal.StopCH = *argv[2];
+		ParamLocal.Mode = *argv[3];
+		ParamLocal.Size = *argv[4];
+		ParamLocal.CCMA_CA = *argv[5];
+		shell_print(shell, "Done\n");
+	}
+	else
+	{
+		shell_error(shell, "Number of Arguments incorrect! expected:\n setParams <StartCH> <StopCH> <Mode> <Size> <CCMA_CA>\n");
+	}
 	return 0;
 }
-SHELL_CMD_ARG(setparams, NULL, "Set Parameters for Benchmark", cmd_params_set,5,0);
+SHELL_CMD_REGISTER(setParams, NULL, "Set Start Channel", cmd_setParams);
 
 /*=================================================*/
-
 
 /*-------------- Check if value is in List -----------
 static bool CheckList(uint32_t check,std::vector<uint32_t> v){
@@ -166,26 +181,43 @@ static bool CheckList(uint32_t check,std::vector<uint32_t> v){
 
 /*--------------------- States -------------------*/
 
-static void ST_transition_cb(void){
-	printk("%u%u\n",(uint32_t)(synctimer_getSyncTime()>>32),(uint32_t)synctimer_getSyncTime());
+static void ST_transition_cb(void)
+{
+	printk("%u%u\n", (uint32_t)(synctimer_getSyncTime() >> 32), (uint32_t)synctimer_getSyncTime());
 	// Not Synced Slave Nodes stay in Discovery State.
-	if ((currentState == ST_DISCOVERY && (Synced && !isMaster)) || (currentState == ST_DISCOVERY && isMaster)){
+	if ((currentState == ST_DISCOVERY && (Synced && !isMaster)) || (currentState == ST_DISCOVERY && isMaster))
+	{
 		currentState = ST_MOCKUP;
-	} else if (currentState == ST_MOCKUP){
+	}
+	else if (currentState == ST_MOCKUP)
+	{
 		currentState = ST_PARAM;
-	} else if (currentState == ST_PARAM){
+	}
+	// Only Nodes who received the Param can continue.
+	else if ((currentState == ST_PARAM && isMaster) || (currentState == ST_PARAM && !isMaster && GotParam))
+	{
 		currentState = ST_PACKETS;
-	} else if (currentState == ST_PACKETS){
-		currentState = ST_REPORTS;
-	} else if (currentState == ST_REPORTS){
-		currentState = ST_PUBLISH;
-	} else if (currentState == ST_PUBLISH){
+	}
+	// Nodes who didn't received the Param go to Discovery State
+	else if ((currentState == ST_PARAM && !isMaster && !GotParam))
+	{
 		currentState = ST_DISCOVERY;
-	}	
+	}
+	else if (currentState == ST_PACKETS)
+	{
+		currentState = ST_REPORTS;
+	}
+	else if (currentState == ST_REPORTS)
+	{
+		currentState = ST_PUBLISH;
+	}
+	else if (currentState == ST_PUBLISH)
+	{
+		currentState = ST_DISCOVERY;
+	}
 	k_thread_state_str(ST_Machine_tid);
 	k_wakeup(ST_Machine_tid);
 }
-
 
 void ST_DISCOVERY_fn(void)
 {
@@ -194,8 +226,8 @@ void ST_DISCOVERY_fn(void)
 	/* init */
 	if (isMaster)
 	{
-		MockupTS = (synctimer_getSyncTime() + ST_TIME_DISCOVERY_MS*1000 + ST_TIME_MARGIN_MS*1000);
-		synctimer_setSyncTimeCompareInt(MockupTS,ST_transition_cb);
+		MockupTS = (synctimer_getSyncTime() + ST_TIME_DISCOVERY_MS * 1000 + ST_TIME_MARGIN_MS * 1000);
+		synctimer_setSyncTimeCompareInt(MockupTS, ST_transition_cb);
 	}
 	simple_nrf_radio.setMode(CommonMode);
 	simple_nrf_radio.setAA(DiscoveryAddress);
@@ -207,7 +239,8 @@ void ST_DISCOVERY_fn(void)
 	for (int ch = CommonStartCH; ch <= CommonEndCH; ch++)
 	{
 		simple_nrf_radio.setCH(ch);
-		if (CHcnt == 0){
+		if (CHcnt == 0)
+		{
 			CHcnt++;
 		}
 		k_timer_start(&uni_timer, K_MSEC(ST_TIME_DISCOVERY_MS / CHcnt), K_MSEC(0));
@@ -230,7 +263,7 @@ void ST_DISCOVERY_fn(void)
 					if (ret > 0)
 					{
 						synctimer_setSync(((DiscoveryPkt *)radio_pkt_Rx.PDU)->LastTxTimestamp);
-						synctimer_setSyncTimeCompareInt(((DiscoveryPkt *)radio_pkt_Rx.PDU)->MockupTimestamp,ST_transition_cb);
+						synctimer_setSyncTimeCompareInt(((DiscoveryPkt *)radio_pkt_Rx.PDU)->MockupTimestamp, ST_transition_cb);
 						Synced = true;
 						return;
 					}
@@ -246,7 +279,7 @@ void ST_MOCKUP_fn(void)
 {
 	/* start one shot timer that expires after Timeslot ms */
 	k_timer_start(&state_timer, K_MSEC(ST_TIME_MOCKUP_MS), K_MSEC(0));
-	synctimer_setSyncTimeCompareInt((synctimer_getSyncTime() + ST_TIME_MOCKUP_MS*1000 + ST_TIME_MARGIN_MS*1000),ST_transition_cb);
+	synctimer_setSyncTimeCompareInt((synctimer_getSyncTime() + ST_TIME_MOCKUP_MS * 1000 + ST_TIME_MARGIN_MS * 1000), ST_transition_cb);
 	/* init */
 	simple_nrf_radio.setMode(CommonMode);
 	simple_nrf_radio.setAA(MockupAddress);
@@ -257,10 +290,11 @@ void ST_MOCKUP_fn(void)
 	for (int ch = CommonStartCH; ch <= CommonEndCH; ch++)
 	{
 		simple_nrf_radio.setCH(ch);
-		if (CHcnt == 0){
+		if (CHcnt == 0)
+		{
 			CHcnt++;
 		}
-		k_timer_start(&uni_timer, K_MSEC(ST_TIME_DISCOVERY_MS / CHcnt), K_MSEC(0));
+		k_timer_start(&uni_timer, K_MSEC(ST_TIME_MOCKUP_MS / CHcnt), K_MSEC(0));
 		while ((k_timer_remaining_get(&uni_timer) > 0) && (k_timer_remaining_get(&state_timer) > 0))
 		{
 			if (isMaster)
@@ -270,15 +304,22 @@ void ST_MOCKUP_fn(void)
 				{
 					pb_list.push_back({((MockupPkt *)radio_pkt_Rx.PDU)->LSB_MAC_Address});
 				}
-			} else if (!GotReportReq) {
-				k_sleep(K_MSEC(sys_rand32_get() % (k_timer_remaining_get(&uni_timer)-5))); // Sleep Random Mockup Delay minus 5ms send Margin
+			}
+			else if (!GotReportReq)
+			{
+				k_sleep(K_MSEC(sys_rand32_get() % (k_timer_remaining_get(&uni_timer) - 5))); // Sleep Random Mockup Delay minus 5ms send Margin
 				simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&uni_timer)));
-				if (ch != CommonEndCH){
+				if (ch != CommonEndCH)
+				{
 					k_sleep(K_MSEC(k_timer_remaining_get(&uni_timer))); // Sleep till next CH
-				} else {
+				}
+				else
+				{
 					return; // If was last channel Return and Sleep...
 				}
-			} else {
+			}
+			else
+			{
 				// Node is known to Master. Can Return and Sleep..
 				return;
 			}
@@ -286,6 +327,91 @@ void ST_MOCKUP_fn(void)
 	}
 	return;
 }
+
+void ST_PARAM_fn(void)
+{
+	/* start one shot timer that expires after Timeslot ms */
+	k_timer_start(&state_timer, K_MSEC(ST_TIME_PARAM_MS), K_MSEC(0));
+	synctimer_setSyncTimeCompareInt((synctimer_getSyncTime() + ST_TIME_PARAM_MS * 1000 + ST_TIME_MARGIN_MS * 1000), ST_transition_cb);
+	/* init */
+	simple_nrf_radio.setMode(CommonMode);
+	simple_nrf_radio.setAA(ParamAddress);
+	radio_pkt_Tx.length = sizeof(Param_pkt_TX);
+	radio_pkt_Tx.PDU = (u8_t *)&Param_pkt_TX;
+	Param_pkt_TX = ParamLocal;
+	/* Do work and keep track of Time Left */
+	for (int ch = CommonStartCH; ch <= CommonEndCH; ch++)
+	{
+		simple_nrf_radio.setCH(ch);
+		if (CHcnt == 0)
+		{
+			CHcnt++;
+		}
+		k_timer_start(&uni_timer, K_MSEC(ST_TIME_PARAM_MS / CHcnt), K_MSEC(0));
+		while ((k_timer_remaining_get(&uni_timer) > 0) && (k_timer_remaining_get(&state_timer) > 0))
+		{
+			if (isMaster)
+			{
+				simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&uni_timer)));
+			} else {
+				GotParam = false;
+				s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, K_MSEC(k_timer_remaining_get(&uni_timer)));
+				if (ret > 0){
+					ParamLocal = *((ParamPkt *)radio_pkt_Rx.PDU);
+					GotParam = true;
+					return;
+				}
+			}
+		}
+	}
+	return;
+}
+
+void ST_PACKETS_fn(void)
+{
+	/* start one shot timer that expires after Timeslot ms */
+	k_timer_start(&state_timer, K_MSEC(ST_TIME_PACKETS_MS), K_MSEC(0));
+	synctimer_setSyncTimeCompareInt((synctimer_getSyncTime() + ST_TIME_PACKETS_MS * 1000 + ST_TIME_MARGIN_MS * 1000), ST_transition_cb);
+	/* init */
+	simple_nrf_radio.setMode((nrf_radio_mode_t)ParamLocal.Mode);
+	simple_nrf_radio.setAA(PacketsAddress);
+	if (isMaster){
+		radio_pkt_Tx.length = ParamLocal.Size;
+		sys_rand_get(radio_pkt_Tx.PDU,ParamLocal.Size); // Fill the Packet with Random Data
+	}
+	u8_t paramChCNT = (ParamLocal.StopCH - ParamLocal.StartCH);
+	if (paramChCNT == 0){
+		paramChCNT++;
+	}
+	/* Do work and keep track of Time Left */
+	for (int ch = ParamLocal.StartCH; ch <= ParamLocal.StopCH; ch++)
+	{
+		simple_nrf_radio.setCH(ch);
+		if (CHcnt == 0)
+		{
+			CHcnt++;
+		}
+		k_timer_start(&uni_timer, K_MSEC(ST_TIME_PACKETS_MS / (paramChCNT)), K_MSEC(0));
+		while ((k_timer_remaining_get(&uni_timer) > 0) && (k_timer_remaining_get(&state_timer) > 0))
+		{
+			if (isMaster)
+			{
+				simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&uni_timer)));
+			} else {
+				GotParam = false;
+				s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, K_MSEC(k_timer_remaining_get(&uni_timer)));
+				if (ret > 0){
+					ParamLocal = *((ParamPkt *)radio_pkt_Rx.PDU);
+					GotParam = true;
+					return;
+				}
+			}
+		}
+	}
+	return;
+}
+		
+
 
 /*=======================================================*/
 
@@ -297,7 +423,6 @@ void main(void)
 	synctimer_start();
 	//config_debug_ppi_and_gpiote_radio_state(); // For Debug Timesync
 
-
 	// Statemachine
 	ST_Machine_tid = k_current_get();
 	while (true)
@@ -306,15 +431,15 @@ void main(void)
 		{
 		case ST_DISCOVERY:
 			ST_DISCOVERY_fn();
-			k_sleep(K_MSEC(ST_TIME_DISCOVERY_MS+ST_TIME_MARGIN_MS)); // Keep waiting till next State. Not Synced Nodes do Power Save with 50% Duty Cycle.	
+			k_sleep(K_MSEC(ST_TIME_DISCOVERY_MS + ST_TIME_MARGIN_MS)); // Keep waiting till next State. Not Synced Nodes do Power Save with 50% Duty Cycle.
 			break;
 		case ST_MOCKUP:
 			ST_MOCKUP_fn();
-			k_sleep(K_MSEC(ST_TIME_MOCKUP_MS+ST_TIME_MARGIN_MS+10)); // Ready for the Next State. Extra Margin of 10ms to prevent reentry in case of delayed TimerInterrupt.
+			k_sleep(K_MSEC(ST_TIME_MOCKUP_MS + ST_TIME_MARGIN_MS + 10)); // Ready for the Next State. Extra Margin of 10ms to prevent reentry in case of delayed TimerInterrupt.
 			break;
 		case ST_PARAM:
-			ST_MOCKUP_fn();
-			k_sleep(K_MSEC(ST_TIME_MOCKUP_MS+ST_TIME_MARGIN_MS+10)); // Ready for the Next State. Extra Margin of 10ms to prevent reentry in case of delayed TimerInterrupt.
+			ST_PARAM_fn();
+			k_sleep(K_MSEC(ST_TIME_PARAM_MS + ST_TIME_MARGIN_MS + 10)); // Ready for the Next State. Extra Margin of 10ms to prevent reentry in case of delayed TimerInterrupt.
 			break;
 		}
 	}
