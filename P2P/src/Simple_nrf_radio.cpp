@@ -158,7 +158,7 @@ s32_t Simple_nrf_radio::Receive(RADIO_PACKET *rx_pkt, k_timeout_t timeout)
     s32_t ret = k_sleep(timeout); // Wait for interrupt and check if it was a timeout
     if (ret > 0)
     {
-        //printk("Received Sample RSSI: %d \n", nrf_radio_rssi_sample_get(NRF_RADIO));
+        printk("Received Sample RSSI: %d \n", nrf_radio_rssi_sample_get(NRF_RADIO));
         rx_pkt->Rx_RSSI = nrf_radio_rssi_sample_get(NRF_RADIO);
         /* Parse Paket */
         if (nrf_radio_mode_get(NRF_RADIO) == NRF_RADIO_MODE_IEEE802154_250KBIT)
