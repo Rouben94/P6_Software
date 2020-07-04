@@ -126,7 +126,7 @@ RADIO_PACKET radio_pkt_Rx, radio_pkt_Tx = {};
 
 DiscoveryPkt Disc_pkt_RX, Disc_pkt_TX = {};
 uint64_t MockupTS;
-u8_t CHcnt = CommonEndCH - CommonStartCH;
+u8_t CHcnt = CommonEndCH - CommonStartCH +1;
 u32_t LatestTxMasterTimestamp;
 bool Synced = false;
 
@@ -401,6 +401,9 @@ void ST_PACKETS_fn(void)
 		paramChCNT++;
 	}	
 	chrep_local.clear(); // Clear the local Channel Report
+	RxPktStatLog log; //Temp
+	u16_t PktCnt_temp; //Temp
+	int Noise_before, Noise_after; //Temp
 	/* Do work and keep track of Time Left */
 	for (int ch = ParamLocal.StartCH; ch <= ParamLocal.StopCH; ch++)
 	{
@@ -409,25 +412,34 @@ void ST_PACKETS_fn(void)
 		{
 			CHcnt++;
 		}
-		chrep_local.push_back({}); // Add the Channel
+		chrep_local.push_back({}); // Add Channel
 		if (isMaster)
 		{
 			//Timer with Margin to let Slave Receive longer than sending
 			k_timer_start(&uni_timer, K_MSEC((ST_TIME_PACKETS_MS / (paramChCNT))-2*ST_TIME_MARGIN_MS), K_MSEC(0));
-			k_sleep(K_MSEC(ST_TIME_MARGIN_MS)); //Let Slave prepare Reception
+			Noise_before = simple_nrf_radio.RSSI(8);
+			k_sleep(K_MSEC(ST_TIME_MARGIN_MS)); //Let Slave meassure noise and prepare Reception
 			while ((k_timer_remaining_get(&uni_timer) > 0) && (k_timer_remaining_get(&state_timer) > 0))
 			{
-				simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&uni_timer)));				
-				chrep_local.back().TxPkt_CNT++; //Save temp the Packet Send Count
+				PktCnt_temp = simple_nrf_radio.BurstCntPkt(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&uni_timer)));				
 			}
-			k_sleep(K_MSEC(ST_TIME_MARGIN_MS)); //Let Slave End Reception
+			k_sleep(K_MSEC(ST_TIME_MARGIN_MS)); //Let Slave meassure noise and End Reception
+			Noise_after = simple_nrf_radio.RSSI(8);
 		} else {
 			k_timer_start(&uni_timer, K_MSEC((ST_TIME_PACKETS_MS / (paramChCNT))), K_MSEC(0));
+			Noise_before = simple_nrf_radio.RSSI(8);
 			while ((k_timer_remaining_get(&uni_timer) > 0) && (k_timer_remaining_get(&state_timer) > 0))
 			{
-				RxPktStatLog log = simple_nrf_radio.ReceivePktStatLog(K_MSEC(k_timer_remaining_get(&uni_timer)));	
+				log = simple_nrf_radio.ReceivePktStatLog(K_MSEC(k_timer_remaining_get(&uni_timer)));	
 			}
+			Noise_after = simple_nrf_radio.RSSI(8);
 		}
+		// Slave and Master log all Data to keep timesync
+		chrep_local.back().TxPkt_CNT = PktCnt_temp;
+		chrep_local.back().CRCOK_CNT = log.CRCOKcnt;
+		chrep_local.back().CRCERR_CNT = log.CRCErrcnt;
+		chrep_local.back().Avg_SIG_RSSI = log.RSSI_Sum_Avg;
+		chrep_local.back().Avg_NOISE_RSSI = (Noise_after+Noise_before)/2;
 	}
 	return;
 }

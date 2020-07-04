@@ -112,6 +112,7 @@ int Simple_nrf_radio::RSSI(u8_t cycles)
     nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_DISABLE);
     while (nrf_radio_state_get(NRF_RADIO) != NRF_RADIO_STATE_DISABLED)
         ; // Wait for Disable State
+    radio_disable();
     return RSSIres / cycles;
     ; // Average the RSSI over cycles
 }

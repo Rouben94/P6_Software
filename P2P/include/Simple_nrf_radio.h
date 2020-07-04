@@ -110,7 +110,7 @@ public:
 	 * @param timeout Waittimeout in ms for bursting
      * @return Number of Packeets sent
 	 */
-	u16_t Simple_nrf_radio::BurstCntPkt(RADIO_PACKET tx_pkt, k_timeout_t timeout);
+	u16_t BurstCntPkt(RADIO_PACKET tx_pkt, k_timeout_t timeout);
 	/**
 	 * Receive a Payload
 	 *
