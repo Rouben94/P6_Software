@@ -9,15 +9,15 @@ Simple_nrf_radio::Simple_nrf_radio()
     // Enable the High Frequency clock on the processor. This is a pre-requisite for
     // the RADIO module. Without this clock, no communication is possible.
     clock_init();
-    nrf_radio_power_set(NRF_RADIO, 1);                                       // Power ON Radio
-    radio_disable();                                                         // Disable Radio
-    setMode(NRF_RADIO_MODE_BLE_1MBIT);                                       // Set Mode to BLE 1MBITS
-    setAA(0x8E89BED6);                                                       // Default Advertisment Address BLE 0x8E89BED6
-    setCH(11);                                                               // Default Advertisment Channel
-    setTxP(NRF_RADIO_TXPOWER_0DBM);                                          // Set Tx Power to 0dbm
-    ISR_Thread_ID_ptr = &ISR_Thread_ID;                                      // store address of ISR_Thread_ID in pointer variable
-    irq_connect_dynamic(RADIO_IRQn, 7, radio_handler, ISR_Thread_ID_ptr, 0); // Connect Radio ISR
-    irq_enable(RADIO_IRQn);                                                  // Enable Radio ISR
+    nrf_radio_power_set(NRF_RADIO, 1);                            // Power ON Radio
+    radio_disable();                                              // Disable Radio
+    setMode(NRF_RADIO_MODE_BLE_1MBIT);                            // Set Mode to BLE 1MBITS
+    setAA(0x8E89BED6);                                            // Default Advertisment Address BLE 0x8E89BED6
+    setCH(11);                                                    // Default Advertisment Channel
+    setTxP(NRF_RADIO_TXPOWER_0DBM);                               // Set Tx Power to 0dbm
+    rhctx.thread_id = &ISR_Thread_ID;                             // store address of ISR_Thread_ID in pointer variable
+    irq_connect_dynamic(RADIO_IRQn, 7, radio_handler, &rhctx, 0); // Connect Radio ISR
+    irq_enable(RADIO_IRQn);                                       // Enable Radio ISR
 }
 /**
 	 * Radio ISR caused by radio interrupts
@@ -26,16 +26,23 @@ Simple_nrf_radio::Simple_nrf_radio()
 	 */
 void Simple_nrf_radio::radio_handler(void *context)
 {
-    const k_tid_t *thread_id =
-        (const k_tid_t *)context; // Cast the PID of the Sleeping thread waiting for the ISR to wake it up
+    Radio_Handler_Context *c_rhctx = (Radio_Handler_Context *)context;
     //printk("Interrupt\n");
     /* Check Address in payload of IEEE802.15.4 */
-    if ((nrf_radio_mode_get(NRF_RADIO) == NRF_RADIO_MODE_IEEE802154_250KBIT) and (nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_CRCOK)))
+    if ((nrf_radio_mode_get(NRF_RADIO) == NRF_RADIO_MODE_IEEE802154_250KBIT))
     {
         u8_t *payload = ((u8_t *)nrf_radio_packetptr_get(NRF_RADIO));
         if (payload[4] == (nrf_radio_prefix0_get(NRF_RADIO) & 0x000000FF) and payload[3] == (nrf_radio_base0_get(NRF_RADIO) >> 24) and payload[2] == ((nrf_radio_base0_get(NRF_RADIO) & 0x00FF0000) >> 16) and payload[1] == ((nrf_radio_base0_get(NRF_RADIO) & 0x0000FF00) >> 8))
         {
             //printk("IEEE Address match\n");
+            if (nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_CRCOK))
+            {
+                c_rhctx->stat.CRCOKcnt++;
+            }
+            else if (nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_CRCERROR))
+            {
+                c_rhctx->stat.CRCErrcnt++;
+            }
         }
         else
         {
@@ -43,10 +50,27 @@ void Simple_nrf_radio::radio_handler(void *context)
             return;
         }
     }
-    nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_END);    // Clear ISR Event END
-    nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_PHYEND); // Clear ISR Event PHYEND
-    nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_CRCOK);  // Clear ISR Event CRCOK
-    k_wakeup((k_tid_t)*thread_id);                            // Wake up the sleeping Thread waiting for the ISR
+    else
+    {
+        if (nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_CRCOK))
+        {
+            c_rhctx->stat.CRCOKcnt++;
+        }
+        else if (nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_CRCERROR))
+        {
+            c_rhctx->stat.CRCErrcnt++;
+        }
+    }
+    c_rhctx->stat.RSSI_Sum_Avg += nrf_radio_rssi_sample_get(NRF_RADIO); // RSSI should be done 
+    nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_RSSISTOP);
+    nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_END);      // Clear ISR Event END
+    nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_PHYEND);   // Clear ISR Event PHYEND
+    nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_CRCOK);    // Clear ISR Event CRCOK
+    nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_CRCERROR); // Clear ISR Event CRCError
+    if (c_rhctx->stat.act){
+        return; //Keep on receiving till timeout
+    }
+    k_wakeup((k_tid_t) * (c_rhctx->thread_id));                 // Wake up the sleeping Thread waiting for the ISR
 }
 /**
 	 * Enable HFCLK 
@@ -54,7 +78,7 @@ void Simple_nrf_radio::radio_handler(void *context)
 	 */
 void Simple_nrf_radio::clock_init(void)
 {
-    NRF_CLOCK->TASKS_HFCLKSTART = 1; //Start high frequency clock
+    NRF_CLOCK->TASKS_HFCLKSTART = 1;    //Start high frequency clock
     NRF_CLOCK->EVENTS_HFCLKSTARTED = 0; //Clear event
 }
 /**
@@ -158,7 +182,7 @@ s32_t Simple_nrf_radio::Receive(RADIO_PACKET *rx_pkt, k_timeout_t timeout)
     s32_t ret = k_sleep(timeout); // Wait for interrupt and check if it was a timeout
     if (ret > 0)
     {
-        printk("Received Sample RSSI: %d \n", nrf_radio_rssi_sample_get(NRF_RADIO));
+        //printk("Received Sample RSSI: %d \n", nrf_radio_rssi_sample_get(NRF_RADIO));
         rx_pkt->Rx_RSSI = nrf_radio_rssi_sample_get(NRF_RADIO);
         /* Parse Paket */
         if (nrf_radio_mode_get(NRF_RADIO) == NRF_RADIO_MODE_IEEE802154_250KBIT)
@@ -185,6 +209,37 @@ s32_t Simple_nrf_radio::Receive(RADIO_PACKET *rx_pkt, k_timeout_t timeout)
     nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_RSSISTOP);
     radio_disable();
     return ret;
+}
+/**
+	 * Receive Packets and only Log Data
+	 *
+	 * @param timeout Waittimeout in ms packet to be received and logged
+     * 
+	 * @return Struct of Log Data CRCOKcnt, CRCErrcnt, RSSIAvg
+	 */
+RxPktStatLog Simple_nrf_radio::ReceivePktStatLog(k_timeout_t timeout)
+{
+    radio_disable();
+    rhctx.stat.CRCErrcnt = 0;
+    rhctx.stat.CRCOKcnt = 0;
+    rhctx.stat.RSSI_Sum_Avg = 174; //Thermal Noise
+    rhctx.stat.act = true;
+    nrf_radio_packetptr_set(NRF_RADIO, rx_buf);
+    nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_CRCOK); // Clear CRCOK Event
+    nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_CRCERROR);
+    nrf_radio_int_enable(NRF_RADIO, NRF_RADIO_INT_CRCOK_MASK | NRF_RADIO_INT_CRCERROR_MASK);                                                                                                                         // Enable CRCOK Event interrupt
+    ISR_Thread_ID = k_current_get();                                                                                                                                                    // Set Interrupt Thread to wakeup
+    nrf_radio_shorts_enable(NRF_RADIO, NRF_RADIO_SHORT_READY_START_MASK | NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK | NRF_RADIO_SHORT_PHYEND_START_MASK | NRF_RADIO_SHORT_END_START_MASK); // Start after Ready and Start after END -> wait for CRCOK Event otherwise keep on receiving
+    nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_RXEN);
+    k_sleep(timeout); // Wait for interrupt and check if it was a timeout
+    if ((rhctx.stat.CRCOKcnt + rhctx.stat.CRCErrcnt) != 0)
+    {
+        rhctx.stat.RSSI_Sum_Avg = (rhctx.stat.RSSI_Sum_Avg-174) / (rhctx.stat.CRCOKcnt + rhctx.stat.CRCErrcnt);
+    }
+    nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_RSSISTOP);
+    radio_disable();
+    rhctx.stat.act = false;
+    return rhctx.stat;
 }
 /**
 	 * Set the Radio Mode.

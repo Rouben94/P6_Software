@@ -29,9 +29,9 @@ using namespace std;
 
 /* ------------- Definitions --------------*/
 #define isMaster 0								  // Node is the Master (1) or Slave (0)
-#define CommonMode NRF_RADIO_MODE_IEEE802154_250KBIT	  // Common Mode
-#define CommonStartCH 11						  // Common Start Channel
-#define CommonEndCH 13							  // Common End Channel
+#define CommonMode NRF_RADIO_MODE_BLE_LR125KBIT	  // Common Mode
+#define CommonStartCH 37						  // Common Start Channel
+#define CommonEndCH 39							  // Common End Channel
 #define MSB_MAC_Address 0xF4CE					  // MSB of MAC for Nordic Semi Vendor
 // Master: Find Nodes by Broadcasting ---- Slave: Listen for Broadcasts. If already Discovered Sleep
 #define ST_DISCOVERY 10
@@ -233,19 +233,8 @@ void ST_DISCOVERY_fn(void)
 			}
 			else
 			{
-				s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, K_MSEC(k_timer_remaining_get(&uni_timer)));
-				if (ret > 0)
-				{
-					synctimer_TimeStampCapture_disable();
-					// Keep on Receiving for the last Tx Timestamp
-					s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, K_MSEC(k_timer_remaining_get(&uni_timer)));
-					if (ret > 0)
-					{
-						synctimer_setSync(((DiscoveryPkt *)radio_pkt_Rx.PDU)->LastTxTimestamp);
-						synctimer_setSyncTimeCompareInt(((DiscoveryPkt *)radio_pkt_Rx.PDU)->MockupTimestamp,ST_transition_cb);
-					}
-					return;
-				}
+				RxPktStatLog ret = simple_nrf_radio.ReceivePktStatLog(K_MSEC(k_timer_remaining_get(&uni_timer)));
+				printk("CRCOK: %d CRCErr: %d RSSIAvg: %d\n",ret.CRCOKcnt,ret.CRCErrcnt,ret.RSSI_Sum_Avg);
 			}
 		}
 	}
