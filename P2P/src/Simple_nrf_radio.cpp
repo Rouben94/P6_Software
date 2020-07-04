@@ -26,7 +26,7 @@ Simple_nrf_radio::Simple_nrf_radio()
 	 */
 void Simple_nrf_radio::radio_handler(void *context)
 {
-    Radio_Handler_Context *c_rhctx = (Radio_Handler_Context *)context; // Cast the PID of the Sleeping thread waiting for the ISR to wake it up
+    Radio_Handler_Context *c_rhctx = (Radio_Handler_Context *)context;
     //printk("Interrupt\n");
     /* Check Address in payload of IEEE802.15.4 */
     if ((nrf_radio_mode_get(NRF_RADIO) == NRF_RADIO_MODE_IEEE802154_250KBIT))
@@ -61,6 +61,8 @@ void Simple_nrf_radio::radio_handler(void *context)
             c_rhctx->stat.CRCErrcnt++;
         }
     }
+    c_rhctx->stat.RSSI_Sum_Avg += nrf_radio_rssi_sample_get(NRF_RADIO); // RSSI should be done 
+    nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_RSSISTOP);
     nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_END);      // Clear ISR Event END
     nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_PHYEND);   // Clear ISR Event PHYEND
     nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_CRCOK);    // Clear ISR Event CRCOK
