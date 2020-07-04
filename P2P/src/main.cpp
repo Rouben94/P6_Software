@@ -375,10 +375,9 @@ void ST_PACKETS_fn(void)
 	/* init */
 	simple_nrf_radio.setMode((nrf_radio_mode_t)ParamLocal.Mode);
 	simple_nrf_radio.setAA(PacketsAddress);
-	if (isMaster){
-		radio_pkt_Tx.length = ParamLocal.Size;
-		sys_rand_get(radio_pkt_Tx.PDU,ParamLocal.Size); // Fill the Packet with Random Data
-	}
+	// Node has to do all init to keep Time Sync
+	radio_pkt_Tx.length = ParamLocal.Size;
+	sys_rand_get(radio_pkt_Tx.PDU,ParamLocal.Size); // Fill the Packet with Random Data
 	u8_t paramChCNT = (ParamLocal.StopCH - ParamLocal.StartCH);
 	if (paramChCNT == 0){
 		paramChCNT++;
@@ -391,11 +390,19 @@ void ST_PACKETS_fn(void)
 		{
 			CHcnt++;
 		}
-		k_timer_start(&uni_timer, K_MSEC(ST_TIME_PACKETS_MS / (paramChCNT)), K_MSEC(0));
+		if (isMaster)
+		{
+			//Timer with Margin to let Slave Receive longer than sending
+			k_timer_start(&uni_timer, K_MSEC((ST_TIME_PACKETS_MS / (paramChCNT))-2*ST_TIME_MARGIN_MS), K_MSEC(0));
+			k_sleep(ST_TIME_MARGIN_MS); //Let Slave prepare Reception
+			simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&uni_timer)));
+		} else {
+
+		}
+		k_timer_start(&uni_timer, K_MSEC((ST_TIME_PACKETS_MS / (paramChCNT))-ST_TIME_MARGIN_MS), K_MSEC(0));
 		while ((k_timer_remaining_get(&uni_timer) > 0) && (k_timer_remaining_get(&state_timer) > 0))
 		{
-			if (isMaster)
-			{
+			
 				simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&uni_timer)));
 			} else {
 				GotParam = false;
