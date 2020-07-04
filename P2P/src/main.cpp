@@ -59,6 +59,9 @@ along with P2P-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 #define ParamAddress 0x32C731E9
 #define PacketsAddress 0xF492A652
 #define ReportsAddress 0x37DAFC9D
+// Paramter Restrictions
+#define MaxNodesCnt 50
+#define MaxCHCnt 40
 // Define a Timer used inside States for Timing
 K_TIMER_DEFINE(state_timer, NULL, NULL);
 // Define a Timer free for Timing
@@ -88,19 +91,29 @@ struct ParamPkt
 
 struct ReportsPkt
 {
-	u32_t LSB_MAC_Address;
-	u8_t CRCOK_CNT;
-	u8_t CRCERR_CNT;
+	u16_t CRCOK_CNT;
+	u16_t CRCERR_CNT;
 	u8_t Avg_SIG_RSSI;
 	u8_t Avg_NOISE_RSSI;
 } __attribute__((packed));
 
-struct PublishList
+struct MasterReport
+{
+	u64_t TimeStamp;
+	std::vector <NodeReport> nodrep;
+};
+
+struct NodeReport
 {
 	u32_t LSB_MAC_Address;
-	u8_t Pkt_CNT;
-	u8_t CRCOK_CNT;
-	u8_t CRCERR_CNT;
+	std::vector <ChannelReport> chrep;
+};
+
+struct ChannelReport
+{
+	u16_t TxPkt_CNT;
+	u16_t CRCOK_CNT;
+	u16_t CRCERR_CNT;
 	u8_t Avg_SIG_RSSI;
 	u8_t Avg_NOISE_RSSI;
 };
@@ -124,8 +137,10 @@ ParamPkt Param_pkt_RX, Param_pkt_TX = {};
 ParamPkt ParamLocal = {CommonStartCH,CommonEndCH,CommonMode,20,0};
 bool GotParam = false;
 
+uint16_t TxPcktCNT[MaxCHCnt];
+
 ReportsPkt Repo_pkt_RX, Repo_pkt_TX = {};
-std::vector<PublishList> pb_list;
+MasterReport masrep;
 
 u8_t currentState = ST_DISCOVERY;
 k_tid_t ST_Machine_tid;
@@ -167,17 +182,18 @@ SHELL_CMD_REGISTER(setParams, NULL, "Set Start Channel", cmd_setParams);
 
 /*=================================================*/
 
-/*-------------- Check if value is in List -----------
-static bool CheckList(uint32_t check,std::vector<uint32_t> v){
+/*-------------- Get a Nodereport Index by its MAC -----------*/
+static u8_t GetNodeidx(u32_t MAC){
 	// Range based for
-	for(const auto& value: v) {
-		if (value == check){
-			return true;
+	u8_t idx;
+	for(const auto& value: masrep.nodrep) {
+		if (value.LSB_MAC_Address == MAC){
+			return idx;
 		}
 	}
-	return false;
+	return 0xFF; //Node not found
 }
-*/
+
 
 /*--------------------- States -------------------*/
 
@@ -302,7 +318,9 @@ void ST_MOCKUP_fn(void)
 				s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, K_MSEC(k_timer_remaining_get(&uni_timer)));
 				if (ret > 0)
 				{
-					pb_list.push_back({((MockupPkt *)radio_pkt_Rx.PDU)->LSB_MAC_Address});
+					if (GetNodeidx(((MockupPkt *)radio_pkt_Rx.PDU)->LSB_MAC_Address) == 0xFF){
+						masrep.nodrep.push_back({((MockupPkt *)radio_pkt_Rx.PDU)->LSB_MAC_Address});
+					}
 				}
 			}
 			else if (!GotReportReq)
@@ -390,13 +408,24 @@ void ST_PACKETS_fn(void)
 		{
 			CHcnt++;
 		}
+
 		if (isMaster)
 		{
 			//Timer with Margin to let Slave Receive longer than sending
 			k_timer_start(&uni_timer, K_MSEC((ST_TIME_PACKETS_MS / (paramChCNT))-2*ST_TIME_MARGIN_MS), K_MSEC(0));
-			k_sleep(ST_TIME_MARGIN_MS); //Let Slave prepare Reception
-			simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&uni_timer)));
+			k_sleep(K_MSEC(ST_TIME_MARGIN_MS)); //Let Slave prepare Reception
+			while ((k_timer_remaining_get(&uni_timer) > 0) && (k_timer_remaining_get(&state_timer) > 0))
+			{
+				simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&uni_timer)));				
+				TxPcktCNT[ch]++; //Save temp the Packet Send Count
+			}
+			k_sleep(K_MSEC(ST_TIME_MARGIN_MS)); //Let Slave End Reception
 		} else {
+			k_timer_start(&uni_timer, K_MSEC((ST_TIME_PACKETS_MS / (paramChCNT))), K_MSEC(0));
+			while ((k_timer_remaining_get(&uni_timer) > 0) && (k_timer_remaining_get(&state_timer) > 0))
+			{
+				
+			}
 
 		}
 		k_timer_start(&uni_timer, K_MSEC((ST_TIME_PACKETS_MS / (paramChCNT))-ST_TIME_MARGIN_MS), K_MSEC(0));
