@@ -65,8 +65,10 @@ along with P2P-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 #define MaxCHCnt 40
 // Define a Timer used inside States for Timing
 K_TIMER_DEFINE(state_timer, NULL, NULL);
-// Define a Timer free for Timing
-K_TIMER_DEFINE(uni_timer, NULL, NULL);
+// How long the Master waits for a reports package
+#define TimoutReportsPackageTime_ms 5
+// Reports finished all received Signal MAC_LSB_Address
+#define ReportsDone 0xFFFFFFFF
 /*============================================*/
 
 /* -------------- Data Container Definitions ------------------*/
@@ -88,6 +90,11 @@ struct ParamPkt
 	u8_t Size;
 	u8_t Mode;
 	u8_t CCMA_CA;
+} __attribute__((packed));
+
+struct ReportsReqPkt
+{
+	u32_t LSB_MAC_Address;
 } __attribute__((packed));
 
 struct ReportsPkt
@@ -135,10 +142,12 @@ MockupPkt Mockup_pkt_RX, Mockup_pkt_TX = {};
 bool GotReportReq = false;
 
 ParamPkt Param_pkt_RX, Param_pkt_TX = {};
-ParamPkt ParamLocal = {CommonStartCH,CommonEndCH,CommonMode,20,0};
+ParamPkt ParamLocal, ParamLocalBuf = {CommonStartCH,CommonEndCH,CommonMode,20,0};
 bool GotParam = false;
 
 std::vector <ChannelReport> chrep_local;
+
+ReportsReqPkt RepoReq_pkt_RX, RepoReq_pkt_TX = {};
 
 ReportsPkt Repo_pkt_RX, Repo_pkt_TX = {};
 MasterReport masrep;
@@ -166,11 +175,11 @@ static int cmd_setParams(const struct shell *shell, size_t argc, char **argv)
 {	// Maybee at error check later for validating the Params are valid
 	if (sizeof(argv) == sizeof(Param_pkt_TX) + 1)
 	{
-		ParamLocal.StartCH = *argv[1];
-		ParamLocal.StopCH = *argv[2];
-		ParamLocal.Mode = *argv[3];
-		ParamLocal.Size = *argv[4];
-		ParamLocal.CCMA_CA = *argv[5];
+		ParamLocalBuf.StartCH = *argv[1];
+		ParamLocalBuf.StopCH = *argv[2];
+		ParamLocalBuf.Mode = *argv[3];
+		ParamLocalBuf.Size = *argv[4];
+		ParamLocalBuf.CCMA_CA = *argv[5];
 		shell_print(shell, "Done\n");
 	}
 	else
@@ -351,6 +360,7 @@ void ST_PARAM_fn(void)
 	simple_nrf_radio.setAA(ParamAddress);
 	radio_pkt_Tx.length = sizeof(Param_pkt_TX);
 	radio_pkt_Tx.PDU = (u8_t *)&Param_pkt_TX;
+	ParamLocal = ParamLocalBuf; // Copy the Params to be used 
 	Param_pkt_TX = ParamLocal;
 	CHidx = CommonCHCnt;
 	/* Do work and keep track of Time Left */
@@ -425,44 +435,53 @@ void ST_PACKETS_fn(void)
 void ST_REPORT_fn(void)
 {
 	/* start one shot timer that expires after Timeslot ms */
-	k_timer_start(&state_timer, K_MSEC(ST_TIME_PACKETS_MS), K_MSEC(0));
-	synctimer_setSyncTimeCompareInt((synctimer_getSyncTime() + ST_TIME_PACKETS_MS * 1000 + ST_TIME_MARGIN_MS * 1000), ST_transition_cb);
+	k_timer_start(&state_timer, K_MSEC(ST_TIME_REPORTS_MS), K_MSEC(0));
+	synctimer_setSyncTimeCompareInt((synctimer_getSyncTime() + ST_TIME_REPORTS_MS * 1000 + ST_TIME_MARGIN_MS * 1000), ST_transition_cb);
 	/* init */
-	simple_nrf_radio.setMode((nrf_radio_mode_t)ParamLocal.Mode);
-	simple_nrf_radio.setAA(PacketsAddress);
-	// Node has to do all init to keep Time Sync
-	radio_pkt_Tx.length = ParamLocal.Size;
-	sys_rand_get(radio_pkt_Tx.PDU,ParamLocal.Size); // Fill the Packet with Random Data
-	CHidx = (ParamLocal.StopCH - ParamLocal.StartCH);
-	if (CHidx == 0){
-		CHidx = 1;
-	}	
-	chrep_local.clear(); // Clear the local Channel Report
-	RxPktStatLog log; //Temp
-	u16_t PktCnt_temp; //Temp
-	u8_t Noise; //Temp
-	/* Do work and keep track of Time Left */
-	for (int ch = ParamLocal.StartCH; ch <= ParamLocal.StopCH; ch++)
+	simple_nrf_radio.setMode(CommonMode);
+	simple_nrf_radio.setAA(ReportsAddress);
+	chrep_local
+	CHidx = CommonCHCnt;
+	if (isMaster)
 	{
-		simple_nrf_radio.setCH(ch);
-		chrep_local.push_back({}); // Add Channel
-		if (isMaster)
-		{
-			k_sleep(K_MSEC(ST_TIME_MARGIN_MS)); //Let Slave meassure noise and prepare Reception
-			PktCnt_temp = simple_nrf_radio.BurstCntPkt(radio_pkt_Tx, K_MSEC((k_timer_remaining_get(&state_timer) / (CHidx))-ST_TIME_MARGIN_MS)); //Margin to let Slave Receive longer than sending and log data
-			k_sleep(K_MSEC(ST_TIME_MARGIN_MS)); //Let Slave End Reception
-		} else {
-			chrep_local.back().Avg_NOISE_RSSI = simple_nrf_radio.RSSI(8); //Find out how long it takes and rise itirations
-			log = simple_nrf_radio.ReceivePktStatLog(K_MSEC((k_timer_remaining_get(&state_timer) / (CHidx))));
+		radio_pkt_Tx.length = sizeof(RepoReq_pkt_TX);
+		radio_pkt_Tx.PDU = (u8_t *)&RepoReq_pkt_TX;
+		radio_pkt_Rx.length = sizeof(Repo_pkt_RX);
+		radio_pkt_Rx.PDU = (u8_t *)&Repo_pkt_RX;
+		for(const auto& value: masrep.nodrep) {
+			RepoReq_pkt_TX.LSB_MAC_Address =  value.LSB_MAC_Address;
+			for (int ch = CommonStartCH; ch <= CommonEndCH; ch++)
+			{
+				simple_nrf_radio.setCH(ch);
+				simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&state_timer))); // Send Report Request
+				s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, K_MSEC(TimoutReportsPackageTime_ms)); //Wait for Report
+				if (ret > 0){
+
+				}
+			}
 		}
-		// Slave and Master log all Data to keep timesync
-		chrep_local.back().TxPkt_CNT = PktCnt_temp;
-		chrep_local.back().CRCOK_CNT = log.CRCOKcnt;
-		chrep_local.back().CRCERR_CNT = log.CRCErrcnt;
-		chrep_local.back().Avg_SIG_RSSI = log.RSSI_Sum_Avg;
-		CHidx--;
-	}
-	return;
+	} else {
+		radio_pkt_Rx.length = sizeof(RepoReq_pkt_RX);
+		radio_pkt_Rx.PDU = (u8_t *)&RepoReq_pkt_RX;
+		radio_pkt_Tx.length = sizeof(Repo_pkt_TX);
+		radio_pkt_Tx.PDU = (u8_t *)&Repo_pkt_TX;
+		GotReportReq = false;
+		for (int ch = CommonStartCH; ch <= CommonEndCH; ch++)
+			{
+				simple_nrf_radio.setCH(ch);
+				while (GotReportReq == false && k_timer_remaining_get(&state_timer) > 0){
+					s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, K_MSEC(k_timer_remaining_get(&state_timer))); //Wait for Request
+					if (ret > 0){
+						if (((ReportsReqPkt *)radio_pkt_Rx.PDU)->LSB_MAC_Address == LSB_MAC_Address){
+							GotReportReq = true;
+							
+						} else if (((ReportsReqPkt *)radio_pkt_Rx.PDU)->LSB_MAC_Address == ReportsDone)	{
+							return;
+						}				
+					}
+				}				
+			}
+	}	
 }
 		
 
