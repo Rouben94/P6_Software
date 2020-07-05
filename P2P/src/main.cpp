@@ -31,6 +31,7 @@ along with P2P-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 #define CommonMode NRF_RADIO_MODE_BLE_LR125KBIT // Common Mode
 #define CommonStartCH 37						// Common Start Channel
 #define CommonEndCH 39							// Common End Channel
+#define CommonCHCnt CommonEndCH - CommonStartCH + 1
 #define MSB_MAC_Address 0xF4CE					// MSB of MAC for Nordic Semi Vendor
 // Master: Find Nodes by Broadcasting ---- Slave: Listen for Broadcasts. If already Discovered Sleep
 #define ST_DISCOVERY 10
@@ -49,7 +50,7 @@ along with P2P-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 #define ST_TIME_MOCKUP_MS 1200
 #define ST_TIME_PARAM_MS 60
 #define ST_TIME_PACKETS_MS 2000 // Worst Case 40 CHs, Size 255 and BLE LR 125kBit -> ca. 2 Packets
-#define ST_TIME_REPORTS_MS 900
+#define ST_TIME_REPORTS_MS 30000 // Max Timeout -> MaxCHCnt * 5ms * MaxNodesCnt * 
 #define ST_TIME_PUBLISH_MS 60
 // Margin for State Transition (Let the State Terminate)
 #define ST_TIME_MARGIN_MS 5
@@ -123,10 +124,10 @@ struct ChannelReport
 Simple_nrf_radio simple_nrf_radio;
 u32_t LSB_MAC_Address = NRF_FICR->DEVICEADDR[0];
 RADIO_PACKET radio_pkt_Rx, radio_pkt_Tx = {};
+u8_t CHidx;
 
 DiscoveryPkt Disc_pkt_RX, Disc_pkt_TX = {};
 uint64_t MockupTS;
-u8_t CHcnt = CommonEndCH - CommonStartCH +1;
 u32_t LatestTxMasterTimestamp;
 bool Synced = false;
 
@@ -251,31 +252,27 @@ void ST_DISCOVERY_fn(void)
 	synctimer_TimeStampCapture_enable();
 	radio_pkt_Tx.length = sizeof(Disc_pkt_TX);
 	radio_pkt_Tx.PDU = (u8_t *)&Disc_pkt_TX;
+	CHidx = CommonCHCnt;
 	/* Do work and keep track of Time Left */
 	for (int ch = CommonStartCH; ch <= CommonEndCH; ch++)
 	{
 		simple_nrf_radio.setCH(ch);
-		if (CHcnt == 0)
-		{
-			CHcnt++;
-		}
-		k_timer_start(&uni_timer, K_MSEC(ST_TIME_DISCOVERY_MS / CHcnt), K_MSEC(0));
-		while ((k_timer_remaining_get(&uni_timer) > 0) && (k_timer_remaining_get(&state_timer) > 0))
+		while ((k_timer_remaining_get(&state_timer) / CHidx) > 0)
 		{
 			if (isMaster)
 			{
 				Disc_pkt_TX.MockupTimestamp = MockupTS;
 				Disc_pkt_TX.LastTxTimestamp = synctimer_getTxTimeStamp();
-				simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&uni_timer)));
+				simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&state_timer) / CHidx));
 			}
 			else
 			{
-				s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, K_MSEC(k_timer_remaining_get(&uni_timer)));
+				s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, K_MSEC(k_timer_remaining_get(&state_timer) / CHidx));
 				if (ret > 0)
 				{
 					synctimer_TimeStampCapture_disable();
 					// Keep on Receiving for the last Tx Timestamp
-					s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, K_MSEC(k_timer_remaining_get(&uni_timer)));
+					s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, K_MSEC(k_timer_remaining_get(&state_timer) / CHidx));
 					if (ret > 0)
 					{
 						synctimer_setSync(((DiscoveryPkt *)radio_pkt_Rx.PDU)->LastTxTimestamp);
@@ -287,6 +284,7 @@ void ST_DISCOVERY_fn(void)
 				Synced = false;
 			}
 		}
+		CHidx--;
 	}
 	return;
 }
@@ -302,20 +300,16 @@ void ST_MOCKUP_fn(void)
 	radio_pkt_Tx.length = sizeof(Mockup_pkt_TX);
 	radio_pkt_Tx.PDU = (u8_t *)&Mockup_pkt_TX;
 	Mockup_pkt_TX.LSB_MAC_Address = LSB_MAC_Address;
+	CHidx = CommonCHCnt;
 	/* Do work and keep track of Time Left */
 	for (int ch = CommonStartCH; ch <= CommonEndCH; ch++)
 	{
 		simple_nrf_radio.setCH(ch);
-		if (CHcnt == 0)
-		{
-			CHcnt++;
-		}
-		k_timer_start(&uni_timer, K_MSEC(ST_TIME_MOCKUP_MS / CHcnt), K_MSEC(0));
-		while ((k_timer_remaining_get(&uni_timer) > 0) && (k_timer_remaining_get(&state_timer) > 0))
+		while ((k_timer_remaining_get(&state_timer) / CHidx) > 0)
 		{
 			if (isMaster)
 			{
-				s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, K_MSEC(k_timer_remaining_get(&uni_timer)));
+				s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, K_MSEC(k_timer_remaining_get(&state_timer) / CHidx));
 				if (ret > 0)
 				{
 					if (GetNodeidx(((MockupPkt *)radio_pkt_Rx.PDU)->LSB_MAC_Address) == 0xFF){
@@ -325,11 +319,11 @@ void ST_MOCKUP_fn(void)
 			}
 			else if (!GotReportReq)
 			{
-				k_sleep(K_MSEC(sys_rand32_get() % (k_timer_remaining_get(&uni_timer) - 5))); // Sleep Random Mockup Delay minus 5ms send Margin
-				simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&uni_timer)));
+				k_sleep(K_MSEC(sys_rand32_get() % (k_timer_remaining_get(&state_timer) / CHidx - 5))); // Sleep Random Mockup Delay minus 5ms send Margin
+				simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&state_timer) / CHidx));
 				if (ch != CommonEndCH)
 				{
-					k_sleep(K_MSEC(k_timer_remaining_get(&uni_timer))); // Sleep till next CH
+					k_sleep(K_MSEC(k_timer_remaining_get(&state_timer) / CHidx)); // Sleep till next CH
 				}
 				else
 				{
@@ -342,6 +336,7 @@ void ST_MOCKUP_fn(void)
 				return;
 			}
 		}
+		CHidx--;
 	}
 	return;
 }
@@ -357,23 +352,19 @@ void ST_PARAM_fn(void)
 	radio_pkt_Tx.length = sizeof(Param_pkt_TX);
 	radio_pkt_Tx.PDU = (u8_t *)&Param_pkt_TX;
 	Param_pkt_TX = ParamLocal;
+	CHidx = CommonCHCnt;
 	/* Do work and keep track of Time Left */
 	for (int ch = CommonStartCH; ch <= CommonEndCH; ch++)
 	{
 		simple_nrf_radio.setCH(ch);
-		if (CHcnt == 0)
-		{
-			CHcnt++;
-		}
-		k_timer_start(&uni_timer, K_MSEC(ST_TIME_PARAM_MS / CHcnt), K_MSEC(0));
-		while ((k_timer_remaining_get(&uni_timer) > 0) && (k_timer_remaining_get(&state_timer) > 0))
+		while ((k_timer_remaining_get(&state_timer) / CHidx) > 0)
 		{
 			if (isMaster)
 			{
-				simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&uni_timer)));
+				simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&state_timer) / CHidx));
 			} else {
 				GotParam = false;
-				s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, K_MSEC(k_timer_remaining_get(&uni_timer)));
+				s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, K_MSEC(k_timer_remaining_get(&state_timer) / CHidx));
 				if (ret > 0){
 					ParamLocal = *((ParamPkt *)radio_pkt_Rx.PDU);
 					GotParam = true;
@@ -381,6 +372,7 @@ void ST_PARAM_fn(void)
 				}
 			}
 		}
+		CHidx--;
 	}
 	return;
 }
@@ -393,53 +385,82 @@ void ST_PACKETS_fn(void)
 	/* init */
 	simple_nrf_radio.setMode((nrf_radio_mode_t)ParamLocal.Mode);
 	simple_nrf_radio.setAA(PacketsAddress);
-	// Node has to do all init to keep Time Sync
+	// Master and Slave have to do all init to keep Time Sync
 	radio_pkt_Tx.length = ParamLocal.Size;
 	sys_rand_get(radio_pkt_Tx.PDU,ParamLocal.Size); // Fill the Packet with Random Data
-	u8_t paramChCNT = (ParamLocal.StopCH - ParamLocal.StartCH);
-	if (paramChCNT == 0){
-		paramChCNT++;
+	CHidx = (ParamLocal.StopCH - ParamLocal.StartCH);
+	if (CHidx == 0){
+		CHidx = 1;
 	}	
 	chrep_local.clear(); // Clear the local Channel Report
 	RxPktStatLog log; //Temp
 	u16_t PktCnt_temp; //Temp
-	int Noise_before, Noise_after; //Temp
+	u8_t Noise; //Temp
 	/* Do work and keep track of Time Left */
 	for (int ch = ParamLocal.StartCH; ch <= ParamLocal.StopCH; ch++)
 	{
 		simple_nrf_radio.setCH(ch);
-		if (CHcnt == 0)
-		{
-			CHcnt++;
-		}
 		chrep_local.push_back({}); // Add Channel
 		if (isMaster)
 		{
-			//Timer with Margin to let Slave Receive longer than sending
-			k_timer_start(&uni_timer, K_MSEC((ST_TIME_PACKETS_MS / (paramChCNT))-2*ST_TIME_MARGIN_MS), K_MSEC(0));
-			Noise_before = simple_nrf_radio.RSSI(8);
 			k_sleep(K_MSEC(ST_TIME_MARGIN_MS)); //Let Slave meassure noise and prepare Reception
-			while ((k_timer_remaining_get(&uni_timer) > 0) && (k_timer_remaining_get(&state_timer) > 0))
-			{
-				PktCnt_temp = simple_nrf_radio.BurstCntPkt(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&uni_timer)));				
-			}
-			k_sleep(K_MSEC(ST_TIME_MARGIN_MS)); //Let Slave meassure noise and End Reception
-			Noise_after = simple_nrf_radio.RSSI(8);
+			PktCnt_temp = simple_nrf_radio.BurstCntPkt(radio_pkt_Tx, K_MSEC((k_timer_remaining_get(&state_timer) / (CHidx))-ST_TIME_MARGIN_MS)); //Margin to let Slave Receive longer than sending and log data
+			k_sleep(K_MSEC(ST_TIME_MARGIN_MS)); //Let Slave End Reception
 		} else {
-			k_timer_start(&uni_timer, K_MSEC((ST_TIME_PACKETS_MS / (paramChCNT))), K_MSEC(0));
-			Noise_before = simple_nrf_radio.RSSI(8);
-			while ((k_timer_remaining_get(&uni_timer) > 0) && (k_timer_remaining_get(&state_timer) > 0))
-			{
-				log = simple_nrf_radio.ReceivePktStatLog(K_MSEC(k_timer_remaining_get(&uni_timer)));	
-			}
-			Noise_after = simple_nrf_radio.RSSI(8);
+			//======================= TODO ============================ 
+			chrep_local.back().Avg_NOISE_RSSI = simple_nrf_radio.RSSI(8); //Find out how long it takes and rise itirations
+			//======================= TODO ============================ 
+			log = simple_nrf_radio.ReceivePktStatLog(K_MSEC((k_timer_remaining_get(&state_timer) / (CHidx))));
 		}
 		// Slave and Master log all Data to keep timesync
 		chrep_local.back().TxPkt_CNT = PktCnt_temp;
 		chrep_local.back().CRCOK_CNT = log.CRCOKcnt;
 		chrep_local.back().CRCERR_CNT = log.CRCErrcnt;
 		chrep_local.back().Avg_SIG_RSSI = log.RSSI_Sum_Avg;
-		chrep_local.back().Avg_NOISE_RSSI = (Noise_after+Noise_before)/2;
+		CHidx--;
+	}
+	return;
+}
+
+void ST_REPORT_fn(void)
+{
+	/* start one shot timer that expires after Timeslot ms */
+	k_timer_start(&state_timer, K_MSEC(ST_TIME_PACKETS_MS), K_MSEC(0));
+	synctimer_setSyncTimeCompareInt((synctimer_getSyncTime() + ST_TIME_PACKETS_MS * 1000 + ST_TIME_MARGIN_MS * 1000), ST_transition_cb);
+	/* init */
+	simple_nrf_radio.setMode((nrf_radio_mode_t)ParamLocal.Mode);
+	simple_nrf_radio.setAA(PacketsAddress);
+	// Node has to do all init to keep Time Sync
+	radio_pkt_Tx.length = ParamLocal.Size;
+	sys_rand_get(radio_pkt_Tx.PDU,ParamLocal.Size); // Fill the Packet with Random Data
+	CHidx = (ParamLocal.StopCH - ParamLocal.StartCH);
+	if (CHidx == 0){
+		CHidx = 1;
+	}	
+	chrep_local.clear(); // Clear the local Channel Report
+	RxPktStatLog log; //Temp
+	u16_t PktCnt_temp; //Temp
+	u8_t Noise; //Temp
+	/* Do work and keep track of Time Left */
+	for (int ch = ParamLocal.StartCH; ch <= ParamLocal.StopCH; ch++)
+	{
+		simple_nrf_radio.setCH(ch);
+		chrep_local.push_back({}); // Add Channel
+		if (isMaster)
+		{
+			k_sleep(K_MSEC(ST_TIME_MARGIN_MS)); //Let Slave meassure noise and prepare Reception
+			PktCnt_temp = simple_nrf_radio.BurstCntPkt(radio_pkt_Tx, K_MSEC((k_timer_remaining_get(&state_timer) / (CHidx))-ST_TIME_MARGIN_MS)); //Margin to let Slave Receive longer than sending and log data
+			k_sleep(K_MSEC(ST_TIME_MARGIN_MS)); //Let Slave End Reception
+		} else {
+			chrep_local.back().Avg_NOISE_RSSI = simple_nrf_radio.RSSI(8); //Find out how long it takes and rise itirations
+			log = simple_nrf_radio.ReceivePktStatLog(K_MSEC((k_timer_remaining_get(&state_timer) / (CHidx))));
+		}
+		// Slave and Master log all Data to keep timesync
+		chrep_local.back().TxPkt_CNT = PktCnt_temp;
+		chrep_local.back().CRCOK_CNT = log.CRCOKcnt;
+		chrep_local.back().CRCERR_CNT = log.CRCErrcnt;
+		chrep_local.back().Avg_SIG_RSSI = log.RSSI_Sum_Avg;
+		CHidx--;
 	}
 	return;
 }
