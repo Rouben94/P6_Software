@@ -58,14 +58,30 @@
 #include "bm_master_cli.h"
 #include "bm_board_support_config.h"
 
-#include <openthread/instance.h>
 #include <openthread/thread.h>
+#include <openthread/instance.h>
+#include <openthread/ip6.h>
 #include <openthread/cli.h>
+#include <openthread/network_time.h>
+#include <openthread/platform/time.h>
 #include <openthread/channel_manager.h>
 
 #define SCHED_QUEUE_SIZE      32                              /**< Maximum number of events in the scheduler queue. */
 #define SCHED_EVENT_DATA_SIZE APP_TIMER_SCHED_EVENT_DATA_SIZE /**< Maximum app_scheduler event size. */
 
+
+
+//#define BM_MASTER
+//#define BM_CLIENT
+#define BM_SERVER
+
+
+
+#ifdef BM_CLIENT
+bool toggle_data_size = true;
+#endif //BM_CLIENT
+
+#ifdef BM_MASTER
 static void bm_cli_benchmark_start(uint8_t aArgsLength, char *aArgs[]);
 static void bm_cli_benchmark_stop(uint8_t aArgsLength, char *aArgs[]);
 
@@ -75,7 +91,7 @@ otCliCommand bm_cli_usercommands[2] = {
 };
 
 bm_master_message master_message;
-
+#endif //BM_MASTER
 
 /***************************************************************************************************
  * @section Buttons
@@ -87,10 +103,29 @@ static void bsp_event_handler(bsp_event_t event)
     {
         case BSP_EVENT_KEY_0:
             NRF_LOG_INFO("Button short");
+#if defined(BM_CLIENT) || defined(BM_SERVER)
+            bm_increment_group_address();
+#endif //BM_CLIENT || BM_SERVER
             break;
 
         case BSP_EVENT_KEY_0_LONG:
             NRF_LOG_INFO("Button long");
+
+#if defined(BM_CLIENT) || defined(BM_SERVER)
+            bm_decrement_group_address();
+#endif //BM_CLIENT || BM_SERVER
+
+#ifdef BM_CLIENT
+            if (toggle_data_size)
+            {
+                bm_set_data_size(BM_1024Bytes);
+                toggle_data_size = false;
+            } else
+            {
+                bm_set_data_size(BM_1bit);
+                toggle_data_size = true;
+            }
+#endif //BM_CLIENT
             break;
 
         default:
@@ -99,9 +134,8 @@ static void bsp_event_handler(bsp_event_t event)
 }
 
 /***************************************************************************************************
- * @section State
+ * @section Callbacks
  **************************************************************************************************/
-
 static void thread_state_changed_callback(uint32_t flags, void * p_context)
 {
     if (flags & OT_CHANGED_THREAD_ROLE)
@@ -124,6 +158,11 @@ static void thread_state_changed_callback(uint32_t flags, void * p_context)
         otThreadGetDeviceRole(p_context));
 }
 
+#if defined(BM_CLIENT) || defined(BM_SERVER)
+static void thread_time_sync_callback(void * p_context) { NRF_LOG_INFO("time sync callback"); }
+#endif //BM_CLIENT || BM_SERVER
+
+#ifdef BM_MASTER
 static void bm_cli_benchmark_start(uint8_t aArgsLength, char *aArgs[]) {
     NRF_LOG_INFO("Benchmark start");
     NRF_LOG_INFO("Argument: %s", aArgs[0]);
@@ -148,6 +187,8 @@ static void bm_cli_benchmark_stop(uint8_t aArgsLength, char *aArgs[]) {
 
     otCliOutput("done \r\n", sizeof("done \r\n"));
 }
+#endif //BM_MASTER
+
 
 /***************************************************************************************************
  * @section Initialization
@@ -197,7 +238,11 @@ static void thread_instance_init(void)
     };
 
     thread_init(&thread_configuration);
+
+#ifdef BM_MASTER
     thread_cli_init();
+#endif //BM_MASTER
+
     thread_state_changed_callback_set(thread_state_changed_callback);
 }
 
@@ -206,29 +251,50 @@ static void thread_instance_init(void)
  */
 static void thread_coap_init(void) 
 {
-  thread_coap_utils_configuration_t thread_coap_configuration =
-      {
-          .coap_server_enabled = false,
-          .coap_client_enabled = false,
-      };
+#ifdef BM_CLIENT
+    thread_coap_utils_configuration_t thread_coap_configuration = {
+        .coap_server_enabled = false,
+        .coap_client_enabled = true,
+    };
+#endif //BM_CLIENT
+
+#ifdef BM_SERVER
+    thread_coap_utils_configuration_t thread_coap_configuration = {
+        .coap_server_enabled = true,
+        .coap_client_enabled = false,
+    };
+#endif //BM_SERVER
+
+#ifdef BM_MASTER
+    thread_coap_utils_configuration_t thread_coap_configuration = {
+        .coap_server_enabled = false,
+        .coap_client_enabled = false,
+    };
+#endif //BM_MASTER
 
   thread_coap_utils_init(&thread_coap_configuration);
 }
 
 
-/**@brief Function for initializing scheduler module.
+#if defined(BM_CLIENT) || defined(BM_SERVER)
+/**@brief Function for initializing the Thread Time Synchronizationt Package
  */
-static void scheduler_init(void)
+static void thread_time_sync_init(void)
 {
-    APP_SCHED_INIT(SCHED_EVENT_DATA_SIZE, SCHED_QUEUE_SIZE);
+    otNetworkTimeSetSyncPeriod(thread_ot_instance_get(), 60);
+    otNetworkTimeSetXtalThreshold(thread_ot_instance_get(), otPlatTimeGetXtalAccuracy());
+    otNetworkTimeSyncSetCallback(thread_ot_instance_get(), thread_time_sync_callback, NULL);
 }
+#endif //BM_CLIENT || BM_SERVER
 
 
+#ifdef BM_MASTER
 /**@brief Function for initialize custom cli commands */
 void bm_custom_cli_init(void){
     otCliSetUserCommands(bm_cli_usercommands, 2 * sizeof(bm_cli_usercommands[0]));
 }
 
+/**@brief Function for initialize the auto channel manager */
 void bm_channel_manager_init(void)
 {
     otError error;
@@ -238,6 +304,15 @@ void bm_channel_manager_init(void)
     otChannelManagerSetFavoredChannels(thread_ot_instance_get(), bm_channel_mask);
     error = otChannelManagerSetAutoChannelSelectionInterval(thread_ot_instance_get(), 60);
     ASSERT(error == OT_ERROR_NONE);
+}
+#endif //BM_MASTER
+
+
+/**@brief Function for initializing scheduler module.
+ */
+static void scheduler_init(void)
+{
+    APP_SCHED_INIT(SCHED_EVENT_DATA_SIZE, SCHED_QUEUE_SIZE);
 }
 
 /***************************************************************************************************
@@ -254,13 +329,27 @@ int main(int argc, char *argv[])
 
     thread_instance_init();
     thread_coap_init();
+
+#ifdef BM_MASTER
     bm_custom_cli_init();
-    thread_bsp_init();
     bm_channel_manager_init();
+#endif //BM_MASTER
+
+    thread_bsp_init();
+
+#if defined(BM_CLIENT) || defined(BM_SERVER)
+    thread_time_sync_init();
+    bm_statemachine_init();
+#endif //BM_CLIENT || BM_SERVER    
 
     while (true)
     {
         thread_process();
+
+#if defined(BM_CLIENT) || defined(BM_SERVER)
+        bm_sm_process();
+#endif //BM_CLIENT || BM_SERVER 
+
         app_sched_execute();
 
         if (NRF_LOG_PROCESS() == false)

@@ -1,6 +1,6 @@
 <!DOCTYPE CrossStudio_Project_File>
-<solution Name="ot_benchmark_master" target="8" version="2">
-  <project Name="ot_benchmark_master">
+<solution Name="ot_benchmark" target="8" version="2">
+  <project Name="ot_benchmark">
     <configuration
       Name="Common"
       arm_architecture="v7EM"

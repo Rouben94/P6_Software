@@ -19,6 +19,11 @@ APP_TIMER_DEF(m_msg_2_timer);
 APP_TIMER_DEF(m_msg_3_timer);
 APP_TIMER_DEF(m_msg_4_timer);
 APP_TIMER_DEF(m_msg_5_timer);
+APP_TIMER_DEF(m_msg_6_timer);
+APP_TIMER_DEF(m_msg_7_timer);
+APP_TIMER_DEF(m_msg_8_timer);
+APP_TIMER_DEF(m_msg_9_timer);
+APP_TIMER_DEF(m_msg_10_timer);
 
 bm_message_info message_info[NUMBER_OF_NETWORK_TIME_ELEMENTS] = {0};
 
@@ -93,6 +98,36 @@ static void m_msg_5_handler(void * p_context)
     bm_coap_probe_message_send(data_size);
 }
 
+static void m_msg_6_handler(void * p_context)
+{
+    bsp_board_led_invert(BSP_BOARD_LED_2);
+    bm_coap_probe_message_send(data_size);
+}
+
+static void m_msg_7_handler(void * p_context)
+{
+    bsp_board_led_invert(BSP_BOARD_LED_2);
+    bm_coap_probe_message_send(data_size);
+}
+
+static void m_msg_8_handler(void * p_context)
+{
+    bsp_board_led_invert(BSP_BOARD_LED_2);
+    bm_coap_probe_message_send(data_size);
+}
+
+static void m_msg_9_handler(void * p_context)
+{
+    bsp_board_led_invert(BSP_BOARD_LED_2);
+    bm_coap_probe_message_send(data_size);
+}
+
+static void m_msg_10_handler(void * p_context)
+{
+    bsp_board_led_invert(BSP_BOARD_LED_2);
+    bm_coap_probe_message_send(data_size);
+}
+
 static void benchmark_handler(void * p_context)
 {
     bm_new_state = BM_STATE_3;
@@ -103,17 +138,15 @@ static void benchmark_handler(void * p_context)
  **************************************************************************************************/
 static void default_state(void)
 {
-    //NRF_LOG_INFO("state default done");
+
 }
 
 static void state_1_client(void)
 {
-    //NRF_LOG_INFO("state one done");
-
     uint32_t error;
-    uint16_t ticks_array[5];
+    uint16_t ticks_array[10];
 
-    for (int i=0; i<5; i++)
+    for (int i=0; i<10; i++)
     {
         ticks_array[i] = otRandomNonCryptoGetUint16InRange(100, bm_time-100);
     }
@@ -133,6 +166,21 @@ static void state_1_client(void)
     error = app_timer_start(m_msg_5_timer, APP_TIMER_TICKS(ticks_array[4]), NULL);
     ASSERT(error == NRF_SUCCESS);
 
+    error = app_timer_start(m_msg_6_timer, APP_TIMER_TICKS(ticks_array[5]), NULL);
+    ASSERT(error == NRF_SUCCESS);
+
+    error = app_timer_start(m_msg_7_timer, APP_TIMER_TICKS(ticks_array[6]), NULL);
+    ASSERT(error == NRF_SUCCESS);
+
+    error = app_timer_start(m_msg_8_timer, APP_TIMER_TICKS(ticks_array[7]), NULL);
+    ASSERT(error == NRF_SUCCESS);
+
+    error = app_timer_start(m_msg_9_timer, APP_TIMER_TICKS(ticks_array[8]), NULL);
+    ASSERT(error == NRF_SUCCESS);
+
+    error = app_timer_start(m_msg_10_timer, APP_TIMER_TICKS(ticks_array[9]), NULL);
+    ASSERT(error == NRF_SUCCESS);
+
     error = app_timer_start(m_benchmark_timer, APP_TIMER_TICKS(bm_time), NULL);
     ASSERT(error == NRF_SUCCESS);
     bm_new_state = BM_EMPTY_STATE;
@@ -140,28 +188,20 @@ static void state_1_client(void)
 
 static void state_1_server(void)
 {
-    //NRF_LOG_INFO("state one done");
-
     uint32_t error;
 
-    error = app_timer_start(m_benchmark_timer, APP_TIMER_TICKS(bm_time+100), NULL);
+    error = app_timer_start(m_benchmark_timer, APP_TIMER_TICKS(bm_time+5000), NULL);
     ASSERT(error == NRF_SUCCESS);
     bm_new_state = BM_EMPTY_STATE;
 }
 
 static void state_2(void)
 {
-//    NRF_LOG_INFO("state two done");
-//
-//    uint32_t error;
-//    error = app_timer_stop(m_led_timer);
-//    ASSERT(error == NRF_SUCCESS);
-//    bm_new_state = BM_STATE_3;
+
 }
 
 static void state_3(void)
 {
-    //NRF_LOG_INFO("state three done");
     bsp_board_led_off(BSP_BOARD_LED_2);
 
     for (int i = 0; i<bm_message_info_nr; i++)
@@ -228,5 +268,15 @@ void bm_statemachine_init(void)
     error = app_timer_create(&m_msg_4_timer, APP_TIMER_MODE_SINGLE_SHOT, m_msg_4_handler);
     ASSERT(error == NRF_SUCCESS);
     error = app_timer_create(&m_msg_5_timer, APP_TIMER_MODE_SINGLE_SHOT, m_msg_5_handler);
+    ASSERT(error == NRF_SUCCESS);
+    error = app_timer_create(&m_msg_6_timer, APP_TIMER_MODE_SINGLE_SHOT, m_msg_6_handler);
+    ASSERT(error == NRF_SUCCESS);
+    error = app_timer_create(&m_msg_7_timer, APP_TIMER_MODE_SINGLE_SHOT, m_msg_7_handler);
+    ASSERT(error == NRF_SUCCESS);
+    error = app_timer_create(&m_msg_8_timer, APP_TIMER_MODE_SINGLE_SHOT, m_msg_8_handler);
+    ASSERT(error == NRF_SUCCESS);
+    error = app_timer_create(&m_msg_9_timer, APP_TIMER_MODE_SINGLE_SHOT, m_msg_9_handler);
+    ASSERT(error == NRF_SUCCESS);
+    error = app_timer_create(&m_msg_10_timer, APP_TIMER_MODE_SINGLE_SHOT, m_msg_10_handler);
     ASSERT(error == NRF_SUCCESS);
 }
