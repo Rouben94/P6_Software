@@ -27,7 +27,7 @@ along with P2P-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 #include "Timer_sync.h"
 
 /* ------------- Definitions --------------*/
-#define isMaster 0									// Node is the Master (1) or Slave (0)
+#define isMaster 1									// Node is the Master (1) or Slave (0)
 #define CommonMode NRF_RADIO_MODE_BLE_LR125KBIT		// Common Mode
 #define CommonStartCH 37							// Common Start Channel
 #define CommonEndCH 39								// Common End Channel
@@ -117,17 +117,6 @@ struct CHReportsPkt
 	u8_t Avg_NOISE_RSSI;
 } __attribute__((packed));
 
-struct MasterReport
-{
-	u64_t TimeStamp;
-	std::vector<NodeReport> nodrep;
-};
-
-struct NodeReport
-{
-	u32_t LSB_MAC_Address;
-	std::vector<ChannelReport> chrep;
-};
 
 struct ChannelReport
 {
@@ -139,15 +128,18 @@ struct ChannelReport
 	u8_t Avg_NOISE_RSSI;
 };
 
- struct ChannelReport_array {
-     struct ChannelReport Channels;
- };
+struct NodeReport
+{
+	u32_t LSB_MAC_Address;
+	std::vector<ChannelReport> chrep;
+};
 
-struct Nodes_JSON_Report {
-     //struct ChannelReport_array Channels[40];
-	 struct ChannelReport_array; // <- Pointer from vector to array
-     size_t ChannelReport_array_len;
- };
+struct MasterReport
+{
+	u64_t TimeStamp;
+	std::vector<NodeReport> nodrep;
+};
+
 
 /*===========================================*/
 
@@ -223,13 +215,14 @@ SHELL_CMD_REGISTER(setParams, NULL, "Set Parameters", cmd_setParams);
 static u8_t GetNodeidx(u32_t MAC)
 {
 	// Range based for
-	u8_t idx;
+	u8_t idx = 0;
 	for (const auto &value : masrep.nodrep)
 	{
 		if (value.LSB_MAC_Address == MAC)
 		{
 			return idx;
 		}
+		idx++;
 	}
 	return 0xFF; //Node not found
 }
@@ -270,6 +263,7 @@ static void ST_transition_cb(void)
 	{
 		currentState = ST_DISCOVERY;
 	}
+	printk("Current State: %d",currentState);
 	k_thread_state_str(ST_Machine_tid);
 	k_wakeup(ST_Machine_tid);
 }
@@ -282,6 +276,8 @@ void ST_DISCOVERY_fn(void)
 	if (isMaster)
 	{
 		MockupTS = (synctimer_getSyncTime() + ST_TIME_DISCOVERY_MS * 1000 + ST_TIME_MARGIN_MS * 1000);
+		printk("Now : %u\n", (uint32_t)synctimer_getSyncTime());
+		printk("Int : %u\n", (uint32_t)MockupTS);
 		synctimer_setSyncTimeCompareInt(MockupTS, ST_transition_cb);
 	}
 	simple_nrf_radio.setMode(CommonMode);
@@ -443,8 +439,7 @@ void ST_PACKETS_fn(void)
 	}
 	chrep_local.clear(); // Clear the local Channel Report
 	RxPktStatLog log;	 //Temp
-	u16_t PktCnt_temp;	 //Temp
-	u8_t Noise;			 //Temp
+	u16_t PktCnt_temp = 0;	 //Temp
 	/* Do work and keep track of Time Left */
 	for (int ch = ParamLocal.StartCH; ch <= ParamLocal.StopCH; ch++)
 	{
@@ -603,7 +598,22 @@ void ST_PUBLISH_fn(void)
 	k_timer_start(&state_timer, K_MSEC(ST_TIME_PUBLISH_MS), K_MSEC(0));
 	synctimer_setSyncTimeCompareInt((synctimer_getSyncTime() + ST_TIME_PUBLISH_MS * 1000 + ST_TIME_MARGIN_MS * 1000), ST_transition_cb);
 	/* init */
-
+	if (isMaster){
+		// Do Reporting of Nodes
+		for (const auto &node : masrep.nodrep)
+		{
+			uint64_t MAC = ((uint64_t) MSB_MAC_Address << 32 | node.LSB_MAC_Address);
+			for (const auto &ch : node.chrep)
+			{
+				printk("<NODE_REPORT_BEGIN>\r\n");
+				// <MACAddress> <CH> <PktCnt> <CRCOKCnt> <CRCERRCnt> <AvgSigRSSI> <AvgNoiseRSSI>
+				printk("%llx %d %d %d %d %d %d", MAC, ch.CH, ch.TxPkt_CNT, ch.CRCOK_CNT, ch.CRCERR_CNT, ch.Avg_SIG_RSSI, ch.Avg_NOISE_RSSI);
+				printk("<NODE_REPORT_END>\r\n");
+			}
+		}
+	} else {
+		return; // Slave just sleeps in this state. Has nothing to do...
+	}
 }
 
 /*=======================================================*/
@@ -644,6 +654,7 @@ void main(void)
 			break;
 		case ST_PUBLISH:
 			ST_REPORT_fn();
+			k_sleep(K_MSEC(ST_TIME_PUBLISH_MS + ST_TIME_MARGIN_MS + 10));
 			// Ready for the Next State. Timesync is given up from now on. Do this in the Discovery State.
 			break;
 		}
