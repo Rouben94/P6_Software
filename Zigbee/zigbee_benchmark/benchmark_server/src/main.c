@@ -19,7 +19,6 @@
 #include <dk_buttons_and_leds.h>
 #include <drivers/gpio.h>
 
-
 #include <zboss_api.h>
 #include <zboss_api_addons.h>
 #include <zb_mem_config_med.h>
@@ -27,8 +26,27 @@
 #include <zb_error_handler.h>
 #include <zb_nrf_platform.h>
 
+#define MY_STACK_SIZE 500
+#define MY_PRIORITY 5
+#define GROUP_ID 0xB331 /**< Group ID, which will be used to control all light sources with a single command. */
+#define BENCHMARK_CLIENT_ENDPOINT 1
+#define BENCHMARK_SERVER_ENDPOINT 10
+#define BULB_LED DK_LED4						/* LED immitaing dimmable light bulb */
+#define DONGLE_BUTTON DK_BTN1_MSK				/* Button on the Dongle*/
+#define ZIGBEE_NETWORK_STATE_LED DK_LED1		/* LED indicating that light switch successfully joind Zigbee network. */
+#define PWM_DK_LED4_NODE DT_NODELABEL(pwm_led3) /* Use onboard led4 to act as a light bulb. The app.overlay file has this at node label "pwm_led3" in /pwmleds. */
 
-#define DEFAULT_GROUP_ID                    0xB331                              /**< Group ID, which will be used to control all light sources with a single command. */
+/* Nordic PWM nodes don't have flags cells in their specifiers, so this is just future-proofing.*/
+#define FLAGS_OR_ZERO(node)                         \
+	COND_CODE_1(DT_PHA_HAS_CELL(node, pwms, flags), \
+				(DT_PWMS_FLAGS(node)), (0))
+#if DT_NODE_HAS_STATUS(PWM_DK_LED4_NODE, okay) /* Get the defines from overlay file. */
+#define PWM_DK_LED4_DRIVER DT_PWMS_LABEL(PWM_DK_LED4_NODE)
+#define PWM_DK_LED4_CHANNEL DT_PWMS_CHANNEL(PWM_DK_LED4_NODE)
+#define PWM_DK_LED4_FLAGS FLAGS_OR_ZERO(PWM_DK_LED4_NODE)
+#else
+#error "Choose supported PWM driver"
+#endif
 
 /*
 nRF52840-Dongle LEDs and Buttons
@@ -38,102 +56,39 @@ DK_LED3 --> green
 DK_LED4 --> blue
 DK_BTN1 --> Button 1
 */
-
-//#define RUN_STATUS_LED                  DK_LED1
-//#define RUN_LED_BLINK_INTERVAL          1000
-
-/* Device endpoint, used to receive light controlling commands. */
-#define HA_DIMMABLE_LIGHT_ENDPOINT      10
-
-/* Version of the application software (1 byte). */
-#define BULB_INIT_BASIC_APP_VERSION     01
-
-/* Version of the implementation of the Zigbee stack (1 byte). */
-#define BULB_INIT_BASIC_STACK_VERSION   10
-
-/* Version of the hardware of the device (1 byte). */
-#define BULB_INIT_BASIC_HW_VERSION      11
-
-/* Manufacturer name (32 bytes). */
-#define BULB_INIT_BASIC_MANUF_NAME      "Nordic"
-
-/* Model number assigned by manufacturer (32-bytes long string). */
-#define BULB_INIT_BASIC_MODEL_ID        "Dimable_Light_v0.1"
-
-/* First 8 bytes specify the date of manufacturer of the device
- * in ISO 8601 format (YYYYMMDD). The rest (8 bytes) are manufacturer specific.
- */
-#define BULB_INIT_BASIC_DATE_CODE       "20200329"
-
-/* Type of power sources available for the device.
- * For possible values see section 3.2.2.2.8 of ZCL specification.
- */
-#define BULB_INIT_BASIC_POWER_SOURCE    ZB_ZCL_BASIC_POWER_SOURCE_DC_SOURCE
-
-/* Describes the physical location of the device (16 bytes).
- * May be modified during commisioning process.
- */
-#define BULB_INIT_BASIC_LOCATION_DESC   "Office desk"
-
-/* Describes the type of physical environment.
- * For possible values see section 3.2.2.2.10 of ZCL specification.
- */
-#define BULB_INIT_BASIC_PH_ENV          ZB_ZCL_BASIC_ENV_UNSPECIFIED
-
-/* LED indicating that light switch successfully joind Zigbee network. */
-#define ZIGBEE_NETWORK_STATE_LED        DK_LED1
-uint8_t toggle = 0;
-
-/* LED immitaing dimmable light bulb - define for informational
- * purposes only.
- */
-#define BULB_LED                        DK_LED4
-
-/* Button used to enter the Bulb into the Identify mode. */
-#define IDENTIFY_MODE_BUTTON            DK_BTN1_MSK
-
-/* Use onboard led4 to act as a light bulb.
- * The app.overlay file has this at node label "pwm_led3" in /pwmleds.
- */
-//#define PWM_DK_LED4_NODE                DT_NODELABEL(pwm_led3)
-#define PWM_DK_LED4_NODE                DT_NODELABEL(pwm_led3)
-
-
-/* Nordic PWM nodes don't have flags cells in their specifiers, so
- * this is just future-proofing.
- */
-#define FLAGS_OR_ZERO(node) \
-	COND_CODE_1(DT_PHA_HAS_CELL(node, pwms, flags), \
-		    (DT_PWMS_FLAGS(node)), (0))
-
-#if DT_NODE_HAS_STATUS(PWM_DK_LED4_NODE, okay)
-/* Get the defines from overlay file. */
-#define PWM_DK_LED4_DRIVER              DT_PWMS_LABEL(PWM_DK_LED4_NODE)
-#define PWM_DK_LED4_CHANNEL             DT_PWMS_CHANNEL(PWM_DK_LED4_NODE)
-#define PWM_DK_LED4_FLAGS               FLAGS_OR_ZERO(PWM_DK_LED4_NODE)
-#else
-#error "Choose supported PWM driver"
-#endif
-
-/* Led PWM period, calculated for 50 Hz signal - in microseconds. */
-#define LED_PWM_PERIOD_US               (USEC_PER_SEC / 50U)
+#define HA_DIMMABLE_LIGHT_ENDPOINT 10									 /* Device endpoint, used to receive light controlling commands. */
+#define BULB_INIT_BASIC_APP_VERSION 01									 /* Version of the application software (1 byte). */
+#define BULB_INIT_BASIC_STACK_VERSION 10								 /* Version of the implementation of the Zigbee stack (1 byte). */
+#define BULB_INIT_BASIC_HW_VERSION 11									 /* Version of the hardware of the device (1 byte). */
+#define BULB_INIT_BASIC_MANUF_NAME "Nordic"								 /* Manufacturer name (32 bytes). */
+#define BULB_INIT_BASIC_MODEL_ID "Dimable_Light_v0.1"					 /* Model number assigned by manufacturer (32-bytes long string). */
+#define BULB_INIT_BASIC_DATE_CODE "20200329"							 /* First 8 bytes specify the date of manufacturer of the device in ISO 8601 format (YYYYMMDD). The rest (8 bytes) are manufacturer specific.*/
+#define BULB_INIT_BASIC_POWER_SOURCE ZB_ZCL_BASIC_POWER_SOURCE_DC_SOURCE /* Type of power sources available for the device. For possible values see section 3.2.2.2.8 of ZCL specification.*/
+#define BULB_INIT_BASIC_LOCATION_DESC "Office desk"						 /* Describes the physical location of the device (16 bytes). May be modified during commisioning process.*/
+#define BULB_INIT_BASIC_PH_ENV ZB_ZCL_BASIC_ENV_UNSPECIFIED				 /* Describes the type of physical environment. For possible values see section 3.2.2.2.10 of ZCL specification.*/
+#define LED_PWM_PERIOD_US (USEC_PER_SEC / 50U)							 /* Led PWM period, calculated for 50 Hz signal - in microseconds. */
 
 #ifndef ZB_ROUTER_ROLE
 #error Define ZB_ROUTER_ROLE to compile router source code.
 #endif
+
+K_THREAD_STACK_DEFINE(pairing_stack_area, MY_STACK_SIZE);
+struct k_thread pairing_thread_data;
+static void add_group_id(void *arg1, void *arg2, void *arg3);
 
 LOG_MODULE_REGISTER(app);
 
 /* Main application customizable context.
  * Stores all settings and static values.
  */
-typedef struct {
-	zb_zcl_basic_attrs_ext_t         basic_attr;
-	zb_zcl_identify_attrs_t          identify_attr;
-	zb_zcl_scenes_attrs_t            scenes_attr;
-	zb_zcl_groups_attrs_t            groups_attr;
-	zb_zcl_on_off_attrs_t            on_off_attr;
-	zb_zcl_level_control_attrs_t     level_control_attr;
+typedef struct
+{
+	zb_zcl_basic_attrs_ext_t basic_attr;
+	zb_zcl_identify_attrs_t identify_attr;
+	zb_zcl_scenes_attrs_t scenes_attr;
+	zb_zcl_groups_attrs_t groups_attr;
+	zb_zcl_on_off_attrs_t on_off_attr;
+	zb_zcl_level_control_attrs_t level_control_attr;
 } bulb_device_ctx_t;
 
 /* Zigbee device application context storage. */
@@ -191,7 +146,6 @@ ZB_HA_DECLARE_DIMMABLE_LIGHT_CLUSTER_LIST(
 	on_off_attr_list,
 	level_control_attr_list);
 
-
 ZB_HA_DECLARE_DIMMABLE_LIGHT_EP(
 	dimmable_light_ep,
 	HA_DIMMABLE_LIGHT_ENDPOINT,
@@ -209,29 +163,22 @@ ZB_HA_DECLARE_DIMMABLE_LIGHT_CTX(
  */
 static void button_changed(u32_t button_state, u32_t has_changed)
 {
-	zb_ret_t zb_err_code;
+	k_tid_t add_group_thread;
 
 	/* Calculate bitmask of buttons that are pressed
 	 * and have changed their state.
 	 */
 	u32_t buttons = button_state & has_changed;
 
-	if (buttons & IDENTIFY_MODE_BUTTON) {
-		/* Check if endpoint is in identifying mode,
-		 * if not put desired endpoint in identifying mode.
-		 */
-		if (dev_ctx.identify_attr.identify_time ==
-		    ZB_ZCL_IDENTIFY_IDENTIFY_TIME_DEFAULT_VALUE) {
-			LOG_INF("Bulb put in identifying mode");
-			zb_err_code = zb_bdb_finding_binding_target(
-				HA_DIMMABLE_LIGHT_ENDPOINT);
-			ZB_ERROR_CHECK(zb_err_code);
-		} else {
-			LOG_INF("Cancel F&B target procedure");
-			zb_bdb_finding_binding_target_cancel();
-		}
+	if (buttons & DONGLE_BUTTON)
+	{
+		LOG_INF("ADD GROUP - Button pressed");
+		add_group_thread = k_thread_create(&pairing_thread_data, pairing_stack_area,
+										   K_THREAD_STACK_SIZEOF(pairing_stack_area),
+										   add_group_id,
+										   NULL, NULL, NULL,
+										   MY_PRIORITY, 0, K_NO_WAIT);
 	}
-	
 }
 
 /**@brief Function for initializing additional PWM leds. */
@@ -239,7 +186,8 @@ static void pwm_led_init(void)
 {
 	led_pwm_dev = device_get_binding(PWM_DK_LED4_DRIVER);
 
-	if (!led_pwm_dev) {
+	if (!led_pwm_dev)
+	{
 		LOG_ERR("Cannot find %s!", PWM_DK_LED4_DRIVER);
 	}
 }
@@ -250,12 +198,14 @@ static void configure_gpio(void)
 	int err;
 
 	err = dk_buttons_init(button_changed);
-	if (err) {
+	if (err)
+	{
 		LOG_ERR("Cannot init buttons (err: %d)", err);
 	}
 
 	err = dk_leds_init();
-	if (err) {
+	if (err)
+	{
 		LOG_ERR("Cannot init LEDs (err: %d)", err);
 	}
 
@@ -272,7 +222,8 @@ static void light_bulb_set_brightness(zb_uint8_t brightness_level)
 	u32_t pulse = brightness_level * LED_PWM_PERIOD_US / 255U;
 
 	if (pwm_pin_set_usec(led_pwm_dev, PWM_DK_LED4_CHANNEL,
-			     LED_PWM_PERIOD_US, pulse, PWM_DK_LED4_FLAGS)) {
+						 LED_PWM_PERIOD_US, pulse, PWM_DK_LED4_FLAGS))
+	{
 		LOG_ERR("Pwm led 4 set fails:\n");
 		return;
 	}
@@ -297,7 +248,8 @@ static void level_control_set_value(zb_uint16_t new_level)
 	/* According to the table 7.3 of Home Automation Profile Specification
 	 * v 1.2 rev 29, chapter 7.1.3.
 	 */
-	if (new_level == 0) {
+	if (new_level == 0)
+	{
 		zb_uint8_t value = ZB_FALSE;
 
 		ZB_ZCL_SET_ATTRIBUTE(
@@ -307,7 +259,9 @@ static void level_control_set_value(zb_uint16_t new_level)
 			ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID,
 			&value,
 			ZB_FALSE);
-	} else {
+	}
+	else
+	{
 		zb_uint8_t value = ZB_TRUE;
 
 		ZB_ZCL_SET_ATTRIBUTE(
@@ -338,9 +292,12 @@ static void on_off_set_value(zb_bool_t on)
 		(zb_uint8_t *)&on,
 		ZB_FALSE);
 
-	if (on) {
+	if (on)
+	{
 		level_control_set_value(dev_ctx.level_control_attr.current_level);
-	} else {
+	}
+	else
+	{
 		light_bulb_set_brightness(0U);
 	}
 }
@@ -350,10 +307,10 @@ static void on_off_set_value(zb_bool_t on)
 static void bulb_clusters_attr_init(void)
 {
 	/* Basic cluster attributes data */
-	dev_ctx.basic_attr.zcl_version   = ZB_ZCL_VERSION;
-	dev_ctx.basic_attr.app_version   = BULB_INIT_BASIC_APP_VERSION;
+	dev_ctx.basic_attr.zcl_version = ZB_ZCL_VERSION;
+	dev_ctx.basic_attr.app_version = BULB_INIT_BASIC_APP_VERSION;
 	dev_ctx.basic_attr.stack_version = BULB_INIT_BASIC_STACK_VERSION;
-	dev_ctx.basic_attr.hw_version    = BULB_INIT_BASIC_HW_VERSION;
+	dev_ctx.basic_attr.hw_version = BULB_INIT_BASIC_HW_VERSION;
 
 	/* Use ZB_ZCL_SET_STRING_VAL to set strings, because the first byte
 	 * should contain string length without trailing zero.
@@ -414,6 +371,41 @@ static void bulb_clusters_attr_init(void)
 		ZB_FALSE);
 }
 
+static void add_group_id_cb(zb_bufid_t bufid)
+{
+	zb_uint8_t dst_ep = 10;
+	zb_ieee_addr_t ieee_addr;
+	char ieee_addr_buf[17] = {0};
+	int addr_len;
+	zb_get_long_address(ieee_addr);
+	addr_len = ieee_addr_to_str(ieee_addr_buf, sizeof(ieee_addr_buf), ieee_addr);
+
+	LOG_INF("Include device 0x%s, ep %d to the group 0x%x", ieee_addr_buf, dst_ep, GROUP_ID);
+
+	ZB_ZCL_GROUPS_SEND_ADD_GROUP_REQ(bufid,
+									 ieee_addr,
+									 ZB_APS_ADDR_MODE_64_ENDP_PRESENT,
+									 BENCHMARK_SERVER_ENDPOINT,
+									 BENCHMARK_CLIENT_ENDPOINT,
+									 ZB_AF_HA_PROFILE_ID,
+									 ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
+									 NULL,
+									 GROUP_ID);
+}
+
+static void add_group_id(void *arg1, void *arg2, void *arg3)
+{
+	zb_ret_t zb_err_code;
+
+	LOG_INF("Adding Group request started");
+
+	//zb_err_code = zb_buf_get_out_delayed_ext(add_group_id_cb, on_off, 0);
+	zb_err_code = zb_buf_get_out_delayed(add_group_id_cb);
+	ZB_ERROR_CHECK(zb_err_code);
+
+	return;
+}
+
 /**@brief Callback function for handling ZCL commands.
  *
  * @param[in]   bufid   Reference to Zigbee stack buffer
@@ -423,54 +415,51 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid)
 {
 	zb_uint8_t cluster_id;
 	zb_uint8_t attr_id;
-	zb_zcl_device_callback_param_t  *device_cb_param =
-		ZB_BUF_GET_PARAM(bufid,
-				 zb_zcl_device_callback_param_t);
+	zb_zcl_device_callback_param_t *device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
 
 	LOG_INF("%s id %hd", __func__, device_cb_param->device_cb_id);
 
 	/* Set default response value. */
 	device_cb_param->status = RET_OK;
 
-	switch (device_cb_param->device_cb_id) {
+	switch (device_cb_param->device_cb_id)
+	{
 	case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
-		LOG_INF("Level control setting to %d",
-			device_cb_param->cb_param.level_control_set_value_param
-				.new_value);
-		level_control_set_value(
-			device_cb_param->cb_param.level_control_set_value_param
-				.new_value);
+		LOG_INF("Level control setting to %d", device_cb_param->cb_param.level_control_set_value_param.new_value);
+		level_control_set_value(device_cb_param->cb_param.level_control_set_value_param.new_value);
 		break;
 
 	case ZB_ZCL_SET_ATTR_VALUE_CB_ID:
-		cluster_id = device_cb_param->cb_param.
-			     set_attr_value_param.cluster_id;
-		attr_id = device_cb_param->cb_param.
-			  set_attr_value_param.attr_id;
+		cluster_id = device_cb_param->cb_param.set_attr_value_param.cluster_id;
+		attr_id = device_cb_param->cb_param.set_attr_value_param.attr_id;
 
-		if (cluster_id == ZB_ZCL_CLUSTER_ID_ON_OFF) {
-			u8_t value =
-				device_cb_param->cb_param.set_attr_value_param
-				.values.data8;
+		if (cluster_id == ZB_ZCL_CLUSTER_ID_ON_OFF)
+		{
+			u8_t value = device_cb_param->cb_param.set_attr_value_param.values.data8;
 
 			LOG_INF("on/off attribute setting to %hd", value);
-			if (attr_id == ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID) {
+			if (attr_id == ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID)
+			{
 				on_off_set_value((zb_bool_t)value);
 			}
-		} else if (cluster_id == ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL) {
-			u16_t value = device_cb_param->cb_param.
-				      set_attr_value_param.values.data16;
+		}
+		else if (cluster_id == ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL)
+		{
+			u16_t value = device_cb_param->cb_param.set_attr_value_param.values.data16;
 
 			LOG_INF("level control attribute setting to %hd",
-				value);
+					value);
 			if (attr_id ==
-			    ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID) {
+				ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID)
+			{
 				level_control_set_value(value);
 			}
-		} else {
+		}
+		else
+		{
 			/* Other clusters can be processed here */
 			LOG_INF("Unhandled cluster attribute id: %d",
-				cluster_id);
+					cluster_id);
 		}
 		break;
 
@@ -500,7 +489,8 @@ void zboss_signal_handler(zb_bufid_t bufid)
 	/* All callbacks should either reuse or free passed buffers.
 	 * If bufid == 0, the buffer is invalid (not passed).
 	 */
-	if (bufid) {
+	if (bufid)
+	{
 		zb_buf_free(bufid);
 	}
 }
@@ -509,7 +499,8 @@ void error(void)
 {
 	dk_set_leds_state(DK_ALL_LEDS_MSK, DK_NO_LEDS_MSK);
 
-	while (true) {
+	while (true)
+	{
 		/* Spin forever */
 		k_sleep(K_MSEC(1000));
 	}
@@ -533,12 +524,20 @@ void main(void)
 	bulb_clusters_attr_init();
 	level_control_set_value(dev_ctx.level_control_attr.current_level);
 
+	zb_ieee_addr_t ieee_addr;
+	char ieee_addr_buf[17] = {0};
+	int addr_len;
+	zb_get_long_address(ieee_addr);
+	addr_len = ieee_addr_to_str(ieee_addr_buf, sizeof(ieee_addr_buf), ieee_addr);
+
 	/* Start Zigbee default thread */
 	zigbee_enable();
 
 	LOG_INF("ZBOSS Light Bulb example started");
+	LOG_INF("Long Address %s", ieee_addr_buf);
 
-	while (1) {
+	while (1)
+	{
 		//dk_set_led(RUN_STATUS_LED, (++blink_status) % 2);
 		//k_sleep(K_MSEC(RUN_LED_BLINK_INTERVAL));
 	}
