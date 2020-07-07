@@ -28,7 +28,7 @@ along with P2P-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 using namespace std;
 
 /* ------------- Definitions --------------*/
-#define isMaster 0								  // Node is the Master (1) or Slave (0)
+#define isMaster 1								  // Node is the Master (1) or Slave (0)
 #define CommonMode NRF_RADIO_MODE_IEEE802154_250KBIT	  // Common Mode
 #define CommonStartCH 11						  // Common Start Channel
 #define CommonEndCH 13							  // Common End Channel
