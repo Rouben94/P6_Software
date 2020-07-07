@@ -25,6 +25,8 @@ along with P2P-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 #include <drivers/clock_control/nrf_clock_control.h>
 #include "simple_nrf_radio.h"
 #include "Timer_sync.h"
+#include <data/json.h>
+
 using namespace std;
 
 /* ------------- Definitions --------------*/
@@ -257,6 +259,8 @@ void ST_DISCOVERY_fn(void)
 
 /*=======================================================*/
 
+ 
+
 void main(void)
 {
 	printk("P2P-Benchamrk Started\n");
@@ -264,7 +268,10 @@ void main(void)
 	synctimer_init();
 	synctimer_start();
 	config_debug_ppi_and_gpiote_radio_state(); // For Debug Timesync
-
+	int test;
+	stpw.start();
+	test = simple_nrf_radio.RSSI(8);
+	stpw.stop();
 
 	// Statemachine
 	ST_Machine_tid = k_current_get();
