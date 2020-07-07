@@ -180,7 +180,7 @@ static void bm_cli_benchmark_stop(uint8_t aArgsLength, char *aArgs[]) {
     NRF_LOG_INFO("Benchmark stop");
     
     master_message.bm_status = false;
-    otIp6AddressFromString("0", &master_message.bm_master_ip6_address);
+    master_message.bm_master_ip6_address = *otThreadGetMeshLocalEid(thread_ot_instance_get());
     master_message.bm_time = NULL;
 
     bm_coap_multicast_start_send(master_message);

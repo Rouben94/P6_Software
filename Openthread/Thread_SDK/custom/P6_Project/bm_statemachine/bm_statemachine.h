@@ -8,11 +8,10 @@
 typedef enum
 {
     BM_EMPTY_STATE,
-    BM_DEFAULT_STATE,
     BM_STATE_1_CLIENT,
     BM_STATE_1_SERVER,
     BM_STATE_2,
-    BM_STATE_3
+    BM_STATE_STOP
 } bm_state;
 
 /* Typdef for benchmark state */
@@ -60,7 +59,7 @@ void bm_sm_new_state_set(uint8_t state);
  *
  * @details 
  */
-void bm_save_message_info(uint16_t id, uint16_t number_of_hops, int8_t RSSI, bool data_size);
+void bm_save_message_info(bm_message_info message);
 
 /**@brief 
  *

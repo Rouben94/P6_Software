@@ -37,15 +37,9 @@ uint8_t   data_size = 1;
 /***************************************************************************************************
  * @section State machine - Functions
  **************************************************************************************************/
-void bm_save_message_info(uint16_t id, uint16_t number_of_hops, int8_t RSSI, bool data_size)
+void bm_save_message_info(bm_message_info message)
 {
-    uint64_t time;
-    otNetworkTimeGet(thread_ot_instance_get(), &time);
-    message_info[bm_message_info_nr].net_time = time;
-    message_info[bm_message_info_nr].message_id = id;
-    message_info[bm_message_info_nr].data_size = data_size;
-    message_info[bm_message_info_nr].number_of_hops = number_of_hops;
-    message_info[bm_message_info_nr].RSSI = RSSI;
+    message_info[bm_message_info_nr] = message;
     bm_message_info_nr++;
 }
 
@@ -130,17 +124,12 @@ static void m_msg_10_handler(void * p_context)
 
 static void benchmark_handler(void * p_context)
 {
-    bm_new_state = BM_STATE_3;
+    bm_new_state = BM_STATE_2;
 }
 
 /***************************************************************************************************
  * @section State machine
  **************************************************************************************************/
-static void default_state(void)
-{
-
-}
-
 static void state_1_client(void)
 {
     uint32_t error;
@@ -197,11 +186,36 @@ static void state_1_server(void)
 
 static void state_2(void)
 {
+    bsp_board_led_off(BSP_BOARD_LED_2);
 
+    for (int i = 0; i<bm_message_info_nr; i++)
+    {
+        bm_coap_results_send(message_info[i]);
+    }
+
+    bm_message_info_nr = 0;
+    memset(message_info, 0, sizeof(message_info));
+
+    bm_new_state = BM_EMPTY_STATE;
 }
 
-static void state_3(void)
+static void state_stop(void)
 {
+    //uint32_t error;
+    app_timer_stop(m_msg_1_timer);
+    app_timer_stop(m_msg_2_timer);
+    app_timer_stop(m_msg_3_timer);
+    app_timer_stop(m_msg_4_timer);
+    app_timer_stop(m_msg_5_timer);
+    app_timer_stop(m_msg_6_timer);
+    app_timer_stop(m_msg_7_timer);
+    app_timer_stop(m_msg_8_timer);
+    app_timer_stop(m_msg_9_timer);
+    app_timer_stop(m_msg_10_timer);
+    app_timer_stop(m_benchmark_timer);
+
+    //ASSERT(error == NRF_SUCCESS);
+
     bsp_board_led_off(BSP_BOARD_LED_2);
 
     for (int i = 0; i<bm_message_info_nr; i++)
@@ -220,11 +234,7 @@ void bm_sm_process(void)
     bm_actual_state = bm_new_state;
 
     switch(bm_actual_state)
-    {
-        case BM_DEFAULT_STATE:
-            default_state();
-            break;
-        
+    {        
         case BM_STATE_1_CLIENT:
             state_1_client();
             break;
@@ -237,8 +247,8 @@ void bm_sm_process(void)
             state_2();
             break;
 
-        case BM_STATE_3:
-            state_3();
+        case BM_STATE_STOP:
+            state_stop();
             break;
 
         case BM_EMPTY_STATE:
