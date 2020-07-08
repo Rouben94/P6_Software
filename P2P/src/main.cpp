@@ -190,7 +190,7 @@ static int cmd_handler_test()
 SHELL_CMD_REGISTER(test, NULL, "Testing Command", cmd_handler_test);
 
 static int cmd_setParams(const struct shell *shell, size_t argc, char **argv)
-{ // Maybee at error check later for validating the Params are valid
+{ // Toto: Add error check for validating the Params are valid
 	if (sizeof(argv) == sizeof(Param_pkt_TX) + 1)
 	{
 		ParamLocalBuf.StartCH = *argv[1];
@@ -226,6 +226,46 @@ static u8_t GetNodeidx(u32_t MAC)
 	}
 	return 0xFF; //Node not found
 }
+
+class Stopwatch
+{
+public:
+	u32_t start_time;
+	u32_t stop_time;
+	u32_t cycles_spent;
+	u32_t nanoseconds_spent;
+
+	s64_t time_stamp;
+	s64_t milliseconds_spent;
+
+	void start_hp()
+	{
+		/* capture initial time stamp */
+		start_time = k_cycle_get_32();
+	}
+	void stop_hp()
+	{
+		/* capture final time stamp */
+		stop_time = k_cycle_get_32();
+		/* compute how long the work took (assumes no counter rollover) */
+		cycles_spent = stop_time - start_time;
+		nanoseconds_spent = SYS_CLOCK_HW_CYCLES_TO_NS(cycles_spent);
+		printk("Time took %dns\n", nanoseconds_spent);
+	}
+	void start()
+	{
+		/* capture initial time stamp */
+		time_stamp = k_uptime_get();
+	}
+	void stop()
+	{
+		/* compute how long the work took (also updates the time stamp) */
+		milliseconds_spent = k_uptime_delta(&time_stamp);
+		printk("Time took %lldms\n", milliseconds_spent);
+	}
+};
+
+Stopwatch stpw;
 
 /*--------------------- States -------------------*/
 
@@ -263,8 +303,8 @@ static void ST_transition_cb(void)
 	{
 		currentState = ST_DISCOVERY;
 	}
-	printk("Current State: %d",currentState);
-	k_thread_state_str(ST_Machine_tid);
+	printk("Current State: %d\n",currentState);
+	printk("%s\n",k_thread_state_str(ST_Machine_tid));
 	k_wakeup(ST_Machine_tid);
 }
 
@@ -276,9 +316,10 @@ void ST_DISCOVERY_fn(void)
 	if (isMaster)
 	{
 		MockupTS = (synctimer_getSyncTime() + ST_TIME_DISCOVERY_MS * 1000 + ST_TIME_MARGIN_MS * 1000);
-		printk("Now : %u\n", (uint32_t)synctimer_getSyncTime());
-		printk("Int : %u\n", (uint32_t)MockupTS);
+		//printk("Now : %u\n", (uint32_t)synctimer_getSyncTime());
+		//printk("Int : %u\n", (uint32_t)MockupTS);
 		synctimer_setSyncTimeCompareInt(MockupTS, ST_transition_cb);
+		
 	}
 	simple_nrf_radio.setMode(CommonMode);
 	simple_nrf_radio.setAA(DiscoveryAddress);
@@ -320,7 +361,7 @@ void ST_DISCOVERY_fn(void)
 			}
 		}
 		CHidx--;
-	}
+	}	
 	return;
 }
 
@@ -598,7 +639,7 @@ void ST_PUBLISH_fn(void)
 	k_timer_start(&state_timer, K_MSEC(ST_TIME_PUBLISH_MS), K_MSEC(0));
 	synctimer_setSyncTimeCompareInt((synctimer_getSyncTime() + ST_TIME_PUBLISH_MS * 1000 + ST_TIME_MARGIN_MS * 1000), ST_transition_cb);
 	/* init */
-	if (isMaster){
+	if (isMaster && !(masrep.nodrep.size() == 0)){
 		// Do Reporting of Nodes
 		for (const auto &node : masrep.nodrep)
 		{
@@ -618,6 +659,9 @@ void ST_PUBLISH_fn(void)
 
 /*=======================================================*/
 
+
+
+
 void main(void)
 {
 	printk("P2P-Benchamrk Started\n");
@@ -625,7 +669,7 @@ void main(void)
 	synctimer_init();
 	synctimer_start();
 	//config_debug_ppi_and_gpiote_radio_state(); // For Debug Timesync
-
+	
 	// Statemachine
 	ST_Machine_tid = k_current_get();
 	while (true)
@@ -634,27 +678,37 @@ void main(void)
 		{
 		case ST_DISCOVERY:
 			ST_DISCOVERY_fn();
-			k_sleep(K_MSEC(ST_TIME_DISCOVERY_MS + ST_TIME_MARGIN_MS)); // Keep waiting till next State. Not Synced Nodes do Power Save with 50% Duty Cycle.
+			printk("Sleep Start\n");
+			k_sleep(K_MSEC((ST_TIME_DISCOVERY_MS + ST_TIME_MARGIN_MS + 10))); // Keep waiting till next State. Not Synced Nodes do Power Save with 50% Duty Cycle.
+			printk("Sleep Stop\n");
 			break;
 		case ST_MOCKUP:
 			ST_MOCKUP_fn();
+			printk("Sleep Start\n");
 			k_sleep(K_MSEC(ST_TIME_MOCKUP_MS + ST_TIME_MARGIN_MS + 10)); // Ready for the Next State. Extra Margin of 10ms to prevent reentry in case of delayed TimerInterrupt.
+			printk("Sleep Stop\n");
 			break;
 		case ST_PARAM:
 			ST_PARAM_fn();
+			printk("Sleep Start\n");
 			k_sleep(K_MSEC(ST_TIME_PARAM_MS + ST_TIME_MARGIN_MS + 10)); // Ready for the Next State. Extra Margin of 10ms to prevent reentry in case of delayed TimerInterrupt.
+			printk("Sleep Stop\n");
 			break;
 		case ST_PACKETS:
 			ST_PACKETS_fn();
+			printk("Sleep Start\n");
 			k_sleep(K_MSEC(ST_TIME_PACKETS_MS + ST_TIME_MARGIN_MS + 10)); // Ready for the Next State. Extra Margin of 10ms to prevent reentry in case of delayed TimerInterrupt.
+			printk("Sleep Stop\n");
 			break;
 		case ST_REPORTS:
 			ST_REPORT_fn();
 			// Ready for the Next State. Timesync is given up from now on. Do this in the Discovery State. -> This is done because of Performance Reasons
 			break;
 		case ST_PUBLISH:
-			ST_REPORT_fn();
+			ST_PUBLISH_fn();
+			printk("Sleep Start\n");
 			k_sleep(K_MSEC(ST_TIME_PUBLISH_MS + ST_TIME_MARGIN_MS + 10));
+			printk("Sleep Stop\n");
 			// Ready for the Next State. Timesync is given up from now on. Do this in the Discovery State.
 			break;
 		}
