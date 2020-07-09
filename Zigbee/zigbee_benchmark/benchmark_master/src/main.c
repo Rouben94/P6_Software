@@ -23,35 +23,22 @@
 
 #include <shell/shell.h>
 
-#define RUN_STATUS_LED          DK_LED1
-#define RUN_LED_BLINK_INTERVAL  1000
+#define RUN_STATUS_LED DK_LED1
+#define RUN_LED_BLINK_INTERVAL 1000
 
-/* Do not erase NVRAM to save the network parameters after device reboot or
- * power-off. NOTE: If this option is set to ZB_TRUE then do full device erase
- * for all network devices before running other samples.
- */
-#define ERASE_PERSISTENT_CONFIG    ZB_TRUE
-
-/* LED indicating that network is opened for new nodes */
-#define ZIGBEE_NETWORK_STATE_LED          DK_LED3
-
-/* Button which reopens the Zigbee Network */
-#define KEY_ZIGBEE_NETWORK_REOPEN         DK_BTN1_MSK
-
-/**
- * If set to ZB_TRUE then device will not open the network
- * after forming or reboot.
- */
-#define ZIGBEE_MANUAL_STEERING            ZB_FALSE
-
-#define ZIGBEE_PERMIT_LEGACY_DEVICES      ZB_FALSE
+#define ERASE_PERSISTENT_CONFIG ZB_TRUE		  /* Do not erase NVRAM to save the network parameters after device reboot or    \
+											   * power-off. NOTE: If this option is set to ZB_TRUE then do full device erase \
+											   * for all network devices before running other samples. */
+#define ZIGBEE_NETWORK_STATE_LED DK_LED3	  /* LED indicating that network is opened for new nodes */
+#define KEY_ZIGBEE_NETWORK_REOPEN DK_BTN1_MSK /* Button which reopens the Zigbee Network */
+#define ZIGBEE_MANUAL_STEERING ZB_FALSE		  /* If set to ZB_TRUE then device will not open the network after forming or reboot.*/
+#define ZIGBEE_PERMIT_LEGACY_DEVICES ZB_FALSE
 
 #ifndef ZB_COORDINATOR_ROLE
 #error Define ZB_COORDINATOR_ROLE to compile coordinator source code.
 #endif
 
 LOG_MODULE_REGISTER(app);
-
 
 /**@brief Callback used in order to visualise network steering period.
  *
@@ -78,15 +65,19 @@ static void button_changed(u32_t button_state, u32_t has_changed)
 	u32_t buttons = button_state & has_changed;
 	zb_bool_t comm_status;
 
-	if (buttons & KEY_ZIGBEE_NETWORK_REOPEN) {
+	if (buttons & KEY_ZIGBEE_NETWORK_REOPEN)
+	{
 		(void)(ZB_SCHEDULE_APP_ALARM_CANCEL(
 			steering_finished, ZB_ALARM_ANY_PARAM));
 
 		comm_status = bdb_start_top_level_commissioning(
 			ZB_BDB_NETWORK_STEERING);
-		if (comm_status) {
+		if (comm_status)
+		{
 			LOG_INF("Top level comissioning restated");
-		} else {
+		}
+		else
+		{
 			LOG_INF("Top level comissioning hasn't finished yet!");
 		}
 	}
@@ -98,12 +89,14 @@ static void configure_gpio(void)
 	int err;
 
 	err = dk_buttons_init(button_changed);
-	if (err) {
+	if (err)
+	{
 		LOG_ERR("Cannot init buttons (err: %d)\n", err);
 	}
 
 	err = dk_leds_init();
-	if (err) {
+	if (err)
+	{
 		LOG_ERR("Cannot init LEDs (err: %d)\n", err);
 	}
 }
@@ -123,30 +116,39 @@ void zboss_signal_handler(zb_bufid_t bufid)
 	zb_bool_t comm_status;
 	zb_time_t timeout_bi;
 
-	switch (sig) {
+	switch (sig)
+	{
 	case ZB_BDB_SIGNAL_DEVICE_REBOOT:
 		/* BDB initialization completed after device reboot,
 		 * use NVRAM contents during initialization.
 		 * Device joined/rejoined and started.
 		 */
-		if (status == RET_OK) {
-			if (ZIGBEE_MANUAL_STEERING == ZB_FALSE) {
+		if (status == RET_OK)
+		{
+			if (ZIGBEE_MANUAL_STEERING == ZB_FALSE)
+			{
 				LOG_INF("Start network steering");
 				comm_status = bdb_start_top_level_commissioning(
 					ZB_BDB_NETWORK_STEERING);
 				ZB_COMM_STATUS_CHECK(comm_status);
-			} else {
+			}
+			else
+			{
 				LOG_INF("Coordinator restarted successfully");
 			}
-		} else {
+		}
+		else
+		{
 			LOG_ERR("Failed to initialize Zigbee stack using NVRAM data (status: %d)",
-				status);
+					status);
 		}
 		break;
 
 	case ZB_BDB_SIGNAL_STEERING:
-		if (status == RET_OK) {
-			if (ZIGBEE_PERMIT_LEGACY_DEVICES == ZB_TRUE) {
+		if (status == RET_OK)
+		{
+			if (ZIGBEE_PERMIT_LEGACY_DEVICES == ZB_TRUE)
+			{
 				LOG_INF("Allow pre-Zigbee 3.0 devices to join the network");
 				zb_bdb_set_legacy_device_support(1);
 			}
@@ -163,17 +165,19 @@ void zboss_signal_handler(zb_bufid_t bufid)
 		}
 		break;
 
-	case ZB_ZDO_SIGNAL_DEVICE_ANNCE: {
+	case ZB_ZDO_SIGNAL_DEVICE_ANNCE:
+	{
 		zb_zdo_signal_device_annce_params_t *dev_annce_params =
 			ZB_ZDO_SIGNAL_GET_PARAMS(
 				sg_p, zb_zdo_signal_device_annce_params_t);
 
 		LOG_INF("New device commissioned or rejoined (short: 0x%04hx)",
-			dev_annce_params->device_short_addr);
+				dev_annce_params->device_short_addr);
 
 		zb_err_code = ZB_SCHEDULE_APP_ALARM_CANCEL(steering_finished,
-							   ZB_ALARM_ANY_PARAM);
-		if (zb_err_code == RET_OK) {
+												   ZB_ALARM_ANY_PARAM);
+		if (zb_err_code == RET_OK)
+		{
 			LOG_INF("Joining period extended.");
 			zb_err_code = ZB_SCHEDULE_APP_ALARM(
 				steering_finished, 0,
@@ -181,7 +185,8 @@ void zboss_signal_handler(zb_bufid_t bufid)
 					ZB_ZGP_DEFAULT_COMMISSIONING_WINDOW);
 			ZB_ERROR_CHECK(zb_err_code);
 		}
-	} break;
+	}
+	break;
 
 	default:
 		/* Call default signal handler. */
@@ -191,10 +196,13 @@ void zboss_signal_handler(zb_bufid_t bufid)
 
 	/* Update network status LED */
 	if (ZB_JOINED() &&
-	    (ZB_SCHEDULE_GET_ALARM_TIME(steering_finished, ZB_ALARM_ANY_PARAM,
-					&timeout_bi) == RET_OK)) {
+		(ZB_SCHEDULE_GET_ALARM_TIME(steering_finished, ZB_ALARM_ANY_PARAM,
+									&timeout_bi) == RET_OK))
+	{
 		dk_set_led_on(ZIGBEE_NETWORK_STATE_LED);
-	} else {
+	}
+	else
+	{
 		dk_set_led_off(ZIGBEE_NETWORK_STATE_LED);
 	}
 
@@ -202,7 +210,8 @@ void zboss_signal_handler(zb_bufid_t bufid)
 	 * All callbacks should either reuse or free passed buffers.
 	 * If bufid == 0, the buffer is invalid (not passed).
 	 */
-	if (bufid) {
+	if (bufid)
+	{
 		zb_buf_free(bufid);
 	}
 }
@@ -211,7 +220,8 @@ void error(void)
 {
 	dk_set_leds_state(DK_ALL_LEDS_MSK, DK_NO_LEDS_MSK);
 
-	while (true) {
+	while (true)
+	{
 		/* Spin for ever */
 		k_sleep(K_MSEC(1000));
 	}
@@ -239,13 +249,12 @@ SHELL_CMD_REGISTER(test_on, NULL, "Test Command LED4 on", cmd_handler_test_on);
 SHELL_CMD_REGISTER(test_off, NULL, "Test Command LED4 off", cmd_handler_test_off);
 //SHELL_CMD_REGISTER(bm_get_pan_id, NULL, "Get PAN ID of the Zigbee Network", cmd_handler_get_pan_id);
 
-
 void main(void)
 {
 	int blink_status = 0;
 
 	LOG_INF("Starting ZBOSS Coordinator example\n");
-	
+
 	/* Initialize */
 	configure_gpio();
 
@@ -254,7 +263,8 @@ void main(void)
 
 	LOG_INF("ZBOSS Coordinator example started\n");
 
-	while (1) {
+	while (1)
+	{
 		dk_set_led(RUN_STATUS_LED, (++blink_status) % 2);
 		k_sleep(K_MSEC(RUN_LED_BLINK_INTERVAL));
 	}

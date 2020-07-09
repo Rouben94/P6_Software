@@ -8,17 +8,22 @@
  * @brief Dimmer switch for HA profile implementation.
  */
 
+#include <zephyr/types.h>
 #include <zephyr.h>
 #include <device.h>
+#include <devicetree.h>
+#include <soc.h>
 #include <logging/log.h>
 #include <dk_buttons_and_leds.h>
+#include <drivers/gpio.h>
 
 #include <zboss_api.h>
 #include <zboss_api_addons.h>
 #include <zigbee_helpers.h>
 #include <zb_error_handler.h>
 #include <zb_nrf_platform.h>
-#include "zb_mem_config_custom.h"
+//#include "zb_mem_config_custom.h"
+#include <zb_mem_config_med.h>
 
 #define RUN_STATUS_LED DK_LED1				 /* Node Status LED */
 #define SEND_LED DK_LED2					 /* Send LED */
@@ -36,8 +41,12 @@
 #define BUTTON_OFF DK_BTN2_MSK				 /* Button ID used to switch off the light bulb. */
 #define NUMBER_OF_NETWORK_TIME_ELEMENTS 1000 /* Size of the Benchmark Reporting Array message_info */
 
-#if !defined ZB_ED_ROLE
+/* #if !defined ZB_ED_ROLE
 #error Define ZB_ED_ROLE to compile light switch (End Device) source code.
+#endif */
+
+#ifndef ZB_ROUTER_ROLE
+#error Define ZB_ROUTER_ROLE to compile router source code.
 #endif
 
 LOG_MODULE_REGISTER(app);
@@ -105,7 +114,7 @@ typedef struct
 /* Forward declarations */
 static void light_switch_send_on_off(zb_bufid_t bufid, zb_uint16_t on_off);
 static void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t on_off);
-void bm_save_message_info(bm_message_info * message);
+void bm_save_message_info(bm_message_info message);
 
 /* Array of structs to save benchmark message info to */
 bm_message_info message_info[NUMBER_OF_NETWORK_TIME_ELEMENTS] = {0};
@@ -115,6 +124,8 @@ struct k_thread bm_thread_data;
 //static void bm_send_message(void *arg1, void *arg2, void *arg3);
 static void bm_send_message(zb_uint8_t message_id);
 static void bm_zigbee(void *arg1, void *arg2, void *arg3);
+k_tid_t bm_thread;
+u32_t button_pressed = ZB_FALSE;
 
 uint16_t bm_msg_cnt;
 uint16_t bm_time_interval_msec;
@@ -129,49 +140,48 @@ uint16_t bm_message_info_nr = 0;
 static void button_handler(u32_t button_state, u32_t has_changed)
 {
 	zb_bool_t on_off = ZB_FALSE;
-	k_tid_t bm_thread;
-	zb_uint32_t buttons = button_state & has_changed;
+	zb_ret_t zb_err_code;
 
-	/* Inform default signal handler about user input at the device. */
-	user_input_indicate();
-
-	switch (buttons)
+	switch (button_state)
 	{
 	case BUTTON_ON:
 		LOG_INF("ON - Button pressed");
-		on_off = ZB_TRUE;
-		atomic_set(&device_ctx.button.in_progress, ZB_TRUE);
-		dk_set_led(SEND_LED, on_off);
-		light_switch_send_on_off(zb_buf_get_out(), on_off);
-		atomic_set(&device_ctx.button.in_progress, ZB_FALSE);
+		button_pressed = button_state;
 		break;
 
 	case BUTTON_OFF:
 		LOG_INF("OFF - Button pressed");
-		on_off = ZB_FALSE;
-		atomic_set(&device_ctx.button.in_progress, ZB_TRUE);
-		dk_set_led(SEND_LED, on_off);
-		light_switch_send_on_off(zb_buf_get_out(), on_off);
-		atomic_set(&device_ctx.button.in_progress, ZB_FALSE);
+		button_pressed = button_state;
 		break;
 
 	case BUTTON_BENCHMARK:
 		LOG_INF("BENCHMARK - Button pressed");
-		atomic_set(&device_ctx.button.in_progress, ZB_TRUE);
-		bm_msg_cnt = 5;
-		bm_time_interval_msec = 20000;
-		bm_thread = k_thread_create(&bm_thread_data, bm_stack_area,
-									K_THREAD_STACK_SIZEOF(bm_stack_area),
-									bm_zigbee,
-									NULL, NULL, NULL,
-									BM_THREAD_PRIO, 0, K_NO_WAIT);
-		LOG_INF("BENCHMARK - Button released");
-		atomic_set(&device_ctx.button.in_progress, ZB_FALSE);
+		button_pressed = button_state;
 		break;
 
-	default:
-		LOG_INF("Unhandled button");
-		return;
+	case 0:
+		LOG_INF("Button released");
+		switch (button_pressed)
+		{
+		case BUTTON_ON:
+			on_off = ZB_TRUE;
+			zb_err_code = zb_buf_get_out_delayed_ext(light_switch_send_on_off, on_off, 0);
+			ZB_ERROR_CHECK(zb_err_code);
+			break;
+		case BUTTON_OFF:
+			on_off = ZB_FALSE;
+			zb_err_code = zb_buf_get_out_delayed_ext(light_switch_send_on_off, on_off, 0);
+			ZB_ERROR_CHECK(zb_err_code);
+			break;
+		case BUTTON_BENCHMARK:
+			bm_msg_cnt = 5;
+			bm_time_interval_msec = 20000;
+			bm_thread = k_thread_create(&bm_thread_data, bm_stack_area,
+										K_THREAD_STACK_SIZEOF(bm_stack_area),
+										bm_zigbee,
+										NULL, NULL, NULL,
+										BM_THREAD_PRIO, 0, K_NO_WAIT);
+		}
 	}
 }
 
@@ -229,10 +239,11 @@ static void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t level)
 												0,
 												LIGHT_SWITCH_ENDPOINT,
 												ZB_AF_HA_PROFILE_ID,
-												ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
+												ZB_ZCL_ENABLE_DEFAULT_RESPONSE,
 												NULL,
 												level,
 												0);
+	//ZB_ZCL_DISABLE_DEFAULT_RESPONSE
 }
 
 static void bm_send_message(zb_uint8_t message_id)
@@ -240,20 +251,18 @@ static void bm_send_message(zb_uint8_t message_id)
 	zb_ret_t zb_err_code;
 	zb_err_code = zb_buf_get_out_delayed_ext(bm_send_message_cb, message_id, 0);
 	ZB_ERROR_CHECK(zb_err_code);
-
-	//bm_send_message_cb(zb_buf_get_out(), message_id);
 }
 
 static void bm_zigbee(void *arg1, void *arg2, void *arg3)
 {
-	bm_message_info *message;
-	message->message_id = 0;
-	message->RSSI = 0;
-	message->number_of_hops = 0;
-	message->data_size = 0;
-	zb_get_long_address(message->src_addr);
-	message->dst_addr = GROUP_ID;
-	message->net_time = 0;
+	bm_message_info message;
+	message.message_id = 0;
+	message.RSSI = 0;
+	message.number_of_hops = 0;
+	message.data_size = 0;
+	zb_get_long_address(message.src_addr);
+	message.dst_addr = GROUP_ID;
+	message.net_time = 0;
 
 	for (u8_t i = 0; i < bm_msg_cnt; i++)
 	{
@@ -262,11 +271,11 @@ static void bm_zigbee(void *arg1, void *arg2, void *arg3)
 
 		ZB_SCHEDULE_APP_ALARM_CANCEL(bm_send_message, ZB_ALARM_ANY_PARAM);
 
-		message->net_time = ZB_TIME_BEACON_INTERVAL_TO_MSEC(ZB_TIMER_GET());
-		message->message_id += 15;
-		LOG_INF("Benchmark Message send, TimeStamp: %llu, MessageID: %d, TimeOut: %u", message->net_time, message->message_id, timeout);
+		message.net_time = ZB_TIME_BEACON_INTERVAL_TO_MSEC(ZB_TIMER_GET());
+		message.message_id += 15;
+		LOG_INF("Benchmark Message send, TimeStamp: %llu, MessageID: %d, TimeOut: %u", message.net_time, message.message_id, timeout);
 
-		ZB_SCHEDULE_APP_ALARM(bm_send_message, message->message_id, 0);
+		ZB_SCHEDULE_APP_ALARM(bm_send_message, message.message_id, 0);
 
 		bm_save_message_info(message);
 	}
@@ -274,11 +283,38 @@ static void bm_zigbee(void *arg1, void *arg2, void *arg3)
 	LOG_INF("Benchmark finished");
 }
 
-void bm_save_message_info(bm_message_info * message)
+void bm_save_message_info(bm_message_info message)
 {
-	bm_message_info new_message = *message;
-	message_info[bm_message_info_nr] = new_message;
+	message_info[bm_message_info_nr] = message;
 	bm_message_info_nr++;
+}
+
+/**@brief Callback function for handling ZCL commands.
+ *
+ * @param[in]   bufid   Reference to Zigbee stack buffer
+ *                      used to pass received data.
+ */
+static zb_void_t zcl_device_cb(zb_bufid_t bufid)
+{
+	zb_uint8_t cluster_id;
+	zb_uint8_t attr_id;
+	zb_zcl_device_callback_param_t *device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
+
+	LOG_INF("%s id %hd", __func__, device_cb_param->device_cb_id);
+
+	/* Set default response value. */
+	device_cb_param->status = RET_OK;
+
+	switch (device_cb_param->device_cb_id)
+	{
+	case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
+
+		break;
+	default:
+		device_cb_param->status = RET_ERROR;
+		break;
+	}
+	LOG_INF("%s status: %hd", __func__, device_cb_param->status);
 }
 
 /**@brief Zigbee stack event handler.
@@ -309,10 +345,13 @@ void main(void)
 	/* Initialize. */
 	configure_gpio();
 
+	/* Register callback for handling ZCL commands. */
+	ZB_ZCL_REGISTER_DEVICE_CB(zcl_device_cb);
+
 	zigbee_erase_persistent_storage(ERASE_PERSISTENT_CONFIG);
 
-	zb_set_ed_timeout(ED_AGING_TIMEOUT_64MIN);
-	zb_set_keepalive_timeout(ZB_MILLISECONDS_TO_BEACON_INTERVAL(3000));
+	//zb_set_ed_timeout(ED_AGING_TIMEOUT_64MIN);
+	//zb_set_keepalive_timeout(ZB_MILLISECONDS_TO_BEACON_INTERVAL(3000));
 
 	/* Initialize application context structure. */
 	memset(&device_ctx, 0, sizeof(struct light_switch_ctx));

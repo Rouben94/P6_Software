@@ -21,10 +21,11 @@
 
 #include <zboss_api.h>
 #include <zboss_api_addons.h>
-#include <zb_mem_config_med.h>
 #include <zigbee_helpers.h>
 #include <zb_error_handler.h>
 #include <zb_nrf_platform.h>
+#include <zb_mem_config_med.h>
+
 
 #define MY_STACK_SIZE 500
 #define MY_PRIORITY 5
@@ -576,17 +577,10 @@ void main(void)
 	bulb_clusters_attr_init();
 	level_control_set_value(dev_ctx.level_control_attr.current_level);
 
-	zb_ieee_addr_t ieee_addr;
-	char ieee_addr_buf[17] = {0};
-	int addr_len;
-	zb_get_long_address(ieee_addr);
-	addr_len = ieee_addr_to_str(ieee_addr_buf, sizeof(ieee_addr_buf), ieee_addr);
-
 	/* Start Zigbee default thread */
 	zigbee_enable();
 
 	LOG_INF("ZBOSS Light Bulb example started");
-	LOG_INF("Long Address %s", ieee_addr_buf);
 
 	while (1)
 	{
