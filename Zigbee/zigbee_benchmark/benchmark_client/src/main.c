@@ -20,52 +20,21 @@
 #include <zb_nrf_platform.h>
 #include "zb_mem_config_custom.h"
 
-#define RUN_STATUS_LED DK_LED1
-#define SEND_LED DK_LED2
-#define RUN_LED_BLINK_INTERVAL K_MSEC(1000)
-#define MY_STACK_SIZE 500
-#define MY_PRIORITY 5
-
-/* Source endpoint used to control light bulb. */
-#define LIGHT_SWITCH_ENDPOINT 1
-/* Delay between the light switch startup and light bulb finding procedure. */
-#define MATCH_DESC_REQ_START_DELAY (2 * ZB_TIME_ONE_SECOND)
-/* Timeout for finding procedure. */
-#define MATCH_DESC_REQ_TIMEOUT (5 * ZB_TIME_ONE_SECOND)
-/* Find only non-sleepy device. */
-#define MATCH_DESC_REQ_ROLE ZB_NWK_BROADCAST_RX_ON_WHEN_IDLE
-
-/* Do not erase NVRAM to save the network parameters after device reboot or
- * power-off. NOTE: If this option is set to ZB_TRUE then do full device erase
- * for all network devices before running other samples.
- */
-#define ERASE_PERSISTENT_CONFIG ZB_FALSE
-/* LED indicating that light switch successfully joind Zigbee network. */
-#define ZIGBEE_NETWORK_STATE_LED DK_LED3
-/* LED indicating that light witch found a light bulb to control. */
-#define BULB_FOUND_LED DK_LED4
-/* Button ID used to switch on the light bulb. */
-#define BUTTON_ON DK_BTN1_MSK
-/* Button ID used to switch off the light bulb. */
-#define BUTTON_OFF DK_BTN2_MSK
-/* Dim step size - increases/decreses current level (range 0x000 - 0xfe). */
-#define DIMM_STEP 15
-/* Button ID used to enable sleepy behavior. */
-#define BUTTON_SLEEPY DK_BTN3_MSK
-
-#define DEFAULT_GROUP_ID 0xB331 /**< Group ID, which will be used to control all light sources with a single command. */
-#define BUTTON_BENCHMARK DK_BTN4_MSK
-#define BUTTON_PAIRING DK_BTN3_MSK
-
-/* Transition time for a single step operation in 0.1 sec units.
- * 0xFFFF - immediate change.
- */
-#define DIMM_TRANSACTION_TIME 2
-
-/* Time after which the button state is checked again to detect button hold,
- * the dimm command is sent again.
- */
-#define BUTTON_LONG_POLL_TMO ZB_MILLISECONDS_TO_BEACON_INTERVAL(500)
+#define RUN_STATUS_LED DK_LED1				 /* Node Status LED */
+#define SEND_LED DK_LED2					 /* Send LED */
+#define RUN_LED_BLINK_INTERVAL K_MSEC(1000)	 /* Blink Interval for the Node Status LED */
+#define BM_STACK_SIZE 500					 /* Benchmark Stack Size */
+#define BM_THREAD_PRIO 5					 /* Benchmark Thread Priority */
+#define GROUP_ID 0xB331						 /* Group ID to send Benchmark message to.*/
+#define BUTTON_BENCHMARK DK_BTN4_MSK		 /* Button ID used to start Benchmark Message. */
+#define LIGHT_SWITCH_ENDPOINT 1				 /* Source endpoint used to control light bulb. */
+#define ERASE_PERSISTENT_CONFIG ZB_FALSE	 /* Do not erase NVRAM to save the network parameters after device reboot or    \
+											  * power-off. NOTE: If this option is set to ZB_TRUE then do full device erase \
+											  * for all network devices before running other samples.*/
+#define ZIGBEE_NETWORK_STATE_LED DK_LED3	 /* LED indicating that light switch successfully joind Zigbee network. */
+#define BUTTON_ON DK_BTN1_MSK				 /* Button ID used to switch on the light bulb. */
+#define BUTTON_OFF DK_BTN2_MSK				 /* Button ID used to switch off the light bulb. */
+#define NUMBER_OF_NETWORK_TIME_ELEMENTS 1000 /* Size of the Benchmark Reporting Array message_info */
 
 #if !defined ZB_ED_ROLE
 #error Define ZB_ED_ROLE to compile light switch (End Device) source code.
@@ -121,23 +90,35 @@ ZB_HA_DECLARE_DIMMER_SWITCH_EP(dimmer_switch_ep,
  */
 ZB_HA_DECLARE_DIMMER_SWITCH_CTX(dimmer_switch_ctx, dimmer_switch_ep);
 
+/* Struct for benchmark message information */
+typedef struct
+{
+	zb_uint16_t dst_addr;
+	zb_ieee_addr_t src_addr;
+	zb_uint64_t net_time;
+	zb_uint16_t number_of_hops;
+	zb_uint16_t message_id;
+	zb_uint8_t RSSI;
+	bool data_size;
+} bm_message_info;
+
 /* Forward declarations */
-static void find_light_bulb(zb_bufid_t bufid);
 static void light_switch_send_on_off(zb_bufid_t bufid, zb_uint16_t on_off);
-static void benchmark_send_message(zb_bufid_t bufid, zb_uint16_t on_off);
-static void find_benchmark_node_cb(zb_bufid_t bufid, zb_uint16_t on_off);
+static void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t on_off);
+void bm_save_message_info(bm_message_info * message);
 
-K_THREAD_STACK_DEFINE(bm_stack_area, MY_STACK_SIZE);
+/* Array of structs to save benchmark message info to */
+bm_message_info message_info[NUMBER_OF_NETWORK_TIME_ELEMENTS] = {0};
+
+K_THREAD_STACK_DEFINE(bm_stack_area, BM_STACK_SIZE);
 struct k_thread bm_thread_data;
-static void benchmark_mesh(void *arg1, void *arg2, void *arg3);
-u8_t bm_msg_cnt;
-uint16_t bm_time_interval_sec;
+//static void bm_send_message(void *arg1, void *arg2, void *arg3);
+static void bm_send_message(zb_uint8_t message_id);
+static void bm_zigbee(void *arg1, void *arg2, void *arg3);
 
-K_THREAD_STACK_DEFINE(pairing_stack_area, MY_STACK_SIZE);
-struct k_thread pairing_thread_data;
-static void find_benchmark_node(void *arg1, void *arg2, void *arg3);
-
-//zb_bool_t button_test_pressed = ZB_FALSE;
+uint16_t bm_msg_cnt;
+uint16_t bm_time_interval_msec;
+uint16_t bm_message_info_nr = 0;
 
 /**@brief Callback for button events.
  *
@@ -148,22 +129,20 @@ static void find_benchmark_node(void *arg1, void *arg2, void *arg3);
 static void button_handler(u32_t button_state, u32_t has_changed)
 {
 	zb_bool_t on_off = ZB_FALSE;
-	zb_ret_t zb_err_code;
-	k_tid_t bm_thread, pairing_thread;
+	k_tid_t bm_thread;
+	zb_uint32_t buttons = button_state & has_changed;
 
 	/* Inform default signal handler about user input at the device. */
 	user_input_indicate();
 
-	switch (button_state)
+	switch (buttons)
 	{
 	case BUTTON_ON:
 		LOG_INF("ON - Button pressed");
 		on_off = ZB_TRUE;
 		atomic_set(&device_ctx.button.in_progress, ZB_TRUE);
 		dk_set_led(SEND_LED, on_off);
-		//zb_err_code = zb_buf_get_out_delayed_ext(light_switch_send_on_off, on_off, 0);
-		light_switch_send_on_off(zb_buf_get_out(),on_off);
-		ZB_ERROR_CHECK(zb_err_code);
+		light_switch_send_on_off(zb_buf_get_out(), on_off);
 		atomic_set(&device_ctx.button.in_progress, ZB_FALSE);
 		break;
 
@@ -172,110 +151,39 @@ static void button_handler(u32_t button_state, u32_t has_changed)
 		on_off = ZB_FALSE;
 		atomic_set(&device_ctx.button.in_progress, ZB_TRUE);
 		dk_set_led(SEND_LED, on_off);
-		light_switch_send_on_off(zb_buf_get_out(),on_off);
-		//zb_err_code = zb_buf_get_out(light_switch_send_on_off);
-		//zb_err_code = zb_buf_get_out_delayed_ext(light_switch_send_on_off, on_off, 0);
-		ZB_ERROR_CHECK(zb_err_code);
+		light_switch_send_on_off(zb_buf_get_out(), on_off);
 		atomic_set(&device_ctx.button.in_progress, ZB_FALSE);
 		break;
-		
 
 	case BUTTON_BENCHMARK:
 		LOG_INF("BENCHMARK - Button pressed");
-
-		bm_msg_cnt = 2;
-		bm_time_interval_sec = 10;
+		atomic_set(&device_ctx.button.in_progress, ZB_TRUE);
+		bm_msg_cnt = 5;
+		bm_time_interval_msec = 20000;
 		bm_thread = k_thread_create(&bm_thread_data, bm_stack_area,
 									K_THREAD_STACK_SIZEOF(bm_stack_area),
-									benchmark_mesh,
+									bm_zigbee,
 									NULL, NULL, NULL,
-									MY_PRIORITY, 0, K_NO_WAIT);
+									BM_THREAD_PRIO, 0, K_NO_WAIT);
+		LOG_INF("BENCHMARK - Button released");
+		atomic_set(&device_ctx.button.in_progress, ZB_FALSE);
 		break;
-	case BUTTON_PAIRING:
-		LOG_INF("PAIRING - Button pressed");
-		//zigbee_schedule_alarm();
-		//find_benchmark_node(bufid);
-		pairing_thread = k_thread_create(&pairing_thread_data, pairing_stack_area,
-										 K_THREAD_STACK_SIZEOF(pairing_stack_area),
-										 find_benchmark_node,
-										 NULL, NULL, NULL,
-										 MY_PRIORITY, 0, K_NO_WAIT);
-		break;
-	case 0:
-		LOG_INF("Button released");
+
 	default:
 		LOG_INF("Unhandled button");
 		return;
 	}
-
-	/*	switch (button_state)
-	{
-	case BUTTON_ON:
-	case BUTTON_OFF:
-		LOG_INF("Button pressed");
-		atomic_set(&device_ctx.button.in_progress, ZB_TRUE);
-		zb_err_code = zigbee_schedule_alarm(light_switch_button_handler,
-											button_state,
-											BUTTON_LONG_POLL_TMO);
-		if (zb_err_code == RET_OVERFLOW)
-		{
-			LOG_WRN("Can't schedule another alarm, queue is full.");
-			atomic_set(&device_ctx.button.in_progress, ZB_FALSE);
-		}
-		else
-		{
-			ZB_ERROR_CHECK(zb_err_code);
-		}
-		break;
-	case BUTTON_BENCHMARK:
-		LOG_INF("Button TEST pressed");
-		//button_test_pressed = ZB_TRUE;
-		bm_msg_cnt = 2;
-		bm_time_interval_sec = 10;
-		bm_thread = k_thread_create(&bm_thread_data, bm_stack_area,
-                                 K_THREAD_STACK_SIZEOF(bm_stack_area),
-                                 benchmark_mesh,
-                                 NULL, NULL, NULL,
-                                 MY_PRIORITY, 0, K_NO_WAIT);
-		break;
-	case BUTTON_PAIRING:
-		LOG_INF("Button PAIRING pressed");
-		//zigbee_schedule_alarm();
-		//find_benchmark_node(bufid);
- 		bm_thread = k_thread_create(&bm_thread_data, bm_stack_area,
-                                 K_THREAD_STACK_SIZEOF(bm_stack_area),
-                                 find_benchmark_node,
-                                 NULL, NULL, NULL,
-                                 MY_PRIORITY, 0, K_NO_WAIT);
-		break;	
-	case 0:
-		LOG_DBG("Button released");
-
-		ZB_SCHEDULE_APP_ALARM_CANCEL(light_switch_button_handler,
-									 ZB_ALARM_ANY_PARAM);
-		atomic_set(&device_ctx.button.in_progress, ZB_FALSE);
-
-		if (atomic_set(&device_ctx.button.long_poll, ZB_FALSE) == ZB_FALSE)
-		{
-			//Allocate output buffer and send on/off command.
-			zb_err_code = zb_buf_get_out_delayed_ext(
-				light_switch_send_on_off, on_off, 0);
-			ZB_ERROR_CHECK(zb_err_code);
-		}
-	} */
 }
 
 /**@brief Function for initializing LEDs and Buttons. */
 static void configure_gpio(void)
 {
 	int err;
-
 	err = dk_buttons_init(button_handler);
 	if (err)
 	{
 		LOG_ERR("Cannot init buttons (err: %d)", err);
 	}
-
 	err = dk_leds_init();
 	if (err)
 	{
@@ -293,7 +201,7 @@ static void light_switch_send_on_off(zb_bufid_t bufid, zb_uint16_t on_off)
 {
 	u8_t cmd_id = on_off ? ZB_ZCL_CMD_ON_OFF_ON_ID
 						 : ZB_ZCL_CMD_ON_OFF_OFF_ID;
-	zb_uint16_t group_id = DEFAULT_GROUP_ID;
+	zb_uint16_t group_id = GROUP_ID;
 
 	LOG_INF("Send ON/OFF command: %d to group id: %d", on_off, group_id);
 
@@ -308,195 +216,69 @@ static void light_switch_send_on_off(zb_bufid_t bufid, zb_uint16_t on_off)
 						   NULL);
 }
 
-/**@brief Function for sending add group request. As a result all light bulb's
- *        light controlling endpoints will participate in the same group.
- *
- * @param[in]   bufid   Non-zero reference to Zigbee stack buffer that will be used to construct add group request.
- */
-static void add_group(zb_bufid_t bufid)
+/* Function to send Benchmark Message */
+static void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t level)
 {
-	zb_zdo_match_desc_resp_t *p_resp = (zb_zdo_match_desc_resp_t *)zb_buf_begin(bufid);		 // Get the begining of the response
-	zb_apsde_data_indication_t *p_ind = ZB_BUF_GET_PARAM(bufid, zb_apsde_data_indication_t); // Get the pointer to the parameters buffer, which stores APS layer response
-	zb_uint16_t dst_addr = p_ind->src_addr;
-	zb_uint8_t dst_ep = *(zb_uint8_t *)(p_resp + 1);
-	//zb_uint8_t rssi = p_ind->rssi;
+	zb_uint16_t group_id = GROUP_ID;
+	LOG_INF("Benchmark Message Callback send.");
 
-	LOG_INF("Include device 0x%x, ep %d to the group 0x%x", dst_addr, dst_ep, DEFAULT_GROUP_ID);
-
+	/* Send Move to level request. Level value is uint8. */
+	ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
+												group_id,
+												ZB_APS_ADDR_MODE_16_GROUP_ENDP_NOT_PRESENT,
+												0,
+												LIGHT_SWITCH_ENDPOINT,
+												ZB_AF_HA_PROFILE_ID,
+												ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
+												NULL,
+												level,
+												0);
 }
 
-/**@brief Callback function receiving finding procedure results.
- *
- * @param[in]   bufid   Reference to Zigbee stack buffer used to pass received data.
- */
-static zb_void_t find_light_bulb_cb(zb_bufid_t bufid)
-{
-	zb_zdo_match_desc_resp_t *p_resp = (zb_zdo_match_desc_resp_t *)zb_buf_begin(bufid);		 // Get the begining of the response
-	zb_apsde_data_indication_t *p_ind = ZB_BUF_GET_PARAM(bufid, zb_apsde_data_indication_t); // Get the pointer to the parameters buffer, which stores APS layer response
-	zb_uint8_t *p_match_ep;
-	zb_ret_t zb_err_code;
-	static zb_bool_t bulb_found = ZB_FALSE;
-
-	if ((p_resp->status == ZB_ZDP_STATUS_SUCCESS) && (p_resp->match_len > 0))
-	{
-		/* Match EP list follows right after response header */
-		p_match_ep = (zb_uint8_t *)(p_resp + 1);
-
-		LOG_INF("Found bulb addr: 0x%x ep: %d", p_ind->src_addr, *p_match_ep);
-		bulb_found = ZB_TRUE;
-
-		zb_err_code = ZB_SCHEDULE_APP_CALLBACK(add_group, bufid);
-		ZB_ERROR_CHECK(zb_err_code);
-		bufid = 0;
-
-		if (bulb_found)
-		{
-			dk_set_led_on(BULB_FOUND_LED);
-		}
-	}
-	else if (p_resp->status == ZB_ZDP_STATUS_TIMEOUT)
-	{
-		if (bulb_found)
-		{
-			dk_set_led_off(BULB_FOUND_LED);
-			k_sleep(K_MSEC(200));
-			dk_set_led_on(BULB_FOUND_LED);
-			k_sleep(K_MSEC(200));
-			dk_set_led_off(BULB_FOUND_LED);
-			k_sleep(K_MSEC(200));
-			dk_set_led_on(BULB_FOUND_LED);
-			LOG_INF("Bulb found, Finding Light Bulbs finished");
-		}
-		else
-		{
-			LOG_INF("Bulb not found, try again");
-			zb_err_code = ZB_SCHEDULE_APP_ALARM(find_light_bulb, bufid, MATCH_DESC_REQ_START_DELAY);
-			ZB_ERROR_CHECK(zb_err_code);
-			bufid = 0; // Do not free buffer - it will be reused by find_light_bulb callback
-		}
-	}
-
-	if (bufid)
-	{
-		zb_buf_free(bufid);
-	}
-}
-
-/**@brief Function for sending ON/OFF and Level Control find request.
- *
- * @param[in]   bufid   Non-zero reference to Zigbee stack buffer that will be
- *                      used to construct find request.
- */
-static void find_light_bulb(zb_bufid_t bufid)
-{
-	zb_zdo_match_desc_param_t *p_req;
-
-	/* Initialize pointers inside buffer and reserve space for zb_zdo_match_desc_param_t request */
-	p_req = zb_buf_initial_alloc(bufid, sizeof(zb_zdo_match_desc_param_t) + (1) * sizeof(zb_uint16_t));
-
-	p_req->nwk_addr = MATCH_DESC_REQ_ROLE;		   // Send to devices specified by MATCH_DESC_REQ_ROLE
-	p_req->addr_of_interest = MATCH_DESC_REQ_ROLE; // Get responses from devices specified by MATCH_DESC_REQ_ROLE
-	p_req->profile_id = ZB_AF_HA_PROFILE_ID;	   // Look for Home Automation profile clusters
-
-	/* We are searching for 2 clusters: On/Off and Level Control Server */
-	p_req->num_in_clusters = 2;
-	p_req->num_out_clusters = 0;
-	/*lint -save -e415 // Suppress warning 415 "likely access of out-of-bounds pointer" */
-	p_req->cluster_list[0] = ZB_ZCL_CLUSTER_ID_ON_OFF;
-	p_req->cluster_list[1] = ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL;
-	/*lint -restore */
-	(void)zb_zdo_match_desc_req(bufid, find_light_bulb_cb);
-}
-
-static void find_benchmark_node_cb(zb_bufid_t bufid, zb_uint16_t on_off)
-{
-
-	zb_uint64_t dst_addr = 0xf4ce36663dcfe7a4;
-	zb_uint8_t dst_ep = 10;
-	LOG_INF("Include device 0x%lld, ep %d to the group 0x%x", dst_addr, dst_ep, DEFAULT_GROUP_ID);
-
-	ZB_ZCL_GROUPS_SEND_ADD_GROUP_REQ(bufid,
-									 dst_addr,
-									 ZB_APS_ADDR_MODE_64_ENDP_PRESENT,
-									 dst_ep,
-									 LIGHT_SWITCH_ENDPOINT,
-									 ZB_AF_HA_PROFILE_ID,
-									 ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
-									 NULL,
-									 DEFAULT_GROUP_ID);
-}
-
-static void find_benchmark_node(void *arg1, void *arg2, void *arg3)
+static void bm_send_message(zb_uint8_t message_id)
 {
 	zb_ret_t zb_err_code;
-	zb_uint16_t on_off = ZB_FALSE;
-
-	LOG_INF("Searching for Benchmark Server");
-
-	zb_err_code = zb_buf_get_out_delayed_ext(find_benchmark_node_cb, on_off, 0);
+	zb_err_code = zb_buf_get_out_delayed_ext(bm_send_message_cb, message_id, 0);
 	ZB_ERROR_CHECK(zb_err_code);
 
-	return;
-}
-/* Function to send Benchmark Message */
-static void benchmark_send_message(zb_bufid_t bufid, zb_uint16_t level)
-{
-	zb_uint16_t group_id = DEFAULT_GROUP_ID;
-	//zb_uint8_t level = 123;
-
-	LOG_INF("Benchmark Message Callback send.");
-	/* 	zb_uint16_t seq_num = ZB_ZCL_GET_SEQ_NUM();
-	LOG_INF("Sequence Number send: %d", seq_num);
-	zb_uint8_t seq_num_frame_hdr = ZB_ZCL_FRAME_HDR_GET_SEQ_NUM(bufid);
-	LOG_INF("Sequence Number send: %d", seq_num_frame_hdr); */
-
-	/* Maybe you can use this function to send a level value instead of just on byte */
-	ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
-									   group_id,
-									   ZB_APS_ADDR_MODE_16_GROUP_ENDP_NOT_PRESENT,
-									   0,
-									   LIGHT_SWITCH_ENDPOINT,
-									   ZB_AF_HA_PROFILE_ID,
-									   ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
-									   NULL,
-									   level,
-									   ZB_ZCL_LEVEL_CONTROL_ON_TRANSITION_TIME_DEFAULT_VALUE);
-
-/* 	ZB_ZCL_SEND_CMD(bufid,
-					group_id,
-					ZB_APS_ADDR_MODE_16_GROUP_ENDP_NOT_PRESENT,
-					0,
-					LIGHT_SWITCH_ENDPOINT,
-					ZB_AF_HA_PROFILE_ID,
-					ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
-					ZB_ZCL_CLUSTER_ID_ON_OFF,
-					ZB_ZCL_CMD_ON_OFF_TOGGLE_ID,
-					NULL); */
+	//bm_send_message_cb(zb_buf_get_out(), message_id);
 }
 
-static void benchmark_mesh(void *arg1, void *arg2, void *arg3)
+static void bm_zigbee(void *arg1, void *arg2, void *arg3)
 {
-	zb_ret_t zb_err_code;
-	//zb_bool_t test = ZB_FALSE;
-	zb_uint8_t level = sys_rand32_get() % 256;
-
-	//k_timer_start(&app_timer,K_SECONDS(10),K_SECONDS(0));
+	bm_message_info *message;
+	message->message_id = 0;
+	message->RSSI = 0;
+	message->number_of_hops = 0;
+	message->data_size = 0;
+	zb_get_long_address(message->src_addr);
+	message->dst_addr = GROUP_ID;
+	message->net_time = 0;
 
 	for (u8_t i = 0; i < bm_msg_cnt; i++)
 	{
-		k_sleep(K_SECONDS(3));
-		//k_sleep(K_SECONDS(sys_rand32_get() % (bm_time_interval_sec / bm_msg_cnt)));
+		zb_uint16_t timeout = ZB_RANDOM_VALUE(bm_time_interval_msec / bm_msg_cnt);
+		k_sleep(K_MSEC(timeout));
 
-		LOG_INF("Benchmark Message sent");
-		zb_err_code = zb_buf_get_out_delayed_ext(benchmark_send_message, level, 0);
-		k_sleep(K_SECONDS(1));
-		/* zb_err_code = zb_buf_get_out_delayed_ext(benchmark_send_message, level, 0);
-		k_sleep(K_SECONDS(1)); */
-		ZB_ERROR_CHECK(zb_err_code);
+		ZB_SCHEDULE_APP_ALARM_CANCEL(bm_send_message, ZB_ALARM_ANY_PARAM);
+
+		message->net_time = ZB_TIME_BEACON_INTERVAL_TO_MSEC(ZB_TIMER_GET());
+		message->message_id += 15;
+		LOG_INF("Benchmark Message send, TimeStamp: %llu, MessageID: %d, TimeOut: %u", message->net_time, message->message_id, timeout);
+
+		ZB_SCHEDULE_APP_ALARM(bm_send_message, message->message_id, 0);
+
+		bm_save_message_info(message);
 	}
 
 	LOG_INF("Benchmark finished");
-	return;
+}
+
+void bm_save_message_info(bm_message_info * message)
+{
+	bm_message_info new_message = *message;
+	message_info[bm_message_info_nr] = new_message;
+	bm_message_info_nr++;
 }
 
 /**@brief Zigbee stack event handler.
@@ -506,34 +288,11 @@ static void benchmark_mesh(void *arg1, void *arg2, void *arg3)
  */
 void zboss_signal_handler(zb_bufid_t bufid)
 {
-	zb_zdo_app_signal_hdr_t *sig_hndler = NULL;
-	zb_zdo_app_signal_type_t sig = zb_get_app_signal(bufid, &sig_hndler);
-	zb_ret_t status = ZB_GET_APP_SIGNAL_STATUS(bufid);
-	zb_ret_t zb_err_code;
 
 	/* Update network status LED */
 	zigbee_led_status_update(bufid, ZIGBEE_NETWORK_STATE_LED);
-	switch (sig)
-	{
-	case ZB_BDB_SIGNAL_DEVICE_REBOOT:
-		/* fall-through */
-	case ZB_BDB_SIGNAL_STEERING:
-		/* Call default signal handler. */
-		ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
-		if (status == RET_OK)
-		{
-			zb_err_code = ZB_SCHEDULE_APP_ALARM(find_light_bulb, bufid, MATCH_DESC_REQ_START_DELAY);
-			ZB_ERROR_CHECK(zb_err_code);
-			LOG_INF("Network Steering");
 
-			bufid = 0; // Do not free buffer - it will be reused by find_light_bulb callback.
-		}
-		break;
-	default:
-		/* Call default signal handler. */
-		ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
-		break;
-	}
+	ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
 
 	if (bufid)
 	{
@@ -563,19 +322,6 @@ void main(void)
 
 	/* Register dimmer switch device context (endpoints). */
 	ZB_AF_REGISTER_DEVICE_CTX(&dimmer_switch_ctx);
-
-	/* If "sleepy button" is defined, check its state during Zigbee
-	 * initialization and enable sleepy behavior at device if defined button
-	 * is pressed. Additionally, power off unused sections of RAM to lower
-	 * device power consumption.
-	 */
-#if defined BUTTON_SLEEPY
-	if (dk_get_buttons() & BUTTON_SLEEPY)
-	{
-		zigbee_configure_sleepy_behavior(true);
-		zigbee_power_down_unused_ram();
-	}
-#endif
 
 	/* Start Zigbee default thread */
 	zigbee_enable();

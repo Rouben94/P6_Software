@@ -36,6 +36,8 @@
 #define ZIGBEE_NETWORK_STATE_LED DK_LED1		/* LED indicating that light switch successfully joind Zigbee network. */
 #define PWM_DK_LED4_NODE DT_NODELABEL(pwm_led3) /* Use onboard led4 to act as a light bulb. The app.overlay file has this at node label "pwm_led3" in /pwmleds. */
 
+#define MATCH_DESC_REQ_START_DELAY (2 * ZB_TIME_ONE_SECOND) /* Delay between the light switch startup and light bulb finding procedure. */
+
 /* Nordic PWM nodes don't have flags cells in their specifiers, so this is just future-proofing.*/
 #define FLAGS_OR_ZERO(node)                         \
 	COND_CODE_1(DT_PHA_HAS_CELL(node, pwms, flags), \
@@ -67,14 +69,15 @@ DK_BTN1 --> Button 1
 #define BULB_INIT_BASIC_LOCATION_DESC "Office desk"						 /* Describes the physical location of the device (16 bytes). May be modified during commisioning process.*/
 #define BULB_INIT_BASIC_PH_ENV ZB_ZCL_BASIC_ENV_UNSPECIFIED				 /* Describes the type of physical environment. For possible values see section 3.2.2.2.10 of ZCL specification.*/
 #define LED_PWM_PERIOD_US (USEC_PER_SEC / 50U)							 /* Led PWM period, calculated for 50 Hz signal - in microseconds. */
+#define NUMBER_OF_NETWORK_TIME_ELEMENTS 1000							 /* Size of the Benchmark Reporting Array message_info */
 
 #ifndef ZB_ROUTER_ROLE
 #error Define ZB_ROUTER_ROLE to compile router source code.
 #endif
 
-K_THREAD_STACK_DEFINE(pairing_stack_area, MY_STACK_SIZE);
-struct k_thread pairing_thread_data;
-static void add_group_id(void *arg1, void *arg2, void *arg3);
+// K_THREAD_STACK_DEFINE(pairing_stack_area, MY_STACK_SIZE);
+// struct k_thread pairing_thread_data;
+// static void add_group_id(void *arg1, void *arg2, void *arg3);
 
 LOG_MODULE_REGISTER(app);
 
@@ -155,6 +158,23 @@ ZB_HA_DECLARE_DIMMABLE_LIGHT_CTX(
 	dimmable_light_ctx,
 	dimmable_light_ep);
 
+/* Struct for benchmark message information */
+typedef struct
+{
+	zb_uint16_t dst_addr;
+	zb_ieee_addr_t src_addr;
+	zb_uint64_t net_time;
+	zb_uint16_t number_of_hops;
+	zb_uint16_t message_id;
+	zb_uint8_t RSSI;
+	bool data_size;
+} bm_message_info;
+
+uint16_t bm_message_info_nr = 0;
+
+/* Array of structs to save benchmark message info to */
+bm_message_info message_info[NUMBER_OF_NETWORK_TIME_ELEMENTS] = {0};
+
 /**@brief Callback for button events.
  *
  * @param[in]   button_state  Bitmask containing buttons state.
@@ -163,7 +183,7 @@ ZB_HA_DECLARE_DIMMABLE_LIGHT_CTX(
  */
 static void button_changed(u32_t button_state, u32_t has_changed)
 {
-	k_tid_t add_group_thread;
+	//k_tid_t add_group_thread;
 
 	/* Calculate bitmask of buttons that are pressed
 	 * and have changed their state.
@@ -173,11 +193,11 @@ static void button_changed(u32_t button_state, u32_t has_changed)
 	if (buttons & DONGLE_BUTTON)
 	{
 		LOG_INF("ADD GROUP - Button pressed");
-		add_group_thread = k_thread_create(&pairing_thread_data, pairing_stack_area,
+		/* add_group_thread = k_thread_create(&pairing_thread_data, pairing_stack_area,
 										   K_THREAD_STACK_SIZEOF(pairing_stack_area),
 										   add_group_id,
 										   NULL, NULL, NULL,
-										   MY_PRIORITY, 0, K_NO_WAIT);
+										   MY_PRIORITY, 0, K_NO_WAIT); */
 	}
 }
 
@@ -373,14 +393,13 @@ static void bulb_clusters_attr_init(void)
 
 static void add_group_id_cb(zb_bufid_t bufid)
 {
-	zb_uint8_t dst_ep = 10;
 	zb_ieee_addr_t ieee_addr;
 	char ieee_addr_buf[17] = {0};
 	int addr_len;
 	zb_get_long_address(ieee_addr);
 	addr_len = ieee_addr_to_str(ieee_addr_buf, sizeof(ieee_addr_buf), ieee_addr);
 
-	LOG_INF("Include device 0x%s, ep %d to the group 0x%x", ieee_addr_buf, dst_ep, GROUP_ID);
+	LOG_INF("Include device 0x%s, ep %d to the group 0x%x", ieee_addr_buf, BENCHMARK_SERVER_ENDPOINT, GROUP_ID);
 
 	ZB_ZCL_GROUPS_SEND_ADD_GROUP_REQ(bufid,
 									 ieee_addr,
@@ -393,17 +412,20 @@ static void add_group_id_cb(zb_bufid_t bufid)
 									 GROUP_ID);
 }
 
-static void add_group_id(void *arg1, void *arg2, void *arg3)
+void bm_save_message_info(bm_message_info message)
 {
-	zb_ret_t zb_err_code;
+	message_info[bm_message_info_nr] = message;
+	bm_message_info_nr++;
+}
 
-	LOG_INF("Adding Group request started");
+static void bm_receive_message(zb_zcl_device_callback_param_t *device_cb_parameter)
+{
+	s64_t time_stamp;
+	zb_uint8_t message_id;
+	time_stamp = ZB_TIME_BEACON_INTERVAL_TO_MSEC(ZB_TIMER_GET());
+	message_id = device_cb_parameter->cb_param.level_control_set_value_param.new_value;
+	LOG_INF("Level control setting to %d, TimeStamp: %llu", message_id, time_stamp);
 
-	//zb_err_code = zb_buf_get_out_delayed_ext(add_group_id_cb, on_off, 0);
-	zb_err_code = zb_buf_get_out_delayed(add_group_id_cb);
-	ZB_ERROR_CHECK(zb_err_code);
-
-	return;
 }
 
 /**@brief Callback function for handling ZCL commands.
@@ -416,6 +438,8 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid)
 	zb_uint8_t cluster_id;
 	zb_uint8_t attr_id;
 	zb_zcl_device_callback_param_t *device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
+	//s64_t time_stamp;
+	//zb_uint8_t current_level;
 
 	LOG_INF("%s id %hd", __func__, device_cb_param->device_cb_id);
 
@@ -425,10 +449,19 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid)
 	switch (device_cb_param->device_cb_id)
 	{
 	case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
-		LOG_INF("Level control setting to %d", device_cb_param->cb_param.level_control_set_value_param.new_value);
+		/* time_stamp = ZB_TIME_BEACON_INTERVAL_TO_MSEC(ZB_TIMER_GET());
+		current_level = device_cb_param->cb_param.level_control_set_value_param.new_value;
+		LOG_INF("Level control setting to %d, TimeStamp: %llu", device_cb_param->cb_param.level_control_set_value_param.new_value, time_stamp);
+ */
+		bm_receive_message(device_cb_param);
+		LOG_INF("Receive Level Message");
+
 		level_control_set_value(device_cb_param->cb_param.level_control_set_value_param.new_value);
 		break;
+	case ZB_ZCL_MESSAGING_DISPLAY_MSG_CB_ID:
+		LOG_INF("Messaging Display command received");
 
+		break;
 	case ZB_ZCL_SET_ATTR_VALUE_CB_ID:
 		cluster_id = device_cb_param->cb_param.set_attr_value_param.cluster_id;
 		attr_id = device_cb_param->cb_param.set_attr_value_param.attr_id;
@@ -478,13 +511,32 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid)
  */
 void zboss_signal_handler(zb_bufid_t bufid)
 {
+	zb_zdo_app_signal_hdr_t *sig_hndler = NULL;
+	zb_zdo_app_signal_type_t sig = zb_get_app_signal(bufid, &sig_hndler);
+	zb_ret_t status = ZB_GET_APP_SIGNAL_STATUS(bufid);
+	zb_ret_t zb_err_code;
+
 	/* Update network status LED. */
 	zigbee_led_status_update(bufid, ZIGBEE_NETWORK_STATE_LED);
 
-	/* No application-specific behavior is required.
-	 * Call default signal handler.
-	 */
-	ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
+	switch (sig)
+	{
+	case ZB_BDB_SIGNAL_STEERING:
+		ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
+		if (status == RET_OK)
+		{
+			//add_group_id_cb(zb_buf_get(ZB_TRUE,zb_buf_get_max_size(bufid)));
+			zb_err_code = ZB_SCHEDULE_APP_ALARM(add_group_id_cb, bufid, MATCH_DESC_REQ_START_DELAY);
+			ZB_ERROR_CHECK(zb_err_code);
+			LOG_INF("Network Steering");
+			bufid = 0; // Do not free buffer - it will be reused by find_light_bulb callback.
+		}
+		break;
+	default:
+
+		ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
+		break;
+	}
 
 	/* All callbacks should either reuse or free passed buffers.
 	 * If bufid == 0, the buffer is invalid (not passed).
