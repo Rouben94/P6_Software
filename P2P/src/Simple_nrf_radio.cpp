@@ -152,6 +152,7 @@ void Simple_nrf_radio::Send(RADIO_PACKET tx_pkt, k_timeout_t timeout)
     nrf_radio_shorts_enable(NRF_RADIO, NRF_RADIO_SHORT_READY_START_MASK | NRF_RADIO_SHORT_END_DISABLE_MASK | NRF_RADIO_SHORT_PHYEND_DISABLE_MASK); // Start after Ready and Disable after END or PHY-End
     nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_TXEN);
     k_sleep(timeout); // Wait for interrupt
+    radio_disable();
 }
 /**
 	 * Burst send out the same packet till timeout

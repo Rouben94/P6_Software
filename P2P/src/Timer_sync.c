@@ -1,6 +1,6 @@
 #include "Timer_sync.h"
 
-NRF_TIMER_Type * synctimer = NRF_TIMER3;
+NRF_TIMER_Type * synctimer = NRF_TIMER4;
 uint64_t Timestamp_Slave = 0;
 uint64_t Timestamp_Master = 0;
 uint64_t Timestamp_Diff = 0;
@@ -58,8 +58,8 @@ extern void synctimer_init()
 	nrf_timer_frequency_set(synctimer,NRF_TIMER_FREQ_1MHz);
 	nrf_timer_mode_set(synctimer,NRF_TIMER_MODE_TIMER);
 	//irq_connect_dynamic(TIMER3_IRQn, 7, synctimer_handler, NULL, 0); 	// Connect Radio ISR
-	IRQ_DIRECT_CONNECT(TIMER3_IRQn, 6, timer_handler, 0);
-    irq_enable(TIMER3_IRQn);                                        // Enable Radio ISR
+	IRQ_DIRECT_CONNECT(TIMER4_IRQn, 6, timer_handler, 0);
+    irq_enable(TIMER4_IRQn);                                        // Enable Radio ISR
 	nrf_timer_task_trigger(synctimer, NRF_TIMER_TASK_CLEAR);
 	nrf_timer_cc_set(synctimer,NRF_TIMER_CC_CHANNEL1,0);
 	nrf_timer_cc_set(synctimer,NRF_TIMER_CC_CHANNEL2,0);

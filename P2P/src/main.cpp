@@ -27,7 +27,7 @@ along with P2P-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 #include "Timer_sync.h"
 
 /* ------------- Definitions --------------*/
-#define isMaster 1									// Node is the Master (1) or Slave (0)
+#define isMaster 0									// Node is the Master (1) or Slave (0)
 #define CommonMode NRF_RADIO_MODE_BLE_LR125KBIT		// Common Mode
 #define CommonStartCH 37							// Common Start Channel
 #define CommonEndCH 39								// Common End Channel
@@ -117,7 +117,6 @@ struct CHReportsPkt
 	u8_t Avg_NOISE_RSSI;
 } __attribute__((packed));
 
-
 struct ChannelReport
 {
 	u8_t CH;
@@ -140,7 +139,6 @@ struct MasterReport
 	std::vector<NodeReport> nodrep;
 };
 
-
 /*===========================================*/
 
 /* ------------------- Variables -----------------*/
@@ -155,10 +153,11 @@ u32_t LatestTxMasterTimestamp;
 bool Synced = false;
 
 MockupPkt Mockup_pkt_RX, Mockup_pkt_TX = {};
+uint32_t rand_32 = sys_rand32_get(); //Takes Long Time so do once in init
 bool GotReportReq = false;
 
 ParamPkt Param_pkt_RX, Param_pkt_TX = {};
-ParamPkt ParamLocal, ParamLocalBuf = {CommonStartCH, CommonEndCH, CommonMode, 20, 0, CommonTxPower, 0};
+ParamPkt ParamLocal, ParamLocalBuf = {CommonStartCH, CommonEndCH, 20 ,CommonMode, false, CommonTxPower, 0};
 bool GotParam = false;
 
 std::vector<ChannelReport> chrep_local;
@@ -303,8 +302,8 @@ static void ST_transition_cb(void)
 	{
 		currentState = ST_DISCOVERY;
 	}
-	printk("Current State: %d\n",currentState);
-	printk("%s\n",k_thread_state_str(ST_Machine_tid));
+	printk("Current State: %d\n", currentState);
+	printk("%s\n", k_thread_state_str(ST_Machine_tid));
 	k_wakeup(ST_Machine_tid);
 }
 
@@ -316,10 +315,7 @@ void ST_DISCOVERY_fn(void)
 	if (isMaster)
 	{
 		MockupTS = (synctimer_getSyncTime() + ST_TIME_DISCOVERY_MS * 1000 + ST_TIME_MARGIN_MS * 1000);
-		//printk("Now : %u\n", (uint32_t)synctimer_getSyncTime());
-		//printk("Int : %u\n", (uint32_t)MockupTS);
 		synctimer_setSyncTimeCompareInt(MockupTS, ST_transition_cb);
-		
 	}
 	simple_nrf_radio.setMode(CommonMode);
 	simple_nrf_radio.setAA(DiscoveryAddress);
@@ -361,7 +357,7 @@ void ST_DISCOVERY_fn(void)
 			}
 		}
 		CHidx--;
-	}	
+	}
 	return;
 }
 
@@ -382,9 +378,9 @@ void ST_MOCKUP_fn(void)
 	for (int ch = CommonStartCH; ch <= CommonEndCH; ch++)
 	{
 		simple_nrf_radio.setCH(ch);
-		while ((k_timer_remaining_get(&state_timer) / CHidx) > 0)
+		if (isMaster)
 		{
-			if (isMaster)
+			while ((k_timer_remaining_get(&state_timer) / CHidx) > 0)
 			{
 				s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, K_MSEC(k_timer_remaining_get(&state_timer) / CHidx));
 				if (ret > 0)
@@ -395,26 +391,22 @@ void ST_MOCKUP_fn(void)
 					}
 				}
 			}
-			else if (!GotReportReq)
-			{
-				k_sleep(K_MSEC(sys_rand32_get() % (k_timer_remaining_get(&state_timer) / CHidx - 5))); // Sleep Random Mockup Delay minus 5ms send Margin
+		}
+		else
+		{
+			if (!GotReportReq)
+			{				
+				k_sleep(K_MSEC(rand_32 % ((k_timer_remaining_get(&state_timer) / CHidx) - 10))); // Sleep Random Mockup Delay minus 10ms send Margin
 				simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&state_timer) / CHidx));
-				if (ch != CommonEndCH)
-				{
-					k_sleep(K_MSEC(k_timer_remaining_get(&state_timer) / CHidx)); // Sleep till next CH
-				}
-				else
-				{
-					return; // If was last channel Return and Sleep...
-				}
 			}
 			else
 			{
 				// Node is known to Master. Can Return and Sleep..
 				return;
 			}
+			k_sleep(K_MSEC(k_timer_remaining_get(&state_timer) / CHidx)); // Sleep till CH Ends
 		}
-		CHidx--;
+		CHidx = CHidx - 1;
 	}
 	return;
 }
@@ -432,7 +424,7 @@ void ST_PARAM_fn(void)
 	radio_pkt_Tx.PDU = (u8_t *)&Param_pkt_TX;
 	ParamLocalBuf.NodesCnt = masrep.nodrep.size(); // Fix the NodesCnt
 	ParamLocal = ParamLocalBuf;					   // Copy the Params to be used
-	Param_pkt_TX = ParamLocal;
+	Param_pkt_TX = ParamLocal;	
 	CHidx = CommonCHCnt;
 	/* Do work and keep track of Time Left */
 	for (int ch = CommonStartCH; ch <= CommonEndCH; ch++)
@@ -478,9 +470,9 @@ void ST_PACKETS_fn(void)
 	{
 		CHidx = 1;
 	}
-	chrep_local.clear(); // Clear the local Channel Report
-	RxPktStatLog log;	 //Temp
-	u16_t PktCnt_temp = 0;	 //Temp
+	chrep_local.clear();   // Clear the local Channel Report
+	RxPktStatLog log;	   //Temp
+	u16_t PktCnt_temp = 0; //Temp
 	/* Do work and keep track of Time Left */
 	for (int ch = ParamLocal.StartCH; ch <= ParamLocal.StopCH; ch++)
 	{
@@ -520,12 +512,14 @@ void ST_REPORT_fn(void)
 	simple_nrf_radio.setMode(CommonMode);
 	simple_nrf_radio.setAA(ReportsAddress);
 	simple_nrf_radio.setTxP(CommonTxPower);
-	bool CHsGot[40];	  // Received Channels from a Node
-	u8_t Nodeidx = 0;		  // Node Index
-	u8_t CHidx = 0;		  	  // Channel Index
-	bool NodeDone = false;		  // Node Done Flag
-	u8_t NodeHadCHcnt = 1;   // Counter to keep on with how many tries a node had on the Channels. Do Next If the Counter is equal to the number of Common Channels
-	if (masrep.nodrep.size() != 0){
+	bool CHsGot[40];	   // Received Channels from a Node
+	std::fill_n(CHsGot, sizeof(CHsGot), false); // Clear Got Channels array
+	u8_t Nodeidx = 0;	   // Node Index
+	u8_t CHidx = 0;		   // Channel Index
+	bool NodeDone = false; // Node Done Flag
+	u8_t NodeHadCHcnt = 1; // Counter to keep on with how many tries a node had on the Channels. Do Next If the Counter is equal to the number of Common Channels
+	if (!(masrep.nodrep.size() == 0))
+	{
 		RepoReq_pkt_TX.LSB_MAC_Address = masrep.nodrep[Nodeidx].LSB_MAC_Address; // Prepare first Node
 	}
 	GotReportReq = false; // Reset Got Request Flag
@@ -534,15 +528,18 @@ void ST_REPORT_fn(void)
 		radio_pkt_Tx.length = sizeof(RepoReq_pkt_TX);
 		radio_pkt_Tx.PDU = (u8_t *)&RepoReq_pkt_TX;
 		radio_pkt_Rx.length = sizeof(Repo_pkt_RX);
-		radio_pkt_Rx.PDU = (u8_t *)&Repo_pkt_RX;		
-	} else {
+		radio_pkt_Rx.PDU = (u8_t *)&Repo_pkt_RX;
+	}
+	else
+	{
 		radio_pkt_Rx.length = sizeof(RepoReq_pkt_RX);
 		radio_pkt_Rx.PDU = (u8_t *)&RepoReq_pkt_RX;
 		radio_pkt_Tx.length = sizeof(Repo_pkt_TX);
 		radio_pkt_Tx.PDU = (u8_t *)&Repo_pkt_TX;
 	}
 	/* Do work and keep track of Time Left */
-	while (k_timer_remaining_get(&state_timer) > 0){	
+	while (k_timer_remaining_get(&state_timer) > 0)
+	{
 		// Do each Channel. Each Node Has at least three Chances to Transmit the Reports
 		for (int ch = CommonStartCH; ch <= CommonEndCH; ch++)
 		{
@@ -550,15 +547,16 @@ void ST_REPORT_fn(void)
 			k_timer_start(&state_timer2, K_MSEC(ST_NODE_CHANNEL_REPORT_TIMEOUT_MS), K_MSEC(0));
 			if (isMaster)
 			{
-				simple_nrf_radio.Send(radio_pkt_Tx,K_MSEC(k_timer_remaining_get(&state_timer2))); // Send Report Request
+				simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&state_timer2))); // Send Report Request
 				while ((k_timer_remaining_get(&state_timer2) > 0))
 				{
-					if (RepoReq_pkt_TX.LSB_MAC_Address != ReportsDoneMACAddress){
+					if (!(RepoReq_pkt_TX.LSB_MAC_Address == ReportsDoneMACAddress))
+					{
 						s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, K_MSEC(k_timer_remaining_get(&state_timer2))); // Wait for Reports
 						if (ret > 0)
-						{	// Check that Channel wasnt allready received
+						{ // Check that Channel wasnt allready received
 							if (CHsGot[((CHReportsPkt *)radio_pkt_Rx.PDU)->CH] == false)
-							{ 
+							{
 								masrep.nodrep[Nodeidx].chrep.push_back({((CHReportsPkt *)radio_pkt_Rx.PDU)->CH,
 																		chrep_local[((CHReportsPkt *)radio_pkt_Rx.PDU)->CH].TxPkt_CNT,
 																		((CHReportsPkt *)radio_pkt_Rx.PDU)->CRCOK_CNT,
@@ -573,29 +571,40 @@ void ST_REPORT_fn(void)
 								break;
 							}
 						}
-					} else {
-						simple_nrf_radio.Send(radio_pkt_Tx,K_MSEC(k_timer_remaining_get(&state_timer2))); // Send Report Done Bursts
-					}				
+					}
+					else
+					{
+						simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&state_timer2))); // Send Report Done Bursts
+					}
 				}
-				if (NodeDone || NodeHadCHcnt == CommonCHCnt){
-					NodeDone = false; //Clear Node Done Flag
-					NodeHadCHcnt = 1; // Clear CHCnt
+				if (NodeDone || NodeHadCHcnt == CommonCHCnt)
+				{
+					NodeDone = false;							//Clear Node Done Flag
+					NodeHadCHcnt = 1;							// Clear CHCnt
 					std::fill_n(CHsGot, sizeof(CHsGot), false); // Clear Got Channels array
-					if (RepoReq_pkt_TX.LSB_MAC_Address == ReportsDoneMACAddress){
+					if (RepoReq_pkt_TX.LSB_MAC_Address == ReportsDoneMACAddress)
+					{
 						return; // When  transmittedNode done exit
 					}
-					if (Nodeidx == (masrep.nodrep.size() - 1 )){ 
+					if (Nodeidx == (masrep.nodrep.size() - 1))
+					{
 						RepoReq_pkt_TX.LSB_MAC_Address = ReportsDoneMACAddress; // All Nodes Done :)
-					} else {
-						Nodeidx++; // Do Next Node ...
+					}
+					else
+					{
+						Nodeidx++;																 // Do Next Node ...
 						RepoReq_pkt_TX.LSB_MAC_Address = masrep.nodrep[Nodeidx].LSB_MAC_Address; // Do next Node
-					}					
-				} else {
+					}
+				}
+				else
+				{
 					NodeHadCHcnt++;
 				}
-				k_sleep(K_MSEC(k_timer_remaining_get(&state_timer2))); // Wait for the Next State too keep Timesync with Slaves		
-			// Slave Code
-			} else {
+				k_sleep(K_MSEC(k_timer_remaining_get(&state_timer2))); // Wait for the Next State too keep Timesync with Slaves
+				// Slave Code
+			}
+			else
+			{
 				s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, K_MSEC(k_timer_remaining_get(&state_timer2))); //Wait for Report Request
 				if (ret > 0)
 				{
@@ -604,20 +613,24 @@ void ST_REPORT_fn(void)
 						GotReportReq = true; // Set Flag that a Report Req for this Node was received
 						CHidx = 0;
 						// Burst out all available Channel Reports
-						while(k_timer_remaining_get(&state_timer)>0){
+						while (k_timer_remaining_get(&state_timer) > 0)
+						{
 							Repo_pkt_TX.CH = chrep_local[CHidx].CH;
-							Repo_pkt_TX.Avg_NOISE_RSSI= chrep_local[CHidx].Avg_NOISE_RSSI;
-							Repo_pkt_TX.Avg_SIG_RSSI= chrep_local[CHidx].Avg_SIG_RSSI;
-							Repo_pkt_TX.CRCOK_CNT= chrep_local[CHidx].CRCOK_CNT;
-							Repo_pkt_TX.CRCERR_CNT= chrep_local[CHidx].CRCERR_CNT;
-							simple_nrf_radio.Send(radio_pkt_Tx,K_MSEC(k_timer_remaining_get(&state_timer2))); // Send Channel Report
-							if (CHidx == (chrep_local.size() - 1 )){
+							Repo_pkt_TX.Avg_NOISE_RSSI = chrep_local[CHidx].Avg_NOISE_RSSI;
+							Repo_pkt_TX.Avg_SIG_RSSI = chrep_local[CHidx].Avg_SIG_RSSI;
+							Repo_pkt_TX.CRCOK_CNT = chrep_local[CHidx].CRCOK_CNT;
+							Repo_pkt_TX.CRCERR_CNT = chrep_local[CHidx].CRCERR_CNT;
+							simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&state_timer2))); // Send Channel Report
+							if (CHidx == (chrep_local.size() - 1))
+							{
 								break;
-							} else {
+							}
+							else
+							{
 								CHidx++;
 							}
 						}
-						k_sleep(K_MSEC(k_timer_remaining_get(&state_timer2))); // If there is time left sleep to keep Timesync				
+						k_sleep(K_MSEC(k_timer_remaining_get(&state_timer2))); // If there is time left sleep to keep Timesync
 					}
 					else if (((ReportsReqPkt *)radio_pkt_Rx.PDU)->LSB_MAC_Address == ReportsDoneMACAddress)
 					{
@@ -629,8 +642,8 @@ void ST_REPORT_fn(void)
 					}
 				}
 			} // End Slave
-		} // End Channel
-	} // End Reporting
+		}	  // End Channel
+	}		  // End Reporting
 }
 
 void ST_PUBLISH_fn(void)
@@ -639,28 +652,28 @@ void ST_PUBLISH_fn(void)
 	k_timer_start(&state_timer, K_MSEC(ST_TIME_PUBLISH_MS), K_MSEC(0));
 	synctimer_setSyncTimeCompareInt((synctimer_getSyncTime() + ST_TIME_PUBLISH_MS * 1000 + ST_TIME_MARGIN_MS * 1000), ST_transition_cb);
 	/* init */
-	if (isMaster && !(masrep.nodrep.size() == 0)){
+	if (isMaster && !(masrep.nodrep.size() == 0))
+	{
 		// Do Reporting of Nodes
 		for (const auto &node : masrep.nodrep)
 		{
-			uint64_t MAC = ((uint64_t) MSB_MAC_Address << 32 | node.LSB_MAC_Address);
+			uint64_t MAC = ((uint64_t)MSB_MAC_Address << 32 | node.LSB_MAC_Address);
 			for (const auto &ch : node.chrep)
 			{
 				printk("<NODE_REPORT_BEGIN>\r\n");
 				// <MACAddress> <CH> <PktCnt> <CRCOKCnt> <CRCERRCnt> <AvgSigRSSI> <AvgNoiseRSSI>
-				printk("%llx %d %d %d %d %d %d", MAC, ch.CH, ch.TxPkt_CNT, ch.CRCOK_CNT, ch.CRCERR_CNT, ch.Avg_SIG_RSSI, ch.Avg_NOISE_RSSI);
+				printk("%llx %d %d %d %d %d %d\n", MAC, ch.CH, ch.TxPkt_CNT, ch.CRCOK_CNT, ch.CRCERR_CNT, ch.Avg_SIG_RSSI, ch.Avg_NOISE_RSSI);
 				printk("<NODE_REPORT_END>\r\n");
 			}
 		}
-	} else {
+	}
+	else
+	{
 		return; // Slave just sleeps in this state. Has nothing to do...
 	}
 }
 
 /*=======================================================*/
-
-
-
 
 void main(void)
 {
@@ -669,7 +682,7 @@ void main(void)
 	synctimer_init();
 	synctimer_start();
 	//config_debug_ppi_and_gpiote_radio_state(); // For Debug Timesync
-	
+
 	// Statemachine
 	ST_Machine_tid = k_current_get();
 	while (true)
@@ -678,37 +691,29 @@ void main(void)
 		{
 		case ST_DISCOVERY:
 			ST_DISCOVERY_fn();
-			printk("Sleep Start\n");
 			k_sleep(K_MSEC((ST_TIME_DISCOVERY_MS + ST_TIME_MARGIN_MS + 10))); // Keep waiting till next State. Not Synced Nodes do Power Save with 50% Duty Cycle.
-			printk("Sleep Stop\n");
 			break;
 		case ST_MOCKUP:
 			ST_MOCKUP_fn();
-			printk("Sleep Start\n");
 			k_sleep(K_MSEC(ST_TIME_MOCKUP_MS + ST_TIME_MARGIN_MS + 10)); // Ready for the Next State. Extra Margin of 10ms to prevent reentry in case of delayed TimerInterrupt.
-			printk("Sleep Stop\n");
 			break;
 		case ST_PARAM:
 			ST_PARAM_fn();
-			printk("Sleep Start\n");
 			k_sleep(K_MSEC(ST_TIME_PARAM_MS + ST_TIME_MARGIN_MS + 10)); // Ready for the Next State. Extra Margin of 10ms to prevent reentry in case of delayed TimerInterrupt.
-			printk("Sleep Stop\n");
 			break;
 		case ST_PACKETS:
 			ST_PACKETS_fn();
-			printk("Sleep Start\n");
 			k_sleep(K_MSEC(ST_TIME_PACKETS_MS + ST_TIME_MARGIN_MS + 10)); // Ready for the Next State. Extra Margin of 10ms to prevent reentry in case of delayed TimerInterrupt.
-			printk("Sleep Stop\n");
 			break;
-		case ST_REPORTS:
-			ST_REPORT_fn();
+		case ST_REPORTS:		
+			stpw.start();
+			ST_REPORT_fn();			
+			stpw.stop();
 			// Ready for the Next State. Timesync is given up from now on. Do this in the Discovery State. -> This is done because of Performance Reasons
 			break;
 		case ST_PUBLISH:
 			ST_PUBLISH_fn();
-			printk("Sleep Start\n");
 			k_sleep(K_MSEC(ST_TIME_PUBLISH_MS + ST_TIME_MARGIN_MS + 10));
-			printk("Sleep Stop\n");
 			// Ready for the Next State. Timesync is given up from now on. Do this in the Discovery State.
 			break;
 		}
