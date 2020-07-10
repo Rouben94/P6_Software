@@ -27,7 +27,7 @@ along with P2P-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 #include "Timer_sync.h"
 
 /* ------------- Definitions --------------*/
-#define isMaster 0									// Node is the Master (1) or Slave (0)
+#define isMaster 1									// Node is the Master (1) or Slave (0)
 #define CommonMode NRF_RADIO_MODE_BLE_LR125KBIT		// Common Mode
 #define CommonStartCH 37							// Common Start Channel
 #define CommonEndCH 39								// Common End Channel
@@ -48,19 +48,20 @@ along with P2P-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 #define ST_PARAM 30
 // Master: Publish Packets by Broadcasting with defined Settings ---- Slave: Listen for Packets with defined Settings.
 #define ST_PACKETS 40
-// Master: Listen for Reports. Save Downlink RSSI ---- Slave: Send Report in Random Timeslot. Sleep before and after.
-#define ST_REPORTS 50
+// Master: Send Report Request ---- Slave: Listen for a Report Request
+#define ST_REPORTS_REQ 50
+// Master: Listen for Reports.  ---- Slave: Send Report
+#define ST_REPORTS 60
 // Master: Time for Master to Publish the Reports to CLI  ---- Slave: Sleep
-#define ST_PUBLISH 60
+#define ST_PUBLISH 70
 // Timeslots for the Sates in ms. The Timesync has to be accurate enough. -> Optimized for 50 Nodes, 3 Channels and BLE LR125kBit
 #define ST_TIME_DISCOVERY_MS 300
 #define ST_TIME_MOCKUP_MS 1200
 #define ST_TIME_PARAM_MS 60
 #define ST_TIME_PACKETS_MS 2000 // Worst Case 40 CHs, Size 255 and BLE LR 125kBit -> ca. 2 Packets
-/* The Timeout of the Report State is calculatet at Runtime = CommonCHCnt * NodesCnt * (TimoutRepReqCHPkt_ms + PramCHCnt * TimoutRepCHPkt_ms). 
-A node's Report Timeout is calculatet at runtime = CH's *TimoutRepCHPkt_ms. */
-#define TimoutRepReqCHPkt_ms 10
-#define TimoutRepCHPkt_ms 5
+#define ST_TIME_REPORT_REQ_MS 30
+#define ST_TIME_REPORT_PKT_MS 5 /* A node's Report Timeout is calculatet at runtime = CHcnt *ST_TIME_REPORT_PKT_MS. */
+#define ST_TIME_REPORT_MASTER_SAVE_MS 10 
 #define ST_TIME_PUBLISH_MS 60
 // Margin for State Transition (Let the State Terminate)
 #define ST_TIME_MARGIN_MS 5
@@ -69,6 +70,7 @@ A node's Report Timeout is calculatet at runtime = CH's *TimoutRepCHPkt_ms. */
 #define MockupAddress 0x57855CC7
 #define ParamAddress 0x32C731E9
 #define PacketsAddress 0xF492A652
+#define ReportsReqAddress 0xC7B5A35D 
 #define ReportsAddress 0x37DAFC9D
 // Paramter Restrictions
 #define MaxNodesCnt 50
@@ -119,6 +121,7 @@ struct CHReportsPkt
 
 struct ChannelReport
 {
+	bool valid;
 	u8_t CH;
 	u16_t TxPkt_CNT;
 	u16_t CRCOK_CNT;
@@ -130,6 +133,7 @@ struct ChannelReport
 struct NodeReport
 {
 	u32_t LSB_MAC_Address;
+	u8_t RepCHcnt;
 	std::vector<ChannelReport> chrep;
 };
 
@@ -163,6 +167,13 @@ bool GotParam = false;
 std::vector<ChannelReport> chrep_local;
 
 ReportsReqPkt RepoReq_pkt_RX, RepoReq_pkt_TX = {};
+bool CHsGot[40];	   // Received Channels from a Node
+u8_t Nodeidx = 0;	   // Node Index
+u8_t NodeCHcnt = 0;    // Node had Channel Count
+bool ReportingDone = false;
+u8_t ReportingDoneCnt = 0;
+
+
 uint64_t ST_REPORTS_TIMEOUT_MS;
 uint64_t ST_NODE_CHANNEL_REPORT_TIMEOUT_MS;
 
@@ -276,9 +287,14 @@ static void ST_transition_cb(void)
 	{
 		currentState = ST_MOCKUP;
 	}
+	// Only Continue when at Least one Node is Found. Slaves continue anyway
 	else if (currentState == ST_MOCKUP)
 	{
-		currentState = ST_PARAM;
+		if ((isMaster && masrep.nodrep.size() != 0) || (!isMaster))
+			currentState = ST_PARAM;
+		else {
+			currentState = ST_DISCOVERY;
+		}
 	}
 	// Only Nodes who received the Param can continue.
 	else if ((currentState == ST_PARAM && isMaster) || (currentState == ST_PARAM && !isMaster && GotParam))
@@ -292,11 +308,29 @@ static void ST_transition_cb(void)
 	}
 	else if (currentState == ST_PACKETS)
 	{
+		currentState = ST_REPORTS_REQ;
+	}
+	else if (currentState == ST_REPORTS_REQ)
+	{
 		currentState = ST_REPORTS;
 	}
-	else if (currentState == ST_REPORTS)
+	// Master have to Report Reporting Done Flag for all CHannels
+	else if (currentState == ST_REPORTS && isMaster) 
 	{
+		if(ReportingDone && ReportingDoneCnt == CommonCHCnt){
 		currentState = ST_PUBLISH;
+		} else {
+			currentState = ST_REPORTS_REQ;
+		}
+	}
+	// Slaves who are finished can go over to Publish state
+	else if (currentState == ST_REPORTS && !isMaster)
+	{
+		if(ReportingDone){
+			currentState = ST_PUBLISH;
+		} else {
+			currentState = ST_REPORTS_REQ;
+		}
 	}
 	else if (currentState == ST_PUBLISH)
 	{
@@ -394,7 +428,7 @@ void ST_MOCKUP_fn(void)
 		}
 		else
 		{
-			if (!GotReportReq)
+			if ((!GotReportReq) || (!GotParam))
 			{				
 				k_sleep(K_MSEC(rand_32 % ((k_timer_remaining_get(&state_timer) / CHidx) - 10))); // Sleep Random Mockup Delay minus 10ms send Margin
 				simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&state_timer) / CHidx));
@@ -424,7 +458,7 @@ void ST_PARAM_fn(void)
 	radio_pkt_Tx.PDU = (u8_t *)&Param_pkt_TX;
 	ParamLocalBuf.NodesCnt = masrep.nodrep.size(); // Fix the NodesCnt
 	ParamLocal = ParamLocalBuf;					   // Copy the Params to be used
-	Param_pkt_TX = ParamLocal;	
+	Param_pkt_TX = ParamLocal;					// ParamLocal are the Same on Master and Slave
 	CHidx = CommonCHCnt;
 	/* Do work and keep track of Time Left */
 	for (int ch = CommonStartCH; ch <= CommonEndCH; ch++)
@@ -501,149 +535,148 @@ void ST_PACKETS_fn(void)
 	return;
 }
 
-void ST_REPORT_fn(void)
+
+void ST_REPORT_REQ_fn(u8_t CH,u8_t NodeIdx)
 {
 	/* start one shot timer that expires after Timeslot ms */
-	ST_NODE_CHANNEL_REPORT_TIMEOUT_MS = (ParamLocal.StopCH - ParamLocal.StartCH + 1) * TimoutRepCHPkt_ms + TimoutRepReqCHPkt_ms;
-	ST_REPORTS_TIMEOUT_MS = CommonCHCnt * ParamLocal.NodesCnt * ST_NODE_CHANNEL_REPORT_TIMEOUT_MS;
+	k_timer_start(&state_timer, K_MSEC(ST_TIME_REPORT_REQ_MS), K_MSEC(0));
+	synctimer_setSyncTimeCompareInt((synctimer_getSyncTime() + ST_TIME_REPORT_REQ_MS * 1000 + ST_TIME_MARGIN_MS * 1000), ST_transition_cb);
+	// Prepare Node Req
+	simple_nrf_radio.setMode(CommonMode);
+	simple_nrf_radio.setAA(ReportsReqAddress);
+	simple_nrf_radio.setTxP(CommonTxPower);
+	simple_nrf_radio.setCH(CH);
+	radio_pkt_Tx.length = sizeof(RepoReq_pkt_TX);
+	radio_pkt_Tx.PDU = (u8_t *)&RepoReq_pkt_TX;
+	radio_pkt_Rx.length = sizeof(RepoReq_pkt_RX);
+	radio_pkt_Rx.PDU = (u8_t *)&RepoReq_pkt_RX;
+	// Set Request MAC Address
+	if (NodeIdx < masrep.nodrep.size() && isMaster){
+		RepoReq_pkt_TX.LSB_MAC_Address = masrep.nodrep[NodeIdx].LSB_MAC_Address;
+	} else if (ReportingDone && isMaster){
+		RepoReq_pkt_TX.LSB_MAC_Address = ReportsDoneMACAddress;
+		ReportingDoneCnt++;
+	} 
+	while (k_timer_remaining_get(&state_timer) > 0){
+		if (isMaster){				
+			simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&state_timer))); // Burst Report Request 
+		} else {
+			s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, K_MSEC(k_timer_remaining_get(&state_timer))); //Wait for Report Request
+			if (ret > 0){
+				if (((ReportsReqPkt *)radio_pkt_Rx.PDU)->LSB_MAC_Address == LSB_MAC_Address){
+					GotReportReq = true; // Set Flag that a Report Req for this Node was received
+					break;
+				} else if (((ReportsReqPkt *)radio_pkt_Rx.PDU)->LSB_MAC_Address == ReportsDoneMACAddress){
+					ReportingDone = true; // Set Flag that the Reporting is Done
+					break;
+				}
+			}
+		}
+	}
+	k_sleep(K_MSEC(k_timer_remaining_get(&state_timer))); // Wait for the Next State too keep Timesync
+	return;	
+}
+
+void ST_REPORT_fn(u8_t CH,u8_t NodeIdx)
+{
+	/* start one shot timer that expires after Timeslot ms */
+	ST_REPORTS_TIMEOUT_MS = (ParamLocal.StopCH - ParamLocal.StartCH + 1) * ST_TIME_REPORT_PKT_MS;
 	k_timer_start(&state_timer, K_MSEC(ST_REPORTS_TIMEOUT_MS), K_MSEC(0));
-	synctimer_setSyncTimeCompareInt((synctimer_getSyncTime() + ST_REPORTS_TIMEOUT_MS * 1000 + ST_TIME_MARGIN_MS * 1000), ST_transition_cb);
-	/* init */
+	synctimer_setSyncTimeCompareInt((synctimer_getSyncTime() + ST_REPORTS_TIMEOUT_MS * 1000 + ST_TIME_MARGIN_MS * 1000 + ST_TIME_REPORT_MASTER_SAVE_MS * 1000), ST_transition_cb);
+	// Prepare Node Report
 	simple_nrf_radio.setMode(CommonMode);
 	simple_nrf_radio.setAA(ReportsAddress);
 	simple_nrf_radio.setTxP(CommonTxPower);
-	bool CHsGot[40];	   // Received Channels from a Node
-	std::fill_n(CHsGot, sizeof(CHsGot), false); // Clear Got Channels array
-	u8_t Nodeidx = 0;	   // Node Index
-	u8_t CHidx = 0;		   // Channel Index
-	bool NodeDone = false; // Node Done Flag
-	u8_t NodeHadCHcnt = 1; // Counter to keep on with how many tries a node had on the Channels. Do Next If the Counter is equal to the number of Common Channels
-	if (!(masrep.nodrep.size() == 0))
-	{
-		RepoReq_pkt_TX.LSB_MAC_Address = masrep.nodrep[Nodeidx].LSB_MAC_Address; // Prepare first Node
+	simple_nrf_radio.setCH(CH);
+	radio_pkt_Tx.length = sizeof(Repo_pkt_TX);
+	radio_pkt_Tx.PDU = (u8_t *)&Repo_pkt_TX;
+	radio_pkt_Rx.length = sizeof(Repo_pkt_RX);
+	radio_pkt_Rx.PDU = (u8_t *)&Repo_pkt_RX;
+	// Check if Reporting Done
+	if (Nodeidx == ParamLocal.NodesCnt || ReportingDone){
+		// Increase Channel IDX
+		CHidx++;
+		if (CHidx == CommonCHCnt){CHidx = 0;}
+		k_sleep(K_MSEC(k_timer_remaining_get(&state_timer))); // Wait for the Next State too keep Timesync
+		return;	
 	}
-	GotReportReq = false; // Reset Got Request Flag
-	if (isMaster)
-	{
-		radio_pkt_Tx.length = sizeof(RepoReq_pkt_TX);
-		radio_pkt_Tx.PDU = (u8_t *)&RepoReq_pkt_TX;
-		radio_pkt_Rx.length = sizeof(Repo_pkt_RX);
-		radio_pkt_Rx.PDU = (u8_t *)&Repo_pkt_RX;
-	}
-	else
-	{
-		radio_pkt_Rx.length = sizeof(RepoReq_pkt_RX);
-		radio_pkt_Rx.PDU = (u8_t *)&RepoReq_pkt_RX;
-		radio_pkt_Tx.length = sizeof(Repo_pkt_TX);
-		radio_pkt_Tx.PDU = (u8_t *)&Repo_pkt_TX;
-	}
-	/* Do work and keep track of Time Left */
-	while (k_timer_remaining_get(&state_timer) > 0)
-	{
-		// Do each Channel. Each Node Has at least three Chances to Transmit the Reports
-		for (int ch = CommonStartCH; ch <= CommonEndCH; ch++)
-		{
-			simple_nrf_radio.setCH(ch);
-			k_timer_start(&state_timer2, K_MSEC(ST_NODE_CHANNEL_REPORT_TIMEOUT_MS), K_MSEC(0));
-			if (isMaster)
-			{
-				simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&state_timer2))); // Send Report Request
-				while ((k_timer_remaining_get(&state_timer2) > 0))
-				{
-					if (!(RepoReq_pkt_TX.LSB_MAC_Address == ReportsDoneMACAddress))
-					{
-						s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, K_MSEC(k_timer_remaining_get(&state_timer2))); // Wait for Reports
-						if (ret > 0)
-						{ // Check that Channel wasnt allready received
-							if (CHsGot[((CHReportsPkt *)radio_pkt_Rx.PDU)->CH] == false)
-							{
-								masrep.nodrep[Nodeidx].chrep.push_back({((CHReportsPkt *)radio_pkt_Rx.PDU)->CH,
-																		chrep_local[((CHReportsPkt *)radio_pkt_Rx.PDU)->CH].TxPkt_CNT,
-																		((CHReportsPkt *)radio_pkt_Rx.PDU)->CRCOK_CNT,
-																		((CHReportsPkt *)radio_pkt_Rx.PDU)->CRCERR_CNT,
-																		((CHReportsPkt *)radio_pkt_Rx.PDU)->Avg_SIG_RSSI,
-																		((CHReportsPkt *)radio_pkt_Rx.PDU)->Avg_NOISE_RSSI});
-								CHsGot[((CHReportsPkt *)radio_pkt_Rx.PDU)->CH] = true;
-							}
-							if (masrep.nodrep[Nodeidx].chrep.size() == chrep_local.size())
-							{
-								NodeDone = true;
-								break;
-							}
-						}
-					}
-					else
-					{
-						simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&state_timer2))); // Send Report Done Bursts
-					}
+	while (k_timer_remaining_get(&state_timer) > 0){
+		if (isMaster){	
+			s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, K_MSEC(k_timer_remaining_get(&state_timer))); // Wait for Reports
+			if (ret > 0){
+				if(chrep_local[((CHReportsPkt *)radio_pkt_Rx.PDU)->CH].valid == false){ // Check that Channel wasnt allready received
+					chrep_local[((CHReportsPkt *)radio_pkt_Rx.PDU)->CH].CH = ((CHReportsPkt *)radio_pkt_Rx.PDU)->CH;
+					chrep_local[((CHReportsPkt *)radio_pkt_Rx.PDU)->CH].Avg_NOISE_RSSI = ((CHReportsPkt *)radio_pkt_Rx.PDU)->Avg_NOISE_RSSI;
+					chrep_local[((CHReportsPkt *)radio_pkt_Rx.PDU)->CH].Avg_SIG_RSSI = ((CHReportsPkt *)radio_pkt_Rx.PDU)->Avg_SIG_RSSI;
+					chrep_local[((CHReportsPkt *)radio_pkt_Rx.PDU)->CH].CRCOK_CNT = ((CHReportsPkt *)radio_pkt_Rx.PDU)->CRCOK_CNT;
+					chrep_local[((CHReportsPkt *)radio_pkt_Rx.PDU)->CH].valid = true;
 				}
-				if (NodeDone || NodeHadCHcnt == CommonCHCnt)
-				{
-					NodeDone = false;							//Clear Node Done Flag
-					NodeHadCHcnt = 1;							// Clear CHCnt
-					std::fill_n(CHsGot, sizeof(CHsGot), false); // Clear Got Channels array
-					if (RepoReq_pkt_TX.LSB_MAC_Address == ReportsDoneMACAddress)
-					{
-						return; // When  transmittedNode done exit
-					}
-					if (Nodeidx == (masrep.nodrep.size() - 1))
-					{
-						RepoReq_pkt_TX.LSB_MAC_Address = ReportsDoneMACAddress; // All Nodes Done :)
-					}
-					else
-					{
-						Nodeidx++;																 // Do Next Node ...
-						RepoReq_pkt_TX.LSB_MAC_Address = masrep.nodrep[Nodeidx].LSB_MAC_Address; // Do next Node
-					}
+			}			
+		} else {
+			if (GotReportReq){
+				for (u8_t i = 0; i <= chrep_local.size();i++){
+					Repo_pkt_TX.CH = chrep_local[i].CH;
+					Repo_pkt_TX.Avg_NOISE_RSSI = chrep_local[i].Avg_NOISE_RSSI;
+					Repo_pkt_TX.Avg_SIG_RSSI = chrep_local[i].Avg_SIG_RSSI;
+					Repo_pkt_TX.CRCOK_CNT = chrep_local[i].CRCOK_CNT;
+					Repo_pkt_TX.CRCERR_CNT = chrep_local[i].CRCERR_CNT;
+					simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&state_timer))); // Burst Reports 
+					k_sleep(K_MSEC(1)); // Let the Master finish Reception
 				}
-				else
-				{
-					NodeHadCHcnt++;
-				}
-				k_sleep(K_MSEC(k_timer_remaining_get(&state_timer2))); // Wait for the Next State too keep Timesync with Slaves
-				// Slave Code
+			} else {
+				k_sleep(K_MSEC(k_timer_remaining_get(&state_timer))); // Wait for the Next State too keep Timesync
 			}
-			else
+		}
+	}
+	k_timer_start(&state_timer, K_MSEC(ST_TIME_REPORT_MASTER_SAVE_MS), K_MSEC(0));
+	if (isMaster){// Check that all Channels are received.
+		bool allValid = true;
+		for (u8_t i = 0; i < chrep_local.size(); i++)
+		{
+			if (chrep_local[i].valid == false){
+				allValid = false;
+				break;
+			}
+		}
+		masrep.nodrep[Nodeidx].RepCHcnt++; // Increase Report Channel Counter
+		if(masrep.nodrep[Nodeidx].RepCHcnt == CommonCHCnt || allValid){
+			// Fill up Masterreport
+			masrep.nodrep[Nodeidx].chrep.clear();
+			for (u8_t i = 0; i < chrep_local.size(); i++)
 			{
-				s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, K_MSEC(k_timer_remaining_get(&state_timer2))); //Wait for Report Request
-				if (ret > 0)
-				{
-					if (((ReportsReqPkt *)radio_pkt_Rx.PDU)->LSB_MAC_Address == LSB_MAC_Address)
-					{
-						GotReportReq = true; // Set Flag that a Report Req for this Node was received
-						CHidx = 0;
-						// Burst out all available Channel Reports
-						while (k_timer_remaining_get(&state_timer) > 0)
-						{
-							Repo_pkt_TX.CH = chrep_local[CHidx].CH;
-							Repo_pkt_TX.Avg_NOISE_RSSI = chrep_local[CHidx].Avg_NOISE_RSSI;
-							Repo_pkt_TX.Avg_SIG_RSSI = chrep_local[CHidx].Avg_SIG_RSSI;
-							Repo_pkt_TX.CRCOK_CNT = chrep_local[CHidx].CRCOK_CNT;
-							Repo_pkt_TX.CRCERR_CNT = chrep_local[CHidx].CRCERR_CNT;
-							simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&state_timer2))); // Send Channel Report
-							if (CHidx == (chrep_local.size() - 1))
-							{
-								break;
-							}
-							else
-							{
-								CHidx++;
-							}
-						}
-						k_sleep(K_MSEC(k_timer_remaining_get(&state_timer2))); // If there is time left sleep to keep Timesync
-					}
-					else if (((ReportsReqPkt *)radio_pkt_Rx.PDU)->LSB_MAC_Address == ReportsDoneMACAddress)
-					{
-						return; // Reporting Done
-					}
-					else
-					{
-						k_sleep(K_MSEC(k_timer_remaining_get(&state_timer2))); // Wait for the Other Node to Finsih Reporting
-					}
+				if (chrep_local[i].valid == true){
+					masrep.nodrep[Nodeidx].chrep.push_back({chrep_local[i]});
 				}
-			} // End Slave
-		}	  // End Channel
-	}		  // End Reporting
+			}
+			// Check if any valid Data was Received from Node and Remove Node if not
+			if(masrep.nodrep[Nodeidx].chrep.size() == 0){
+				// Didnt Received anything from Node... delete it from Nodelist
+				masrep.nodrep.erase(masrep.nodrep.begin()+Nodeidx);
+				ParamLocal.NodesCnt--;
+				Nodeidx--; //Decrement Node index
+			}
+			// Do Next Node...
+			Nodeidx++;
+			if (Nodeidx < masrep.nodrep.size()){
+				masrep.nodrep[Nodeidx].RepCHcnt = 0; // Init Node CHcnt	
+			} else { 
+				ReportingDone = true;
+			}
+		}	
+	} else {
+		// Do a Savety Point for the Slave to Prevente get Stuck
+		if (CHidx == CommonCHCnt-1){
+			Nodeidx++;
+		}
+		if (Nodeidx == ParamLocal.NodesCnt){
+			ReportingDone = true;
+		}
+	}
+	// Increase Channel IDX
+	CHidx++;
+	if (CHidx == CommonCHCnt){CHidx = 0;}
+	k_sleep(K_MSEC(k_timer_remaining_get(&state_timer))); // Wait for the Next State too keep Timesync
+	return;	
 }
 
 void ST_PUBLISH_fn(void)
@@ -703,13 +736,24 @@ void main(void)
 			break;
 		case ST_PACKETS:
 			ST_PACKETS_fn();
+			/* Init the Reporting */
+			ReportingDone = false;
+			GotReportReq = false;
+			CHidx = 0; // Init CHannel Index
+			Nodeidx = 0; // Init Node Index
+			if (isMaster){
+				masrep.nodrep[Nodeidx].RepCHcnt = 0; // Init Node CHcnt	
+			}
+			ReportingDoneCnt = 0; // init Reporting Done Counter
 			k_sleep(K_MSEC(ST_TIME_PACKETS_MS + ST_TIME_MARGIN_MS + 10)); // Ready for the Next State. Extra Margin of 10ms to prevent reentry in case of delayed TimerInterrupt.
 			break;
-		case ST_REPORTS:		
-			stpw.start();
-			ST_REPORT_fn();			
-			stpw.stop();
-			// Ready for the Next State. Timesync is given up from now on. Do this in the Discovery State. -> This is done because of Performance Reasons
+		case ST_REPORTS_REQ:
+			ST_REPORT_REQ_fn(CHidx,Nodeidx);	
+			k_sleep(K_MSEC(ST_TIME_REPORT_REQ_MS + ST_TIME_MARGIN_MS + 10)); // Ready for the Next State. Extra Margin of 10ms to prevent reentry in case of delayed TimerInterrupt.
+			break;
+		case ST_REPORTS:
+			ST_REPORT_fn(CHidx,Nodeidx);	
+			k_sleep(K_MSEC(ST_REPORTS_TIMEOUT_MS + ST_TIME_MARGIN_MS + 10)); // Ready for the Next State. Extra Margin of 10ms to prevent reentry in case of delayed TimerInterrupt.
 			break;
 		case ST_PUBLISH:
 			ST_PUBLISH_fn();
