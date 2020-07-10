@@ -100,9 +100,8 @@ public:
 	 * Send a Payload
 	 *
 	 * @param tx_pkt Radio Paket to Send
-	 * @param timeout Waittimeout in ms for a packet to be sent
 	 */
-	void Send(RADIO_PACKET tx_pkt, k_timeout_t timeout);
+	void Send(RADIO_PACKET tx_pkt);
 	/**
 	 * Burst send out the same packet till timeout
 	 *

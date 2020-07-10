@@ -27,7 +27,7 @@ along with P2P-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 #include "Timer_sync.h"
 
 /* ------------- Definitions --------------*/
-#define isMaster 1									// Node is the Master (1) or Slave (0)
+#define isMaster 0									// Node is the Master (1) or Slave (0)
 #define CommonMode NRF_RADIO_MODE_BLE_LR125KBIT		// Common Mode
 #define CommonStartCH 37							// Common Start Channel
 #define CommonEndCH 39								// Common End Channel
@@ -369,7 +369,7 @@ void ST_DISCOVERY_fn(void)
 			{
 				Disc_pkt_TX.MockupTimestamp = MockupTS;
 				Disc_pkt_TX.LastTxTimestamp = synctimer_getTxTimeStamp();
-				simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&state_timer) / CHidx));
+				simple_nrf_radio.Send(radio_pkt_Tx);
 			}
 			else
 			{
@@ -431,7 +431,7 @@ void ST_MOCKUP_fn(void)
 			if ((!GotReportReq) || (!GotParam))
 			{				
 				k_sleep(K_MSEC(rand_32 % ((k_timer_remaining_get(&state_timer) / CHidx) - 10))); // Sleep Random Mockup Delay minus 10ms send Margin
-				simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&state_timer) / CHidx));
+				simple_nrf_radio.Send(radio_pkt_Tx);
 			}
 			else
 			{
@@ -468,7 +468,7 @@ void ST_PARAM_fn(void)
 		{
 			if (isMaster)
 			{
-				simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&state_timer) / CHidx));
+				simple_nrf_radio.Send(radio_pkt_Tx);
 			}
 			else
 			{
@@ -558,8 +558,9 @@ void ST_REPORT_REQ_fn(u8_t CH,u8_t NodeIdx)
 		ReportingDoneCnt++;
 	} 
 	while (k_timer_remaining_get(&state_timer) > 0){
-		if (isMaster){				
-			simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&state_timer))); // Burst Report Request 
+		if (isMaster){	
+			//k_sleep(K_MSEC(5));			
+			simple_nrf_radio.Send(radio_pkt_Tx); // Burst Report Request 
 		} else {
 			s32_t ret = simple_nrf_radio.Receive(&radio_pkt_Rx, K_MSEC(k_timer_remaining_get(&state_timer))); //Wait for Report Request
 			if (ret > 0){
@@ -620,7 +621,7 @@ void ST_REPORT_fn(u8_t CH,u8_t NodeIdx)
 					Repo_pkt_TX.Avg_SIG_RSSI = chrep_local[i].Avg_SIG_RSSI;
 					Repo_pkt_TX.CRCOK_CNT = chrep_local[i].CRCOK_CNT;
 					Repo_pkt_TX.CRCERR_CNT = chrep_local[i].CRCERR_CNT;
-					simple_nrf_radio.Send(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&state_timer))); // Burst Reports 
+					simple_nrf_radio.Send(radio_pkt_Tx); // Burst Reports 
 					k_sleep(K_MSEC(1)); // Let the Master finish Reception
 				}
 			} else {

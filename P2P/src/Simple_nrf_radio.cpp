@@ -120,9 +120,8 @@ int Simple_nrf_radio::RSSI(u8_t cycles)
 	 * Send a Payload
 	 *
 	 * @param tx_pkt Radio Paket to Send
-	 * @param timeout Waittimeout in ms for a packet to be sent
 	 */
-void Simple_nrf_radio::Send(RADIO_PACKET tx_pkt, k_timeout_t timeout)
+void Simple_nrf_radio::Send(RADIO_PACKET tx_pkt)
 {
     radio_disable(); // Disable the Radio
     /* Setup Paket */
@@ -146,12 +145,16 @@ void Simple_nrf_radio::Send(RADIO_PACKET tx_pkt, k_timeout_t timeout)
         tx_buf_len = tx_pkt_aligned.length + sizeof(tx_pkt_aligned.length); // Save the Size of the tx_buf
     }
     nrf_radio_packetptr_set(NRF_RADIO, tx_buf);
-    nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_END);                                                                                         // Clear END Event
-    nrf_radio_int_enable(NRF_RADIO, NRF_RADIO_INT_END_MASK);                                                                                       // Enable END Event interrupt
-    ISR_Thread_ID = k_current_get();                                                                                                               // Set Interrupt Thread to wakeup
+    //nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_END);                                                                                         // Clear END Event
+    //nrf_radio_int_enable(NRF_RADIO, NRF_RADIO_INT_END_MASK);                                                                                       // Enable END Event interrupt
+    //ISR_Thread_ID = k_current_get();                                                                                                               // Set Interrupt Thread to wakeup
     nrf_radio_shorts_enable(NRF_RADIO, NRF_RADIO_SHORT_READY_START_MASK | NRF_RADIO_SHORT_END_DISABLE_MASK | NRF_RADIO_SHORT_PHYEND_DISABLE_MASK); // Start after Ready and Disable after END or PHY-End
     nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_TXEN);
-    k_sleep(timeout); // Wait for interrupt
+    while (!nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_DISABLED)){
+        k_sleep(K_MSEC(1));
+    }
+    //if (timeout.ticks < K_MSEC(1).ticks){timeout = K_MSEC(1);} //Prevent from Zero Timeout...
+    //k_sleep(timeout); // Wait for interrupt
     radio_disable();
 }
 /**
