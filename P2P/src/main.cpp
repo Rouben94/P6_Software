@@ -29,7 +29,7 @@ using namespace std;
 
 /* ------------- Definitions --------------*/
 #define isMaster 0								  // Node is the Master (1) or Slave (0)
-#define CommonMode NRF_RADIO_MODE_BLE_LR125KBIT	  // Common Mode
+#define CommonMode NRF_RADIO_MODE_BLE_1MBIT	  // Common Mode
 #define CommonStartCH 37						  // Common Start Channel
 #define CommonEndCH 39							  // Common End Channel
 #define MSB_MAC_Address 0xF4CE					  // MSB of MAC for Nordic Semi Vendor

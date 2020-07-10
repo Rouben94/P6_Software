@@ -296,7 +296,7 @@ void Simple_nrf_radio::setMode(nrf_radio_mode_t m)
     // Set the desired Radio Mode
     nrf_radio_mode_set(NRF_RADIO, m);
     // Disable Fast Ramp Up (no TIFS) and set Tx Default mode to Center
-    nrf_radio_modecnf0_set(NRF_RADIO, false, RADIO_MODECNF0_DTX_Center);
+    nrf_radio_modecnf0_set(NRF_RADIO, true, RADIO_MODECNF0_DTX_Center);
     // CRC16-CCITT Conform
     nrf_radio_crc_configure(NRF_RADIO, RADIO_CRCCNF_LEN_Three, NRF_RADIO_CRC_ADDR_SKIP, 0x00065B);
     nrf_radio_crcinit_set(NRF_RADIO, 0x555555);
@@ -327,7 +327,7 @@ void Simple_nrf_radio::setMode(nrf_radio_mode_t m)
         packet_conf.cilen = 2;                                   // Length of code indicator (Bits) - long range
         packet_conf.termlen = 3;                                 // Length of TERM field (Bits) in Long Range operation
         // Enable Fast Ramp Up (no TIFS) and set Tx Defalut mode to Center
-        nrf_radio_modecnf0_set(NRF_RADIO, false, RADIO_MODECNF0_DTX_Center);
+        nrf_radio_modecnf0_set(NRF_RADIO, true, RADIO_MODECNF0_DTX_Center);
         // CRC24-Bit
         nrf_radio_crc_configure(NRF_RADIO, RADIO_CRCCNF_LEN_Three, NRF_RADIO_CRC_ADDR_SKIP, 0x1021AB);
         break;
