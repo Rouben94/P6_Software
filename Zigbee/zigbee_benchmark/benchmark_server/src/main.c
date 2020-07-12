@@ -168,13 +168,9 @@ typedef struct
 	bool data_size;
 } bm_message_info;
 
-K_THREAD_STACK_DEFINE(bm_stack_area, BM_STACK_SIZE);
-struct k_thread bm_thread_data;
-//static void bm_send_message(void *arg1, void *arg2, void *arg3);
 void bm_save_message_info(bm_message_info message);
 static void bm_receive_message(zb_uint8_t param);
-//static void bm_zigbee_receive_message(void *arg1, void *arg2, void *arg3);
-k_tid_t bm_thread;
+
 zb_uint16_t bm_message_info_nr = 0;
 char ieee_addr_buf[17] = {0};
 int addr_len;
@@ -396,8 +392,6 @@ static void bulb_clusters_attr_init(void)
 static void add_group_id_cb(zb_bufid_t bufid)
 {
 	zb_ieee_addr_t ieee_addr;
-	//char ieee_addr_buf[17] = {0};
-	//int addr_len;
 	zb_get_long_address(ieee_addr);
 	addr_len = ieee_addr_to_str(ieee_addr_buf, sizeof(ieee_addr_buf), ieee_addr);
 
@@ -419,36 +413,6 @@ void bm_save_message_info(bm_message_info message)
 	message_info[bm_message_info_nr] = message;
 	bm_message_info_nr++;
 }
-
-/* static void bm_zigbee_receive_message(void *arg1, void *arg2, void *arg3)
-{
-	bm_message_info message;
-	s64_t time_stamp;
-	zb_uint8_t new_level;
-
-	//zb_ieee_addr_t ieee_addr;
-	zb_uint16_t short_addr;
-	zb_uint8_t lqi;
-	zb_uint8_t rssi = 0;
-
-	zb_get_long_address(message.dst_addr);
-	short_addr = zb_address_short_by_ieee(message.dst_addr);
-	zb_zdo_get_diag_data(short_addr, &lqi, &rssi);
-	message.RSSI = rssi;
-	LOG_INF("RSSI: %d from node: %d", message.RSSI, short_addr);
-
-	message.number_of_hops = 0;
-	message.data_size = 0;
-	message.group_addr = GROUP_ID;
-	message.message_id = device_cb_param->cb_param.level_control_set_value_param.new_value;
-	new_level = message.message_id;
-	time_stamp = ZB_TIME_BEACON_INTERVAL_TO_MSEC(ZB_TIMER_GET());
-
-	level_control_set_value(new_level);
-	LOG_INF("Level control setting to %d, TimeStamp: %llu, MessageID: %d", new_level, time_stamp, message.message_id);
-
-	bm_save_message_info(message);
-} */
 
 /* TODO: Description */
 static void bm_receive_message(zb_uint8_t bufid)
@@ -482,7 +446,12 @@ static void bm_receive_message(zb_uint8_t bufid)
 	bm_save_message_info(message);
 }
 
-static zb_uint8_t bm_zcl_handler(zb_uint8_t bufid)
+/**@brief Callback function for handling custom ZCL commands.
+ *
+ * @param[in]   bufid   Reference to Zigbee stack buffer
+ *                      used to pass received data.
+ */
+static zb_uint8_t bm_zcl_handler(zb_bufid_t bufid)
 {
 	zb_zcl_parsed_hdr_t cmd_info;
 
@@ -501,7 +470,7 @@ static zb_uint8_t bm_zcl_handler(zb_uint8_t bufid)
 	return ZB_FALSE;
 }
 
-/**@brief Callback function for handling ZCL commands.
+/**@brief Callback function for handling standard ZCL commands.
  *
  * @param[in]   bufid   Reference to Zigbee stack buffer
  *                      used to pass received data.
