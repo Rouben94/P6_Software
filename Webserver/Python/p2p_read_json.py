@@ -1,42 +1,39 @@
-import serial, multiprocessing, time, re, json
+import serial
+import threading 
+from time import sleep
+import re 
+import json
 
-serialPort = serial.Serial(port="COM9", baudrate=115200, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
-serialString = ""
-
-bm_message_list = []
-bm_time_list = []
+serial_port = serial.Serial(port="COM9", baudrate=115200, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
 
 def bm_start(time):
     serial_command = "benchmark_start {}\n"
-    serialPort.write(bytes(serial_command.format(time).encode('Ascii')))
+    serial_port.write(bytes(serial_command.format(time).encode('Ascii')))
 
-bm_time = float(input("Benchmark Zeit:"))
-close_time = time.time() + bm_time
+def scan():
+    serial_command = "scan\n"
+    serial_port.write(bytes(serial_command.encode('Ascii')))
 
-while(1):
-    close_time2 = time.time() + 12.0
-    bm_start(10000)
-
+def read():
     while(1):
         # Wait until there is data waiting in the serial buffer
-        if(serialPort.in_waiting > 0):
-            # Read data out of the buffer until a carraige return / new line is found
-            serialString = serialPort.readline().decode('Ascii')
+        if(serial_port.in_waiting > 0):
+            serialString = serial_port.readline().decode('Ascii')
+            print(serialString)
 
-            # Print the contents of the serial data
-            if "ID" in serialString:
-                result = re.findall(r"\d+", serialString)
-                if result[0] in bm_message_list:
-                    bm_time_list.append(abs(int(result[1])-int(bm_message_list[bm_message_list.index(result[0])+1])))
-                else:
-                    bm_message_list.append(result[0])
-                    bm_message_list.append(result[1])
-        
-        if time.time()>close_time2:
-            bm_message_list.clear()
-            print(bm_time_list)
-            break
-    
-    if time.time()>close_time:
-        bm_time_list.clear
-        break
+def write():
+    while(1):
+        input()
+        #bm_start(time)
+        scan()
+        sleep(0.2)
+
+if __name__ == "__main__":
+    t_read = threading.Thread(target=read)
+    t_write = threading.Thread(target=write)
+
+    if serial_port.isOpen(): serial_port.close()
+    serial_port.open()
+
+    t_read.start()
+    t_write.start()
