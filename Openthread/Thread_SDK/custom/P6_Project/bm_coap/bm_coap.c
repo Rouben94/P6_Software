@@ -29,6 +29,7 @@
 
 #define NUMBER_OF_IP6_GROUPS 25
 #define DATA_SIZE 1024
+#define HOP_LIMIT_DEFAULT 64
 
 
 /**@brief Structure holding CoAP status information. */
@@ -274,6 +275,8 @@ void bm_coap_results_send(bm_message_info message_info)
 
         memset(&messafe_info, 0, sizeof(messafe_info));
         messafe_info.mPeerPort = OT_DEFAULT_COAP_PORT;
+        messafe_info.mAllowZeroHopLimit = false;
+        messafe_info.mHopLimit = HOP_LIMIT_DEFAULT;
         memcpy(&messafe_info.mPeerAddr, &bm_master_address, sizeof(messafe_info.mPeerAddr));
         
         error = otCoapSendRequest(p_instance, p_request, &messafe_info, NULL, p_instance);
@@ -341,7 +344,7 @@ void bm_coap_multicast_start_send(bm_master_message message)
     otError       error = OT_ERROR_NONE;
     otMessage   * p_request;
     otMessageInfo message_info;
-    const char  * p_scope = NULL;
+    const char  * p_scope = "ff03::1"; // FTDs and MTDs Mesh-Local
     otInstance  * p_instance = thread_ot_instance_get();
 
     do
@@ -367,10 +370,10 @@ void bm_coap_multicast_start_send(bm_master_message message)
             break;
         }
 
-        p_scope = "ff03::1";
-
         memset(&message_info, 0, sizeof(message_info));
         message_info.mPeerPort = OT_DEFAULT_COAP_PORT;
+        message_info.mAllowZeroHopLimit = false;
+        message_info.mHopLimit = HOP_LIMIT_DEFAULT;
 
         error = otIp6AddressFromString(p_scope, &message_info.mPeerAddr);
         ASSERT(error == OT_ERROR_NONE);
@@ -445,7 +448,7 @@ static void bm_probe_message_handler(void                 * p_context,
 
         message.RSSI = otMessageGetRss(p_message);
         message.message_id = otCoapMessageGetMessageId(p_message);
-        message.number_of_hops = 5; //otMessageGetHops(p_message);
+        message.number_of_hops = (HOP_LIMIT_DEFAULT - p_message_info->mHopLimit);
 
         if (otMessageRead(p_message, otMessageGetOffset(p_message), &bm_probe, sizeof(bm_probe)) == 1)
         {
@@ -511,7 +514,7 @@ void bm_coap_probe_message_send(uint8_t state)
 
         error = otCoapMessageSetPayloadMarker(p_request);
         ASSERT(error == OT_ERROR_NONE);
-
+        
         otCoapMessageInit(p_request, OT_COAP_TYPE_NON_CONFIRMABLE, OT_COAP_CODE_PUT); //Hier für ACK
         otCoapMessageGenerateToken(p_request, 2);
         UNUSED_VARIABLE(otCoapMessageAppendUriPathOptions(p_request, "bm_test"));
@@ -535,13 +538,17 @@ void bm_coap_probe_message_send(uint8_t state)
 
         memset(&messafe_info, 0, sizeof(messafe_info));
         messafe_info.mPeerPort = OT_DEFAULT_COAP_PORT;
+        messafe_info.mAllowZeroHopLimit = false;
+        messafe_info.mHopLimit = HOP_LIMIT_DEFAULT;
         memcpy(&messafe_info.mPeerAddr, &bm_group_address, sizeof(messafe_info.mPeerAddr));
-
+                 
         error = otCoapSendRequest(p_instance, p_request, &messafe_info, NULL, p_instance);
 
         message.message_id = otCoapMessageGetMessageId(p_request);
         bm_save_message_info(message);
     } while (false);
+
+    
 
     if (error != OT_ERROR_NONE && p_request != NULL)
     {
@@ -570,7 +577,7 @@ void thread_coap_utils_init(const thread_coap_utils_configuration_t * p_config)
     if (m_config.coap_server_enabled)
     {
         m_bm_test_resource.mContext = p_instance;
-        error = otCoapAddResource(p_instance, &m_bm_test_resource);
+        otCoapAddResource(p_instance, &m_bm_test_resource);
         ASSERT(error == OT_ERROR_NONE);
 
         error = otIp6SubscribeMulticastAddress(thread_ot_instance_get(), &bm_group_address);
@@ -580,14 +587,14 @@ void thread_coap_utils_init(const thread_coap_utils_configuration_t * p_config)
     if (m_config.coap_client_enabled || m_config.coap_server_enabled)
     {
         m_bm_start_resource.mContext    = p_instance;
-        error = otCoapAddResource(p_instance, &m_bm_start_resource);
+        otCoapAddResource(p_instance, &m_bm_start_resource);
         ASSERT(error == OT_ERROR_NONE);
     }
 
     if (!m_config.coap_client_enabled || !m_config.coap_server_enabled)
     {
         m_bm_result_resource.mContext   = p_instance;
-        error = otCoapAddResource(p_instance, &m_bm_result_resource);
+        otCoapAddResource(p_instance, &m_bm_result_resource);
         ASSERT(error == OT_ERROR_NONE);
     }
 }

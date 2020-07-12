@@ -237,6 +237,9 @@ void thread_init(const thread_configuration_t * p_config)
         error = otIp6SetEnabled(mp_ot_instance, true);
         ASSERT(error == OT_ERROR_NONE);
 
+        //Für Multicast
+        //otIp6SetMulticastPromiscuousEnabled(mp_ot_instance, true);
+
         if (otDatasetIsCommissioned(mp_ot_instance) || p_config->autocommissioning)
         {
             error = otThreadSetEnabled(mp_ot_instance, true);

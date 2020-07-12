@@ -69,13 +69,9 @@
 #define SCHED_QUEUE_SIZE      32                              /**< Maximum number of events in the scheduler queue. */
 #define SCHED_EVENT_DATA_SIZE APP_TIMER_SCHED_EVENT_DATA_SIZE /**< Maximum app_scheduler event size. */
 
-
-
 //#define BM_MASTER
 //#define BM_CLIENT
 #define BM_SERVER
-
-
 
 #ifdef BM_CLIENT
 bool toggle_data_size = true;
@@ -234,7 +230,6 @@ static void thread_instance_init(void)
     {
         .radio_mode        = THREAD_RADIO_MODE_RX_ON_WHEN_IDLE,
         .autocommissioning = true,
-        .autostart_disable = false
     };
 
     thread_init(&thread_configuration);
