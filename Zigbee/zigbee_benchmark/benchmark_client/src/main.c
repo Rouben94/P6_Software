@@ -31,6 +31,8 @@
 #define BM_STACK_SIZE 500					 /* Benchmark Stack Size */
 #define BM_THREAD_PRIO 5					 /* Benchmark Thread Priority */
 #define GROUP_ID 0xB331						 /* Group ID to send Benchmark message to.*/
+#define BENCHMARK_CLIENT_ENDPOINT 1			 /* ZCL Endpoint of the Benchmark Client */
+#define BENCHMARK_SERVER_ENDPOINT 10		 /* ZCL Endpoint of the Benchmark Server */
 #define BUTTON_BENCHMARK DK_BTN4_MSK		 /* Button ID used to start Benchmark Message. */
 #define LIGHT_SWITCH_ENDPOINT 1				 /* Source endpoint used to control light bulb. */
 #define ERASE_PERSISTENT_CONFIG ZB_FALSE	 /* Do not erase NVRAM to save the network parameters after device reboot or    \
@@ -102,8 +104,9 @@ ZB_HA_DECLARE_DIMMER_SWITCH_CTX(dimmer_switch_ctx, dimmer_switch_ep);
 /* Struct for benchmark message information */
 typedef struct
 {
-	zb_uint16_t dst_addr;
+	zb_ieee_addr_t dst_addr;
 	zb_ieee_addr_t src_addr;
+	zb_uint16_t group_addr;
 	zb_uint64_t net_time;
 	zb_uint16_t number_of_hops;
 	zb_uint16_t message_id;
@@ -236,16 +239,16 @@ static void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t level)
 	ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
 												group_id,
 												ZB_APS_ADDR_MODE_16_GROUP_ENDP_NOT_PRESENT,
-												0,
-												LIGHT_SWITCH_ENDPOINT,
+												BENCHMARK_SERVER_ENDPOINT,
+												BENCHMARK_CLIENT_ENDPOINT,
 												ZB_AF_HA_PROFILE_ID,
-												ZB_ZCL_ENABLE_DEFAULT_RESPONSE,
+												ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
 												NULL,
 												level,
 												0);
-	//ZB_ZCL_DISABLE_DEFAULT_RESPONSE
 }
 
+/* TODO: Description */
 static void bm_send_message(zb_uint8_t message_id)
 {
 	zb_ret_t zb_err_code;
@@ -253,29 +256,35 @@ static void bm_send_message(zb_uint8_t message_id)
 	ZB_ERROR_CHECK(zb_err_code);
 }
 
+/* TODO: Description */
 static void bm_zigbee(void *arg1, void *arg2, void *arg3)
 {
 	bm_message_info message;
+	zb_uint8_t random_level_value;
+	zb_uint16_t timeout;
 	message.message_id = 0;
 	message.RSSI = 0;
 	message.number_of_hops = 0;
 	message.data_size = 0;
 	zb_get_long_address(message.src_addr);
-	message.dst_addr = GROUP_ID;
+	//message.dst_addr = 0;
+	message.group_addr = GROUP_ID;
 	message.net_time = 0;
 
 	for (u8_t i = 0; i < bm_msg_cnt; i++)
 	{
-		zb_uint16_t timeout = ZB_RANDOM_VALUE(bm_time_interval_msec / bm_msg_cnt);
+		timeout = ZB_RANDOM_VALUE(bm_time_interval_msec / bm_msg_cnt);
 		k_sleep(K_MSEC(timeout));
+		
+		random_level_value = ZB_RANDOM_VALUE(256);
 
 		ZB_SCHEDULE_APP_ALARM_CANCEL(bm_send_message, ZB_ALARM_ANY_PARAM);
 
 		message.net_time = ZB_TIME_BEACON_INTERVAL_TO_MSEC(ZB_TIMER_GET());
-		message.message_id += 15;
+		message.message_id = ZB_ZCL_GET_SEQ_NUM() + 1;
 		LOG_INF("Benchmark Message send, TimeStamp: %llu, MessageID: %d, TimeOut: %u", message.net_time, message.message_id, timeout);
 
-		ZB_SCHEDULE_APP_ALARM(bm_send_message, message.message_id, 0);
+		ZB_SCHEDULE_APP_ALARM(bm_send_message, random_level_value, 0);
 
 		bm_save_message_info(message);
 	}
@@ -283,10 +292,15 @@ static void bm_zigbee(void *arg1, void *arg2, void *arg3)
 	LOG_INF("Benchmark finished");
 }
 
+/* TODO: Description */
 void bm_save_message_info(bm_message_info message)
 {
 	message_info[bm_message_info_nr] = message;
 	bm_message_info_nr++;
+}
+
+static void bm_send_reporting_message(void)
+{
 }
 
 /**@brief Callback function for handling ZCL commands.
@@ -296,11 +310,16 @@ void bm_save_message_info(bm_message_info message)
  */
 static zb_void_t zcl_device_cb(zb_bufid_t bufid)
 {
-	zb_uint8_t cluster_id;
-	zb_uint8_t attr_id;
-	zb_zcl_device_callback_param_t *device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
 
+	//zb_zcl_write_attr_res_t *p_attr_resp;
+	//zb_bufid_t *p_buffer = ZB_BUF_FROM_REF(bufid);
+	//zb_uint8_t cluster_id;
+	//zb_uint8_t attr_id;
+	zb_zcl_device_callback_param_t *device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
 	LOG_INF("%s id %hd", __func__, device_cb_param->device_cb_id);
+
+	//ZB_ZCL_GET_NEXT_WRITE_ATTR_RES(p_buffer, p_attr_resp);
+	//LOG_INF("ZCL packet received: %d", p_attr_resp->status);
 
 	/* Set default response value. */
 	device_cb_param->status = RET_OK;
@@ -366,6 +385,11 @@ void main(void)
 	zigbee_enable();
 
 	LOG_INF("ZBOSS Light Switch example started");
+
+	zb_ieee_addr_t ieee_addr;
+	zb_get_long_address(ieee_addr);
+	zb_uint16_t short_addr = zb_address_short_by_ieee(ieee_addr);
+	LOG_INF("Node Short Address: 0x%x", short_addr);
 
 	while (1)
 	{

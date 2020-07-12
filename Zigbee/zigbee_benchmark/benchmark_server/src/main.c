@@ -26,14 +26,13 @@
 #include <zb_nrf_platform.h>
 #include <zb_mem_config_med.h>
 
-
-#define MY_STACK_SIZE 500
-#define MY_PRIORITY 5
-#define GROUP_ID 0xB331 /**< Group ID, which will be used to control all light sources with a single command. */
-#define BENCHMARK_CLIENT_ENDPOINT 1
-#define BENCHMARK_SERVER_ENDPOINT 10
+#define BM_STACK_SIZE 500						/* Benchmark Stack Size */
+#define BM_THREAD_PRIO 5						/* Benchmark Thread Priority */
+#define GROUP_ID 0xB331							/* Group ID which will be used to address a specific group of Benchmark Servers */
+#define BENCHMARK_CLIENT_ENDPOINT 1				/* ZCL Endpoint of the Benchmark Client */
+#define BENCHMARK_SERVER_ENDPOINT 10			/* ZCL Endpoint of the Benchmark Server */
 #define BULB_LED DK_LED4						/* LED immitaing dimmable light bulb */
-#define DONGLE_BUTTON DK_BTN1_MSK				/* Button on the Dongle*/
+#define DONGLE_BUTTON DK_BTN1_MSK				/* Button on the Dongle */
 #define ZIGBEE_NETWORK_STATE_LED DK_LED1		/* LED indicating that light switch successfully joind Zigbee network. */
 #define PWM_DK_LED4_NODE DT_NODELABEL(pwm_led3) /* Use onboard led4 to act as a light bulb. The app.overlay file has this at node label "pwm_led3" in /pwmleds. */
 
@@ -75,10 +74,6 @@ DK_BTN1 --> Button 1
 #ifndef ZB_ROUTER_ROLE
 #error Define ZB_ROUTER_ROLE to compile router source code.
 #endif
-
-// K_THREAD_STACK_DEFINE(pairing_stack_area, MY_STACK_SIZE);
-// struct k_thread pairing_thread_data;
-// static void add_group_id(void *arg1, void *arg2, void *arg3);
 
 LOG_MODULE_REGISTER(app);
 
@@ -162,8 +157,10 @@ ZB_HA_DECLARE_DIMMABLE_LIGHT_CTX(
 /* Struct for benchmark message information */
 typedef struct
 {
+	zb_ieee_addr_t ieee_dst_addr;
+	zb_uint16_t src_addr;
 	zb_uint16_t dst_addr;
-	zb_ieee_addr_t src_addr;
+	zb_uint16_t group_addr;
 	zb_uint64_t net_time;
 	zb_uint16_t number_of_hops;
 	zb_uint16_t message_id;
@@ -171,7 +168,16 @@ typedef struct
 	bool data_size;
 } bm_message_info;
 
-uint16_t bm_message_info_nr = 0;
+K_THREAD_STACK_DEFINE(bm_stack_area, BM_STACK_SIZE);
+struct k_thread bm_thread_data;
+//static void bm_send_message(void *arg1, void *arg2, void *arg3);
+void bm_save_message_info(bm_message_info message);
+static void bm_receive_message(zb_uint8_t param);
+//static void bm_zigbee_receive_message(void *arg1, void *arg2, void *arg3);
+k_tid_t bm_thread;
+zb_uint16_t bm_message_info_nr = 0;
+char ieee_addr_buf[17] = {0};
+int addr_len;
 
 /* Array of structs to save benchmark message info to */
 bm_message_info message_info[NUMBER_OF_NETWORK_TIME_ELEMENTS] = {0};
@@ -194,11 +200,6 @@ static void button_changed(u32_t button_state, u32_t has_changed)
 	if (buttons & DONGLE_BUTTON)
 	{
 		LOG_INF("ADD GROUP - Button pressed");
-		/* add_group_thread = k_thread_create(&pairing_thread_data, pairing_stack_area,
-										   K_THREAD_STACK_SIZEOF(pairing_stack_area),
-										   add_group_id,
-										   NULL, NULL, NULL,
-										   MY_PRIORITY, 0, K_NO_WAIT); */
 	}
 }
 
@@ -395,8 +396,8 @@ static void bulb_clusters_attr_init(void)
 static void add_group_id_cb(zb_bufid_t bufid)
 {
 	zb_ieee_addr_t ieee_addr;
-	char ieee_addr_buf[17] = {0};
-	int addr_len;
+	//char ieee_addr_buf[17] = {0};
+	//int addr_len;
 	zb_get_long_address(ieee_addr);
 	addr_len = ieee_addr_to_str(ieee_addr_buf, sizeof(ieee_addr_buf), ieee_addr);
 
@@ -419,14 +420,85 @@ void bm_save_message_info(bm_message_info message)
 	bm_message_info_nr++;
 }
 
-static void bm_receive_message(zb_zcl_device_callback_param_t *device_cb_parameter)
+/* static void bm_zigbee_receive_message(void *arg1, void *arg2, void *arg3)
 {
+	bm_message_info message;
 	s64_t time_stamp;
-	zb_uint8_t message_id;
-	time_stamp = ZB_TIME_BEACON_INTERVAL_TO_MSEC(ZB_TIMER_GET());
-	message_id = device_cb_parameter->cb_param.level_control_set_value_param.new_value;
-	LOG_INF("Level control setting to %d, TimeStamp: %llu", message_id, time_stamp);
+	zb_uint8_t new_level;
 
+	//zb_ieee_addr_t ieee_addr;
+	zb_uint16_t short_addr;
+	zb_uint8_t lqi;
+	zb_uint8_t rssi = 0;
+
+	zb_get_long_address(message.dst_addr);
+	short_addr = zb_address_short_by_ieee(message.dst_addr);
+	zb_zdo_get_diag_data(short_addr, &lqi, &rssi);
+	message.RSSI = rssi;
+	LOG_INF("RSSI: %d from node: %d", message.RSSI, short_addr);
+
+	message.number_of_hops = 0;
+	message.data_size = 0;
+	message.group_addr = GROUP_ID;
+	message.message_id = device_cb_param->cb_param.level_control_set_value_param.new_value;
+	new_level = message.message_id;
+	time_stamp = ZB_TIME_BEACON_INTERVAL_TO_MSEC(ZB_TIMER_GET());
+
+	level_control_set_value(new_level);
+	LOG_INF("Level control setting to %d, TimeStamp: %llu, MessageID: %d", new_level, time_stamp, message.message_id);
+
+	bm_save_message_info(message);
+} */
+
+/* TODO: Description */
+static void bm_receive_message(zb_uint8_t bufid)
+{
+	zb_zcl_parsed_hdr_t cmd_info;
+	ZB_ZCL_COPY_PARSED_HEADER(bufid, &cmd_info);
+
+	LOG_INF("Receiving message");
+	bm_message_info message;
+	zb_uint8_t lqi = ZB_MAC_LQI_UNDEFINED;
+	zb_uint8_t rssi = ZB_MAC_RSSI_UNDEFINED;
+	zb_uint8_t addr_type;
+
+	message.message_id = cmd_info.seq_number;
+	memcpy(&message.src_addr, &(cmd_info.addr_data.common_data.source.u.short_addr), sizeof(zb_uint16_t));
+	addr_type = cmd_info.addr_data.common_data.source.addr_type;
+
+	zb_get_long_address(message.ieee_dst_addr);
+	message.dst_addr = zb_address_short_by_ieee(message.ieee_dst_addr);
+	message.group_addr = GROUP_ID;
+
+	zb_zdo_get_diag_data(message.src_addr, &lqi, &rssi);
+	message.RSSI = rssi;
+	message.number_of_hops = 0;
+	//message.data_size = ZB_TRUE;
+
+	message.net_time = ZB_TIME_BEACON_INTERVAL_TO_MSEC(ZB_TIMER_GET());
+
+	LOG_INF("Benchmark Packet received with ID: %d from Src Address: 0x%x to Destination 0x%x with RSSI: %d, LQI: %d, Time: %llu", message.message_id, message.src_addr, message.dst_addr, rssi, lqi, message.net_time);
+
+	bm_save_message_info(message);
+}
+
+static zb_uint8_t bm_zcl_handler(zb_uint8_t bufid)
+{
+	zb_zcl_parsed_hdr_t cmd_info;
+
+	ZB_ZCL_COPY_PARSED_HEADER(bufid, &cmd_info);
+	LOG_INF("%s with Endpoint ID: %hd, Cluster ID: %d", __func__, cmd_info.addr_data.common_data.dst_endpoint, cmd_info.cluster_id);
+
+	if (cmd_info.cluster_id == ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL)
+	{
+		ZB_SCHEDULE_APP_ALARM(bm_receive_message, bufid, 0);
+	}
+	else
+	{
+		return ZB_FALSE;
+	}
+
+	return ZB_FALSE;
 }
 
 /**@brief Callback function for handling ZCL commands.
@@ -439,30 +511,25 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid)
 	zb_uint8_t cluster_id;
 	zb_uint8_t attr_id;
 	zb_zcl_device_callback_param_t *device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
-	//s64_t time_stamp;
-	//zb_uint8_t current_level;
 
 	LOG_INF("%s id %hd", __func__, device_cb_param->device_cb_id);
 
-	/* Set default response value. */
+	// Set default response value.
 	device_cb_param->status = RET_OK;
 
 	switch (device_cb_param->device_cb_id)
 	{
 	case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
-		/* time_stamp = ZB_TIME_BEACON_INTERVAL_TO_MSEC(ZB_TIMER_GET());
-		current_level = device_cb_param->cb_param.level_control_set_value_param.new_value;
-		LOG_INF("Level control setting to %d, TimeStamp: %llu", device_cb_param->cb_param.level_control_set_value_param.new_value, time_stamp);
- */
-		bm_receive_message(device_cb_param);
-		LOG_INF("Receive Level Message");
-
+		LOG_INF("Level control setting to %d", device_cb_param->cb_param.level_control_set_value_param.new_value);
 		level_control_set_value(device_cb_param->cb_param.level_control_set_value_param.new_value);
-		break;
-	case ZB_ZCL_MESSAGING_DISPLAY_MSG_CB_ID:
-		LOG_INF("Messaging Display command received");
+		/* bm_thread = k_thread_create(&bm_thread_data, bm_stack_area,
+									K_THREAD_STACK_SIZEOF(bm_stack_area),
+									bm_zigbee_receive_message,
+									NULL, NULL, NULL,
+									BM_THREAD_PRIO, 0, K_NO_WAIT); */
 
 		break;
+
 	case ZB_ZCL_SET_ATTR_VALUE_CB_ID:
 		cluster_id = device_cb_param->cb_param.set_attr_value_param.cluster_id;
 		attr_id = device_cb_param->cb_param.set_attr_value_param.attr_id;
@@ -491,7 +558,7 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid)
 		}
 		else
 		{
-			/* Other clusters can be processed here */
+			// Other clusters can be processed here
 			LOG_INF("Unhandled cluster attribute id: %d",
 					cluster_id);
 		}
@@ -501,8 +568,6 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid)
 		device_cb_param->status = RET_ERROR;
 		break;
 	}
-
-	LOG_INF("%s status: %hd", __func__, device_cb_param->status);
 }
 
 /**@brief Zigbee stack event handler.
@@ -568,11 +633,12 @@ void main(void)
 	/* Initialize */
 	configure_gpio();
 
-	/* Register callback for handling ZCL commands. */
-	ZB_ZCL_REGISTER_DEVICE_CB(zcl_device_cb);
-
 	/* Register dimmer switch device context (endpoints). */
 	ZB_AF_REGISTER_DEVICE_CTX(&dimmable_light_ctx);
+
+	/* Register callback for handling ZCL commands. */
+	ZB_AF_SET_ENDPOINT_HANDLER(BENCHMARK_SERVER_ENDPOINT, bm_zcl_handler);
+	ZB_ZCL_REGISTER_DEVICE_CB(zcl_device_cb);
 
 	bulb_clusters_attr_init();
 	level_control_set_value(dev_ctx.level_control_attr.current_level);
