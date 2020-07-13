@@ -169,7 +169,7 @@ void Simple_nrf_radio::Send(RADIO_PACKET tx_pkt)
 	 * @param timeout Blocktimeout in ms for bursting
      * @return Number of Packeets sent
 	 */
-u16_t Simple_nrf_radio::BurstCntPkt(RADIO_PACKET tx_pkt, k_timeout_t timeout)
+u16_t Simple_nrf_radio::BurstCntPkt(RADIO_PACKET tx_pkt, u8_t CCA_Mode, k_timeout_t timeout)
 {
     radio_disable(); // Disable the Radio
     /* Setup Paket */

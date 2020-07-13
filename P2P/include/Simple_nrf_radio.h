@@ -107,10 +107,11 @@ public:
 	 * Burst send out the same packet till timeout
 	 *
 	 * @param tx_pkt Radio Paket to Send
+	 * @param CCA_Mode 0 = Disabled / 1 = Mode 1 (energy above threshold) / 2 = Mode 2 (carrier sense only) / 3 = Mode 3 (carrier sense and threshold) / 4 = Mode 4 (carrier sense or threshold)
 	 * @param timeout Waittimeout in ms for bursting
      * @return Number of Packeets sent
 	 */
-	u16_t BurstCntPkt(RADIO_PACKET tx_pkt, k_timeout_t timeout);
+	u16_t BurstCntPkt(RADIO_PACKET tx_pkt, u8_t CCA_Mode ,k_timeout_t timeout);
 	/**
 	 * Receive a Payload
 	 *
