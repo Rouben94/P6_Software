@@ -9,6 +9,7 @@
 #include <drivers/clock_control/nrf_clock_control.h>
 
 
+
 /** Maximum radio RX or TX payload. */
 #define RADIO_MAX_PAYLOAD_LEN 256
 /** IEEE 802.15.4 maximum payload length. */

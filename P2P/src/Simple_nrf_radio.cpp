@@ -35,11 +35,11 @@ void Simple_nrf_radio::radio_handler(void *context)
         if (payload[4] == (nrf_radio_prefix0_get(NRF_RADIO) & 0x000000FF) and payload[3] == (nrf_radio_base0_get(NRF_RADIO) >> 24) and payload[2] == ((nrf_radio_base0_get(NRF_RADIO) & 0x00FF0000) >> 16) and payload[1] == ((nrf_radio_base0_get(NRF_RADIO) & 0x0000FF00) >> 8))
         {
             //printk("IEEE Address match\n");
-            if (nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_CRCOK))
+            if (nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_CRCOK) && c_rhctx->rx_stat.act)
             {
                 c_rhctx->rx_stat.CRCOKcnt++;
             }
-            else if (nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_CRCERROR))
+            else if (nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_CRCERROR) && c_rhctx->rx_stat.act)
             {
                 c_rhctx->rx_stat.CRCErrcnt++;
             }
@@ -47,29 +47,34 @@ void Simple_nrf_radio::radio_handler(void *context)
         else
         {
             //printk("Wrong Address Received\n");
-            return;
         }
     }
     else
     {
-        if (nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_CRCOK))
+        if (nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_CRCOK) && c_rhctx->rx_stat.act)
         {
             c_rhctx->rx_stat.CRCOKcnt++;
         }
-        else if (nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_CRCERROR))
+        else if (nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_CRCERROR) && c_rhctx->rx_stat.act) 
         {
             c_rhctx->rx_stat.CRCErrcnt++;
         }
     }
     c_rhctx->rx_stat.RSSI_Sum_Avg += nrf_radio_rssi_sample_get(NRF_RADIO); // RSSI should be done 
     nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_RSSISTOP);
-    if (nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_END) || nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_PHYEND)){
+    if ((nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_END) || nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_PHYEND)) && c_rhctx->tx_stat.act){
         c_rhctx->tx_stat.Pktcnt++;
     }
+    /*
+    if (nrf_radio_event_check(NRF_RADIO,NRF_RADIO_EVENT_FRAMESTART) && c_rhctx->rx_stat.act){
+        printk("hoi\n");
+    }
+    */
     nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_END);      // Clear ISR Event END
     nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_PHYEND);   // Clear ISR Event PHYEND
     nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_CRCOK);    // Clear ISR Event CRCOK
     nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_CRCERROR); // Clear ISR Event CRCError
+    //nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_FRAMESTART); // Clear ISR Event FRAMESTART
     if (c_rhctx->rx_stat.act || c_rhctx->tx_stat.act){
         return; //Keep on receiving till timeout
     }
@@ -167,8 +172,6 @@ void Simple_nrf_radio::Send(RADIO_PACKET tx_pkt)
 u16_t Simple_nrf_radio::BurstCntPkt(RADIO_PACKET tx_pkt, k_timeout_t timeout)
 {
     radio_disable(); // Disable the Radio
-    rhctx.tx_stat.Pktcnt = 0;
-    rhctx.tx_stat.act = true;
     /* Setup Paket */
     if (nrf_radio_mode_get(NRF_RADIO) == NRF_RADIO_MODE_IEEE802154_250KBIT)
     {
@@ -193,11 +196,20 @@ u16_t Simple_nrf_radio::BurstCntPkt(RADIO_PACKET tx_pkt, k_timeout_t timeout)
     nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_END);                                                                                         // Clear END Event
     nrf_radio_int_enable(NRF_RADIO, NRF_RADIO_INT_END_MASK);                                                                                       // Enable END Event interrupt
     ISR_Thread_ID = k_current_get();                                                                                                               // Set Interrupt Thread to wakeup
-    nrf_radio_shorts_enable(NRF_RADIO, NRF_RADIO_SHORT_READY_START_MASK | NRF_RADIO_SHORT_PHYEND_START_MASK | NRF_RADIO_SHORT_END_START_MASK); // Start after Ready and Disable after END or PHY-End
+    if (nrf_radio_mode_get(NRF_RADIO) == NRF_RADIO_MODE_BLE_LR125KBIT || nrf_radio_mode_get(NRF_RADIO) == NRF_RADIO_MODE_BLE_LR500KBIT){
+        nrf_radio_shorts_enable(NRF_RADIO, NRF_RADIO_SHORT_READY_START_MASK | NRF_RADIO_SHORT_PHYEND_DISABLE_MASK | NRF_RADIO_SHORT_END_DISABLE_MASK | NRF_RADIO_SHORT_DISABLED_TXEN_MASK); // Slow things Down for LR Becasuse using regular short leads to Packet loss
+    } else {
+        nrf_radio_shorts_enable(NRF_RADIO, NRF_RADIO_SHORT_READY_START_MASK | NRF_RADIO_SHORT_PHYEND_START_MASK | NRF_RADIO_SHORT_END_START_MASK); // Start after Ready and Disable after END or PHY-End
+    }
+    rhctx.tx_stat.Pktcnt = 0;
+    rhctx.tx_stat.act = true;
     nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_TXEN);
     k_sleep(timeout); // Wait for interrupt
-    radio_disable();
+    nrf_radio_shorts_set(NRF_RADIO, 0);
+    nrf_radio_int_disable(NRF_RADIO, ~0);
+    k_sleep(K_MSEC(1)); // Wait for last transmission done
     rhctx.tx_stat.act = false;
+    radio_disable();
     return rhctx.tx_stat.Pktcnt;
 }
 /**
@@ -270,25 +282,29 @@ s32_t Simple_nrf_radio::Receive(RADIO_PACKET *rx_pkt, k_timeout_t timeout)
 RxPktStatLog Simple_nrf_radio::ReceivePktStatLog(k_timeout_t timeout)
 {
     radio_disable();
+    nrf_radio_packetptr_set(NRF_RADIO, rx_buf);
+    nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_CRCOK); // Clear CRCOK Event
+    nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_CRCERROR); // Clear CRCERROR Event
+    nrf_radio_int_enable(NRF_RADIO, NRF_RADIO_INT_CRCOK_MASK | NRF_RADIO_INT_CRCERROR_MASK);                                                                                                                         // Enable CRCOK Event interrupt
+    ISR_Thread_ID = k_current_get();   // Set Interrupt Thread to wakeup
+    if (nrf_radio_mode_get(NRF_RADIO) == NRF_RADIO_MODE_BLE_LR125KBIT || nrf_radio_mode_get(NRF_RADIO) == NRF_RADIO_MODE_BLE_LR500KBIT){
+        nrf_radio_shorts_enable(NRF_RADIO, NRF_RADIO_SHORT_READY_START_MASK | NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK | NRF_RADIO_SHORT_PHYEND_DISABLE_MASK | NRF_RADIO_SHORT_END_DISABLE_MASK | NRF_RADIO_SHORT_DISABLED_RXEN_MASK); // Slow things Down for LR Becasuse using regular short leads to Packet loss
+    } else {
+        nrf_radio_shorts_enable(NRF_RADIO, NRF_RADIO_SHORT_READY_START_MASK | NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK | NRF_RADIO_SHORT_PHYEND_START_MASK | NRF_RADIO_SHORT_END_START_MASK); // Start after Ready and Start after END -> wait for CRCOK Event otherwise keep on receiving
+    }
     rhctx.rx_stat.CRCErrcnt = 0;
     rhctx.rx_stat.CRCOKcnt = 0;
     rhctx.rx_stat.RSSI_Sum_Avg = 174; //Thermal Noise
     rhctx.rx_stat.act = true;
-    nrf_radio_packetptr_set(NRF_RADIO, rx_buf);
-    nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_CRCOK); // Clear CRCOK Event
-    nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_CRCERROR);
-    nrf_radio_int_enable(NRF_RADIO, NRF_RADIO_INT_CRCOK_MASK | NRF_RADIO_INT_CRCERROR_MASK);                                                                                                                         // Enable CRCOK Event interrupt
-    ISR_Thread_ID = k_current_get();                                                                                                                                                    // Set Interrupt Thread to wakeup
-    nrf_radio_shorts_enable(NRF_RADIO, NRF_RADIO_SHORT_READY_START_MASK | NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK | NRF_RADIO_SHORT_PHYEND_START_MASK | NRF_RADIO_SHORT_END_START_MASK); // Start after Ready and Start after END -> wait for CRCOK Event otherwise keep on receiving
     nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_RXEN);
     k_sleep(timeout); // Wait for interrupt and check if it was a timeout
+    radio_disable();
+    rhctx.rx_stat.act = false;
     if ((rhctx.rx_stat.CRCOKcnt + rhctx.rx_stat.CRCErrcnt) != 0)
     {
         rhctx.rx_stat.RSSI_Sum_Avg = (rhctx.rx_stat.RSSI_Sum_Avg-174) / (rhctx.rx_stat.CRCOKcnt + rhctx.rx_stat.CRCErrcnt);
     }
     nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_RSSISTOP);
-    radio_disable();
-    rhctx.rx_stat.act = false;
     return rhctx.rx_stat;
 }
 /**
@@ -315,7 +331,7 @@ void Simple_nrf_radio::setMode(nrf_radio_mode_t m)
     packet_conf.maxlen = 255;                          // max 255-byte payload
     packet_conf.statlen = 0;                           // 0-byte static length
     packet_conf.balen = 3;                             // 3-byte base address length (4-byte full address length)
-    packet_conf.big_endian = 0;                        // Bit 24: 1 Small endian
+    packet_conf.big_endian = false;                        // Bit 24: 1 Small endian
     packet_conf.whiteen = true;                        // Bit 25: 1 Whitening enabled
     packet_conf.crcinc = 0;                            // Indicates if LENGTH field contains CRC or not
     switch (m)
@@ -331,10 +347,11 @@ void Simple_nrf_radio::setMode(nrf_radio_mode_t m)
         packet_conf.plen = NRF_RADIO_PREAMBLE_LENGTH_LONG_RANGE; // 10-bit preamble
         packet_conf.cilen = 2;                                   // Length of code indicator (Bits) - long range
         packet_conf.termlen = 3;                                 // Length of TERM field (Bits) in Long Range operation
+        packet_conf.maxlen = IEEE_MAX_PAYLOAD_LEN;                // max byte payload
         // Enable Fast Ramp Up (no TIFS) and set Tx Defalut mode to Center
         nrf_radio_modecnf0_set(NRF_RADIO, true, RADIO_MODECNF0_DTX_Center);
         // CRC24-Bit
-        nrf_radio_crc_configure(NRF_RADIO, RADIO_CRCCNF_LEN_Three, NRF_RADIO_CRC_ADDR_SKIP, 0x1021AB);
+        nrf_radio_crc_configure(NRF_RADIO, RADIO_CRCCNF_LEN_Three, NRF_RADIO_CRC_ADDR_SKIP, 0);
         break;
     case NRF_RADIO_MODE_IEEE802154_250KBIT:
         packet_conf.plen = NRF_RADIO_PREAMBLE_LENGTH_32BIT_ZERO; // 32-bit preamble
@@ -397,7 +414,7 @@ void Simple_nrf_radio::setAA(u32_t aa)
     /* Set the access address */
     nrf_radio_prefix0_set(NRF_RADIO, (aa >> 24) & RADIO_PREFIX0_AP0_Msk);
     nrf_radio_base0_set(NRF_RADIO, (aa << 8) & 0xFFFFFF00);
-    nrf_radio_sfd_set(NRF_RADIO, (aa >> 24) & RADIO_PREFIX0_AP0_Msk); // Set the SFD for the IEEE Radio Mode to the Prefix (first byte of Address)
+    //nrf_radio_sfd_set(NRF_RADIO, (aa >> 24) & RADIO_PREFIX0_AP0_Msk); // Set the SFD for the IEEE Radio Mode to the Prefix (first byte of Address) -> Dont do because of CCA Carrier Mode
 }
 /**
 	 * Disable the Radio
