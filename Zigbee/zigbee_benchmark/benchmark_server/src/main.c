@@ -439,7 +439,6 @@ static void bm_receive_message(zb_uint8_t bufid)
 	message.RSSI = rssi;
 	message.number_of_hops = 0;
 	//message.data_size = ZB_TRUE;
-
 	message.net_time = ZB_TIME_BEACON_INTERVAL_TO_MSEC(ZB_TIMER_GET());
 
 	LOG_INF("Benchmark Packet received with ID: %d from Src Address: 0x%x to Destination 0x%x with RSSI: %d, LQI: %d, Time: %llu", message.message_id, message.src_addr, message.dst_addr, rssi, lqi, message.net_time);

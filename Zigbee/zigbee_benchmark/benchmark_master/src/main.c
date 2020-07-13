@@ -25,6 +25,9 @@
 
 #define RUN_STATUS_LED DK_LED1
 #define RUN_LED_BLINK_INTERVAL 1000
+#define BENCHMARK_CLIENT_ENDPOINT 1			/* ZCL Endpoint of the Benchmark Client */
+#define BENCHMARK_SERVER_ENDPOINT 10		/* ZCL Endpoint of the Benchmark Server */
+#define BENCHMARK_CONTROL_ENDPOINT 11		/* ZCL Endpoint for Benchmark Control */
 
 #define ERASE_PERSISTENT_CONFIG ZB_TRUE		  /* Do not erase NVRAM to save the network parameters after device reboot or    \
 											   * power-off. NOTE: If this option is set to ZB_TRUE then do full device erase \
@@ -39,6 +42,13 @@
 #endif
 
 LOG_MODULE_REGISTER(app);
+
+static void bm_send_control_message_cb(zb_bufid_t bufid, zb_uint16_t level);
+
+zb_ieee_addr_t local_node_ieee_addr;
+zb_uint16_t local_node_short_addr;
+char local_nodel_ieee_addr_buf[17] = {0};
+int local_node_addr_len;
 
 /**@brief Callback used in order to visualise network steering period.
  *
@@ -100,6 +110,55 @@ static void configure_gpio(void)
 		LOG_ERR("Cannot init LEDs (err: %d)\n", err);
 	}
 }
+
+/* Function to send Benchmark Control Message */
+static void bm_send_control_message_cb(zb_bufid_t bufid, zb_uint16_t level)
+{
+
+	zb_nwk_broadcast_address_t broadcast_addr = ZB_NWK_BROADCAST_ALL_DEVICES;
+
+	/* Send Move to level request. Level value is uint8. */
+	ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
+												broadcast_addr,
+												ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
+												BENCHMARK_CONTROL_ENDPOINT,
+												BENCHMARK_CLIENT_ENDPOINT,
+												ZB_AF_HA_PROFILE_ID,
+												ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
+												NULL,
+												level,
+												0);
+}
+
+static void cmd_handler_start_bm(void)
+{
+	zb_uint8_t level;
+	zb_ret_t zb_err_code;
+
+	level = ZB_RANDOM_VALUE(256);
+	zb_err_code = zb_buf_get_out_delayed_ext(bm_send_control_message_cb, level, 0);
+	ZB_ERROR_CHECK(zb_err_code);
+}
+
+
+/* CLI Command for restarting top level comissioning */
+static void cmd_handler_start_top_level_comissioning(void)
+{
+	zb_bool_t comm_status;
+	(void)(ZB_SCHEDULE_APP_ALARM_CANCEL(steering_finished, ZB_ALARM_ANY_PARAM));
+	comm_status = bdb_start_top_level_commissioning(ZB_BDB_NETWORK_STEERING);
+
+	if (comm_status)
+	{
+		LOG_INF("Top level comissioning restated");
+	}
+	else
+	{
+		LOG_INF("Top level comissioning hasn't finished yet!");
+	}
+}
+SHELL_CMD_REGISTER(start_benchmark, NULL, "Starting Benchmark on Remote Node", cmd_handler_start_bm);
+SHELL_CMD_REGISTER(start_comissioning, NULL, "Restarting top level comissioning", cmd_handler_start_top_level_comissioning);
 
 /**@brief Zigbee stack event handler.
  *
@@ -226,28 +285,6 @@ void error(void)
 		k_sleep(K_MSEC(1000));
 	}
 }
-
-/* void cmd_handler_get_pan_id(void)
-{
-	zb_ext_pan_id_t ext_pan_id;
-	dk_set_led_on(DK_LED4);
-	zb_get_extended_pan_id(*ext_pan_id);
-	LOG_INF("\n\r PAN ID: %d", ext_pan_id);
-} */
-void cmd_handler_test_off(void)
-{
-	dk_set_led_off(DK_LED4);
-	LOG_INF("\n\r LED 4 off");
-}
-void cmd_handler_test_on(void)
-{
-	dk_set_led_on(DK_LED4);
-	LOG_INF("\n\r LED 4 on");
-}
-
-SHELL_CMD_REGISTER(test_on, NULL, "Test Command LED4 on", cmd_handler_test_on);
-SHELL_CMD_REGISTER(test_off, NULL, "Test Command LED4 off", cmd_handler_test_off);
-//SHELL_CMD_REGISTER(bm_get_pan_id, NULL, "Get PAN ID of the Zigbee Network", cmd_handler_get_pan_id);
 
 void main(void)
 {

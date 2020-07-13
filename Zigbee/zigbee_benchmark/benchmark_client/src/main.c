@@ -33,7 +33,7 @@
 #define GROUP_ID 0xB331						/* Group ID to send Benchmark message to.*/
 #define BENCHMARK_CLIENT_ENDPOINT 1			/* ZCL Endpoint of the Benchmark Client */
 #define BENCHMARK_SERVER_ENDPOINT 10		/* ZCL Endpoint of the Benchmark Server */
-#define BENCHMARK_CONTROL_ENDPOINT 11		/* ZCL Endpoint of the Benchmark Server */
+#define BENCHMARK_CONTROL_ENDPOINT 11		/* ZCL Endpoint for Benchmark Control */
 #define BUTTON_BENCHMARK DK_BTN4_MSK		/* Button ID used to start Benchmark Message. */
 #define BUTTON_TEST DK_BTN3_MSK				/* Button ID used to start Test an application. */
 
@@ -397,7 +397,7 @@ static void bm_client_clusters_attr_init(void)
 		ZB_FALSE);
 }
 
-/* Function to send Benchmark Message */
+/* Function to send Benchmark Control Message */
 static void bm_send_control_message_cb(zb_bufid_t bufid, zb_uint16_t level)
 {
 	/* Send Move to level request. Level value is uint8. */
@@ -463,10 +463,9 @@ static void bm_zigbee(void *arg1, void *arg2, void *arg3)
 		random_level_value = ZB_RANDOM_VALUE(256);
 
 		ZB_SCHEDULE_APP_ALARM_CANCEL(bm_send_message, ZB_ALARM_ANY_PARAM);
-
 		message.net_time = ZB_TIME_BEACON_INTERVAL_TO_MSEC(ZB_TIMER_GET());
 		message.message_id = ZB_ZCL_GET_SEQ_NUM() + 1;
-		LOG_INF("Benchmark Message send, TimeStamp: %llu, MessageID: %d, TimeOut: %u", message.net_time, message.message_id, timeout);
+		LOG_INF("Benchmark Message send, TimeStamp: %lld, MessageID: %d, TimeOut: %u", message.net_time, message.message_id, timeout);
 
 		ZB_SCHEDULE_APP_ALARM(bm_send_message, random_level_value, 0);
 
