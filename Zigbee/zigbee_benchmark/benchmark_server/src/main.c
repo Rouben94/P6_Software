@@ -172,8 +172,11 @@ void bm_save_message_info(bm_message_info message);
 static void bm_receive_message(zb_uint8_t param);
 
 zb_uint16_t bm_message_info_nr = 0;
-char ieee_addr_buf[17] = {0};
-int addr_len;
+char local_nodel_ieee_addr_buf[17] = {0};
+int local_node_addr_len;
+
+zb_ieee_addr_t local_node_ieee_addr;
+zb_uint16_t local_node_short_addr;
 
 /* Array of structs to save benchmark message info to */
 bm_message_info message_info[NUMBER_OF_NETWORK_TIME_ELEMENTS] = {0};
@@ -186,7 +189,6 @@ bm_message_info message_info[NUMBER_OF_NETWORK_TIME_ELEMENTS] = {0};
  */
 static void button_changed(u32_t button_state, u32_t has_changed)
 {
-	//k_tid_t add_group_thread;
 
 	/* Calculate bitmask of buttons that are pressed
 	 * and have changed their state.
@@ -195,7 +197,7 @@ static void button_changed(u32_t button_state, u32_t has_changed)
 
 	if (buttons & DONGLE_BUTTON)
 	{
-		LOG_INF("ADD GROUP - Button pressed");
+		LOG_INF("Button pressed");
 	}
 }
 
@@ -391,14 +393,13 @@ static void bulb_clusters_attr_init(void)
 
 static void add_group_id_cb(zb_bufid_t bufid)
 {
-	zb_ieee_addr_t ieee_addr;
-	zb_get_long_address(ieee_addr);
-	addr_len = ieee_addr_to_str(ieee_addr_buf, sizeof(ieee_addr_buf), ieee_addr);
+	zb_get_long_address(local_node_ieee_addr);
+	local_node_addr_len = ieee_addr_to_str(local_nodel_ieee_addr_buf, sizeof(local_nodel_ieee_addr_buf), local_node_ieee_addr);
 
-	LOG_INF("Include device 0x%s, ep %d to the group 0x%x", ieee_addr_buf, BENCHMARK_SERVER_ENDPOINT, GROUP_ID);
+	LOG_INF("Include device 0x%s, ep %d to the group 0x%x", local_nodel_ieee_addr_buf, BENCHMARK_SERVER_ENDPOINT, GROUP_ID);
 
 	ZB_ZCL_GROUPS_SEND_ADD_GROUP_REQ(bufid,
-									 ieee_addr,
+									 local_node_ieee_addr,
 									 ZB_APS_ADDR_MODE_64_ENDP_PRESENT,
 									 BENCHMARK_SERVER_ENDPOINT,
 									 BENCHMARK_CLIENT_ENDPOINT,
@@ -491,11 +492,6 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid)
 	case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
 		LOG_INF("Level control setting to %d", device_cb_param->cb_param.level_control_set_value_param.new_value);
 		level_control_set_value(device_cb_param->cb_param.level_control_set_value_param.new_value);
-		/* bm_thread = k_thread_create(&bm_thread_data, bm_stack_area,
-									K_THREAD_STACK_SIZEOF(bm_stack_area),
-									bm_zigbee_receive_message,
-									NULL, NULL, NULL,
-									BM_THREAD_PRIO, 0, K_NO_WAIT); */
 
 		break;
 
@@ -560,12 +556,27 @@ void zboss_signal_handler(zb_bufid_t bufid)
 		ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
 		if (status == RET_OK)
 		{
-			//add_group_id_cb(zb_buf_get(ZB_TRUE,zb_buf_get_max_size(bufid)));
+			/* Schedule Add Group ID request */
 			zb_err_code = ZB_SCHEDULE_APP_ALARM(add_group_id_cb, bufid, MATCH_DESC_REQ_START_DELAY);
 			ZB_ERROR_CHECK(zb_err_code);
-			LOG_INF("Network Steering");
+
+			/* Read local node address */
+			zb_get_long_address(local_node_ieee_addr);
+			local_node_short_addr = zb_address_short_by_ieee(local_node_ieee_addr);
+			local_node_addr_len = ieee_addr_to_str(local_nodel_ieee_addr_buf, sizeof(local_nodel_ieee_addr_buf), local_node_ieee_addr);
+			LOG_INF("Network Steering finished with Local Node Address: Short: 0x%x, IEEE/Long: 0x%s", local_node_short_addr, local_nodel_ieee_addr_buf);
 			bufid = 0; // Do not free buffer - it will be reused by find_light_bulb callback.
 		}
+	case ZB_BDB_SIGNAL_DEVICE_REBOOT:
+		if (status == RET_OK)
+		{
+			/* Read local node address */
+			zb_get_long_address(local_node_ieee_addr);
+			local_node_short_addr = zb_address_short_by_ieee(local_node_ieee_addr);
+			local_node_addr_len = ieee_addr_to_str(local_nodel_ieee_addr_buf, sizeof(local_nodel_ieee_addr_buf), local_node_ieee_addr);
+			LOG_INF("Node restarted with Local Node Address: Short: 0x%x, IEEE/Long: 0x%s", local_node_short_addr, local_nodel_ieee_addr_buf);
+		}
+		break;
 		break;
 	default:
 
