@@ -8,8 +8,7 @@
 typedef enum
 {
     BM_EMPTY_STATE,
-    BM_STATE_1_CLIENT,
-    BM_STATE_1_SERVER,
+    BM_STATE_1,
     BM_STATE_2,
     BM_STATE_STOP
 } bm_state;

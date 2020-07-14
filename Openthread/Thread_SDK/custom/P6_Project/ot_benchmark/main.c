@@ -125,7 +125,7 @@ static void bsp_event_handler(bsp_event_t event)
             break;
 
         default:
-            return; // no implementation needed
+            return; // no implementation needed1
     }
 }
 
@@ -155,7 +155,15 @@ static void thread_state_changed_callback(uint32_t flags, void * p_context)
 }
 
 #if defined(BM_CLIENT) || defined(BM_SERVER)
-static void thread_time_sync_callback(void * p_context) { NRF_LOG_INFO("time sync callback"); }
+static void thread_time_sync_callback(void * p_context) 
+{
+    NRF_LOG_INFO("time sync callback"); 
+    if (*(int*)p_context == OT_NETWORK_TIME_SYNCHRONIZED)
+    {
+        NRF_LOG_INFO("time sync synchronized"); 
+    }
+    
+}
 #endif //BM_CLIENT || BM_SERVER
 
 #ifdef BM_MASTER
@@ -334,17 +342,14 @@ int main(int argc, char *argv[])
 
 #if defined(BM_CLIENT) || defined(BM_SERVER)
     thread_time_sync_init();
+#endif //BM_CLIENT || BM_SERVER   
     bm_statemachine_init();
-#endif //BM_CLIENT || BM_SERVER    
+ 
 
     while (true)
     {
         thread_process();
-
-#if defined(BM_CLIENT) || defined(BM_SERVER)
         bm_sm_process();
-#endif //BM_CLIENT || BM_SERVER 
-
         app_sched_execute();
 
         if (NRF_LOG_PROCESS() == false)

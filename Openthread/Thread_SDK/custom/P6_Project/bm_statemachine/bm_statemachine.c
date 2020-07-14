@@ -14,7 +14,6 @@
 #define NUMBER_OF_NETWORK_TIME_ELEMENTS 1000
 #define NUMBER_OF_SENDING_MESSAGES 10
 
-APP_TIMER_DEF(m_benchmark_timer);
 APP_TIMER_DEF(m_result_timer);
 APP_TIMER_DEF(m_msg_1_timer);
 APP_TIMER_DEF(m_msg_2_timer);
@@ -101,9 +100,6 @@ static void start_timer(void)
 
     error = app_timer_start(m_msg_10_timer, APP_TIMER_TICKS(ticks_array[9]), NULL);
     ASSERT(error == NRF_SUCCESS);
-
-    error = app_timer_start(m_benchmark_timer, APP_TIMER_TICKS(bm_time+otRandomNonCryptoGetUint16InRange(0, 2000)), NULL);
-    ASSERT(error == NRF_SUCCESS);
 }
 
 static void stop_timer(void)
@@ -137,11 +133,7 @@ static void stop_timer(void)
     ASSERT(error == NRF_SUCCESS);
 
     error = app_timer_stop(m_msg_10_timer);
-    ASSERT(error == NRF_SUCCESS);
-
-    error = app_timer_stop(m_benchmark_timer);
-    ASSERT(error == NRF_SUCCESS);
-    
+    ASSERT(error == NRF_SUCCESS);    
 }
 
 /***************************************************************************************************
@@ -207,11 +199,6 @@ static void m_msg_10_handler(void * p_context)
     bm_coap_probe_message_send(data_size);
 }
 
-static void benchmark_handler(void * p_context)
-{
-    bm_new_state = BM_STATE_2;
-}
-
 static void result_handler(void * p_context)
 {
     bm_message_info_nr--;
@@ -222,18 +209,9 @@ static void result_handler(void * p_context)
 /***************************************************************************************************
  * @section State machine
  **************************************************************************************************/
-static void state_1_client(void)
+static void state_1(void)
 {
     start_timer();       
-    bm_new_state = BM_EMPTY_STATE;
-}
-
-static void state_1_server(void)
-{
-    uint32_t error;
-
-    error = app_timer_start(m_benchmark_timer, APP_TIMER_TICKS(bm_time+otRandomNonCryptoGetUint16InRange(2000, 5000)), NULL);
-    ASSERT(error == NRF_SUCCESS);
     bm_new_state = BM_EMPTY_STATE;
 }
 
@@ -273,12 +251,8 @@ void bm_sm_process(void)
 
     switch(bm_actual_state)
     {        
-        case BM_STATE_1_CLIENT:
-            state_1_client();
-            break;
-
-        case BM_STATE_1_SERVER:
-            state_1_server();
+        case BM_STATE_1:
+            state_1();
             break;
 
         case BM_STATE_2:
@@ -303,9 +277,6 @@ void bm_sm_process(void)
 void bm_statemachine_init(void)
 {
     uint32_t error;
-
-    error = app_timer_create(&m_benchmark_timer, APP_TIMER_MODE_SINGLE_SHOT, benchmark_handler);
-    ASSERT(error == NRF_SUCCESS);
 
     error = app_timer_create(&m_result_timer, APP_TIMER_MODE_SINGLE_SHOT, result_handler);
     ASSERT(error == NRF_SUCCESS);
