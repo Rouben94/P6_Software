@@ -18,7 +18,7 @@
 extern "C" {
 #endif
 
-const struct bt_mesh_comp *model_handler_init(void);
+const struct bt_mesh_comp *bm_blemesh_model_handler_init(void);
 
 #ifdef __cplusplus
 }

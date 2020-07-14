@@ -6,10 +6,8 @@
 
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/mesh/models.h>
-#include "simple_buttons_and_leds.h"
-#include "model_handler.h"
-#include "Timer_sync.h"
-
+#include "bm_simple_buttons_and_leds.h"
+#include "bm_blemesh_model_handler.h"
 
 /** Configuration server definition */
 static struct bt_mesh_cfg_srv cfg_srv = {
@@ -41,28 +39,9 @@ static void button0_cb(){
 	int err;
 			struct bt_mesh_onoff_set set = {
 			.on_off = button0_toggle_state_get(),
-		};
-	// Meassure Tx Chanin Delay
-	u32_t ts_app, ts_tx;
-	synctimer_TimeStampCapture_clear();
-	synctimer_TimeStampCapture_enable();
-	ts_app = synctimer_getSyncTime();
+		};	
 	err = bt_mesh_onoff_cli_set_unack(&on_off_cli, NULL, &set);
-	printk("ON/OFF Client State: %d\n",set.on_off);
-	if (err)
-	{
-		printk("Publishing failed (err %d)\n", err);
-	}
-	// poll for TxTimestamp
-	while (synctimer_getTxTimeStamp() == 0){
-		__NOP(); //Don't know fast the stack is yet
-	}
-	ts_tx = synctimer_getTxTimeStamp();
-	synctimer_TimeStampCapture_disable();
-	printk("TxChain Delay %d us\n",ts_tx-ts_app);
 }
-
-
 
 /** ON/OFF Server definition */
 static void led_set(struct bt_mesh_onoff_srv *srv, struct bt_mesh_msg_ctx *ctx,
@@ -129,11 +108,8 @@ static const struct bt_mesh_comp comp = {
 	.elem_count = ARRAY_SIZE(elements),
 };
 
-const struct bt_mesh_comp *model_handler_init(void)
+const struct bt_mesh_comp *bm_blemesh_model_handler_init(void)
 {
-	config_debug_ppi_and_gpiote_radio_state();
-	synctimer_init();
-	synctimer_start();
 	init_leds_buttons(button0_cb); // Init Buttons and LEDs
 	return &comp;
 }

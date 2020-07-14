@@ -14,10 +14,11 @@ set(BOARD nrf52840dk_nrf52840)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(NONE)
 
+# Include all files in folder src
+FILE(GLOB app_sources_c src/*.c)
+FILE(GLOB app_sources_cpp src/*.cpp)
+
 target_sources(app PRIVATE
-	src/main.cpp
-	src/model_handler.c
-	src/simple_buttons_and_leds.c
-	src/Timer_sync.c
-	src/Simple_nrf_radio.cpp)
+	${app_sources_c}
+	${app_sources_cpp})
 target_include_directories(app PRIVATE include)

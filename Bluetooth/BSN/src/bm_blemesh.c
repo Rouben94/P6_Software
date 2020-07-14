@@ -10,11 +10,77 @@
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/mesh/models.h>
 #include <drivers/hwinfo.h>
-#include "model_handler.h"
-#include "const.h"
-#include "Simple_nrf_radio.h"
+#include "bm_blemesh_model_handler.h"
+#include "bm_blemesh.h"
 
-bool initialized=false;
+
+/** Defines for Self Provisioning **/
+static const u8_t net_key[16] = {
+	0x66,
+	0xef,
+	0x1e,
+	0x3a,
+	0x18,
+	0x0d,
+	0x7d,
+	0xec,
+	0x15,
+	0x45,
+	0xe6,
+	0xae,
+	0x77,
+	0x47,
+	0xb3,
+	0xfe,
+};
+static u8_t dev_key[16] = {
+	0x01,
+	0x23,
+	0x45,
+	0x67,
+	0x89,
+	0xab,
+	0xcd,
+	0xef,
+	0x01,
+	0x23,
+	0x45,
+	0x67,
+	0x89,
+	0xab,
+	0xcd,
+	0xef,
+};
+static const u8_t app_key[16] = {
+	0xa3,
+	0x01,
+	0x77,
+	0x4b,
+	0xe8,
+	0x02,
+	0x2c,
+	0xd8,
+	0x12,
+	0x3f,
+	0xf3,
+	0x27,
+	0x42,
+	0xa7,
+	0x36,
+	0x94,
+};
+
+static const u16_t net_idx=0;
+static const u16_t app_idx=0;
+static const u32_t iv_index=0;
+
+#define GROUP_ADDR 0xc000 //Range from 0xC000-0xFEFF 
+
+
+static u8_t flags =0;
+static u16_t addr = 0x0b0d; // Unicast Address Range from 0-0x7FFF, 0-32767 ->Assigned Random
+static bool initialized=false; // Flag if the Stack is initialized
+
 
 // Init the rest while Bluetooth is enabled
 static void bt_ready(int err){
@@ -43,7 +109,7 @@ static void bt_ready(int err){
 	struct bt_mesh_prov prov = {
 	.uuid = dev_uuid,
 	};
-	err = bt_mesh_init(&prov, model_handler_init());
+	err = bt_mesh_init(&prov, bm_blemesh_model_handler_init());
 	if (err)
 	{
 		printk("Initializing mesh failed (err %d)\n", err);
@@ -80,21 +146,9 @@ static void bt_ready(int err){
 	initialized = true;
 }
 
-// Create Radio Instance
-Simple_nrf_radio simple_nrf_radio;
-
-void main(void)
+void bm_blemesh_enable(void)
 {
 	int err;
-
-	printk("Initializing...\n");
-
-	/* ----------- Start P2P Config ------------- */
-		// Init
-	printk("Started \n");
-	int res = simple_nrf_radio.RSSI(8);
-	printk("RSSI: %d\n", res);
-
 
 	/* ---------- Init Bluetooth ---------- */
 	printk("Enabling Bluetooth...\n");
@@ -136,7 +190,5 @@ void main(void)
 	printk("Err Code: %d\n",stat);
 	
 	printk("Configuring done\n");
-	/* ===================================*/
-
-	
+	/* ===================================*/	
 }

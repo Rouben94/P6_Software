@@ -1,4 +1,4 @@
-#include "simple_buttons_and_leds.h"
+#include "bm_simple_buttons_and_leds.h"
 
 struct device *dev_led0, *dev_button0;
 bool led0_is_on = true;
