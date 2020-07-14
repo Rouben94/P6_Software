@@ -603,14 +603,11 @@ void error(void)
 	}
 }
 
-void main(void)
+static void general_init(void)
 {
-	//int blink_status = 0;
-
-	LOG_INF("Starting ZBOSS Light Bulb example");
-
-	/* Initialize */
 	configure_gpio();
+
+	/* TODO: Sync Timer Init */
 
 	/* Register dimmer switch device context (endpoints). */
 	ZB_AF_REGISTER_DEVICE_CTX(&dimmable_light_ctx);
@@ -621,6 +618,17 @@ void main(void)
 
 	bulb_clusters_attr_init();
 	level_control_set_value(dev_ctx.level_control_attr.current_level);
+}
+
+void main(void)
+{
+	//int blink_status = 0;
+
+	LOG_INF("Starting ZBOSS Light Bulb example");
+
+	general_init();
+
+	
 
 	/* Start Zigbee default thread */
 	zigbee_enable();
