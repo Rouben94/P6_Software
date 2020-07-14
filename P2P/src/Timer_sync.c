@@ -82,9 +82,9 @@ extern void synctimer_TimeStampCapture_enable()
 	/* Setup DPPI for Sending and Receiving Timesync Packet */
 	NRF_DPPIC->CHEN |= 1 << 0; // Enable Channel 0 DPPI
 	NRF_DPPIC->CHEN |= 1 << 1; // Enable Channel 1 DPPI
-	nrf_timer_subscribe_set(synctimer.p_reg, NRF_TIMER_TASK_CAPTURE1, 0);
+	nrf_timer_subscribe_set(synctimer, NRF_TIMER_TASK_CAPTURE1, 0);
 	NRF_RADIO->PUBLISH_END |= 1 << 31; // Enable Publishing on CH0
-	nrf_timer_subscribe_set(synctimer.p_reg, NRF_TIMER_TASK_CAPTURE2, 1);
+	nrf_timer_subscribe_set(synctimer, NRF_TIMER_TASK_CAPTURE2, 1);
 	NRF_RADIO->PUBLISH_CRCOK |= 1 << 31; // Enable Publishing
 	NRF_RADIO->PUBLISH_CRCOK |= 1 << 0;	 // Enable Publishing on CH1
 #else
@@ -109,9 +109,9 @@ extern void synctimer_TimeStampCapture_disable()
 {
 #if defined(DPPI_PRESENT) || defined(__NRFX_DOXYGEN__)
 	/* Setup DPPI for Sending and Receiving Timesync Packet */
-	nrf_timer_subscribe_clear(synctimer.p_reg, NRF_TIMER_TASK_CAPTURE1);
+	nrf_timer_subscribe_clear(synctimer, NRF_TIMER_TASK_CAPTURE1);
 	NRF_RADIO->PUBLISH_END &= ~(1 << 31); // Disable Publishing on CH0
-	nrf_timer_subscribe_clear(synctimer.p_reg, NRF_TIMER_TASK_CAPTURE2);
+	nrf_timer_subscribe_clear(synctimer, NRF_TIMER_TASK_CAPTURE2);
 	NRF_RADIO->PUBLISH_CRCOK &= ~(1 << 31); // Disable Publishing
 	NRF_RADIO->PUBLISH_CRCOK &= ~(1 << 0);	 // Disable Publishing on CH1
 	NRF_DPPIC->CHEN &= ~(1 << 0);			 // Disable Channel 0 DPPI
@@ -235,7 +235,7 @@ void config_debug_ppi_and_gpiote_radio_state()
 							(GPIOTE_CONFIG_OUTINIT_Low << GPIOTE_CONFIG_OUTINIT_Pos));
 	
 	//NRF_PPI->CH[7].EEP = (uint32_t) & NRF_RADIO->EVENTS_TXREADY;
-	NRF_PPI->CH[7].EEP = (uint32_t) & NRF_TIMER3->EVENTS_COMPARE[4];
+	NRF_PPI->CH[7].EEP = (uint32_t) & NRF_TIMER4->EVENTS_COMPARE[4];
 	NRF_PPI->CH[7].TEP = (uint32_t) & NRF_GPIOTE->TASKS_OUT[0];
 	NRF_PPI->CHENSET |= (PPI_CHENSET_CH7_Set << PPI_CHENSET_CH7_Pos);
 	//Radio Rx
@@ -245,7 +245,7 @@ void config_debug_ppi_and_gpiote_radio_state()
 							(GPIOTE_CONFIG_POLARITY_Toggle << GPIOTE_CONFIG_POLARITY_Pos) |
 							(GPIOTE_CONFIG_OUTINIT_High << GPIOTE_CONFIG_OUTINIT_Pos));
 	//NRF_PPI->CH[8].EEP = (uint32_t) & NRF_RADIO->EVENTS_RXREADY;
-	NRF_PPI->CH[8].EEP = (uint32_t) & NRF_TIMER3->EVENTS_COMPARE[4];
+	NRF_PPI->CH[8].EEP = (uint32_t) & NRF_TIMER4->EVENTS_COMPARE[4];
 	NRF_PPI->CH[8].TEP = (uint32_t) & NRF_GPIOTE->TASKS_OUT[1];
 	NRF_PPI->CHENSET |= (PPI_CHENSET_CH8_Set << PPI_CHENSET_CH8_Pos);
 

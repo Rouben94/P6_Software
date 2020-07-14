@@ -27,7 +27,7 @@ along with P2P-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 #include "Timer_sync.h"
 
 /* ------------- Definitions --------------*/
-#define isMaster 1									// Node is the Master (1) or Slave (0)
+#define isMaster 0									// Node is the Master (1) or Slave (0)
 #define CommonMode NRF_RADIO_MODE_BLE_LR125KBIT		// Common Mode
 #define CommonStartCH 37							// Common Start Channel
 #define CommonEndCH 39								// Common End Channel
@@ -161,7 +161,7 @@ uint32_t rand_32 = sys_rand32_get(); //Takes Long Time so do once in init
 bool GotReportReq = false;
 
 ParamPkt Param_pkt_RX, Param_pkt_TX = {};
-ParamPkt ParamLocal, ParamLocalBuf = {CommonStartCH, CommonEndCH, 20, CommonMode, false, CommonTxPower, 0};
+ParamPkt ParamLocal, ParamLocalBuf = {CommonStartCH, CommonEndCH, 20, CommonMode, 0, CommonTxPower, 0};
 //ParamPkt ParamLocal, ParamLocalBuf = {11, 26, 20, CommonMode, false, CommonTxPower, 0};
 bool GotParam = false;
 
@@ -509,6 +509,7 @@ void ST_PACKETS_fn(void)
 	k_timer_start(&state_timer, K_MSEC(ST_TIME_PACKETS_MS), K_MSEC(0));
 	synctimer_setSyncTimeCompareInt((synctimer_getSyncTime() + ST_TIME_PACKETS_MS * 1000 + ST_TIME_MARGIN_MS * 1000), ST_transition_cb);
 	/* init */
+	simple_nrf_radio.setCH(ParamLocal.StartCH); // Because when switching from or to IEEE the Channel has to be set before switching the mode (Maybee Modulator Issue?)
 	simple_nrf_radio.setMode((nrf_radio_mode_t)ParamLocal.Mode);
 	simple_nrf_radio.setAA(PacketsAddress);
 	simple_nrf_radio.setTxP((nrf_radio_txpower_t)ParamLocal.TxPower);
@@ -523,6 +524,20 @@ void ST_PACKETS_fn(void)
 	chrep_local.clear();   // Clear the local Channel Report
 	RxPktStatLog log;	   //Temp
 	u16_t PktCnt_temp = 0; //Temp
+	// Setup CCA
+	if ((nrf_radio_mode_get(NRF_RADIO) == NRF_RADIO_MODE_IEEE802154_250KBIT) && (ParamLocal.CCMA_CA != 0)) {
+		if (ParamLocal.CCMA_CA == 1){
+			nrf_radio_cca_configure(NRF_RADIO,NRF_RADIO_CCA_MODE_ED,CCA_TRESHOLD_ED_SCALE,CCA_TRESHOLD_ED_SCALE,2);
+		} else if (ParamLocal.CCMA_CA == 2){
+			nrf_radio_cca_configure(NRF_RADIO,NRF_RADIO_CCA_MODE_CARRIER,CCA_TRESHOLD_ED_SCALE,CCA_TRESHOLD_ED_SCALE,2);
+		} else if (ParamLocal.CCMA_CA == 3){
+			nrf_radio_cca_configure(NRF_RADIO,NRF_RADIO_CCA_MODE_CARRIER_AND_ED,CCA_TRESHOLD_ED_SCALE,CCA_TRESHOLD_ED_SCALE,2);
+		} else if (ParamLocal.CCMA_CA == 4){
+			nrf_radio_cca_configure(NRF_RADIO,NRF_RADIO_CCA_MODE_CARRIER_OR_ED,CCA_TRESHOLD_ED_SCALE,CCA_TRESHOLD_ED_SCALE,2);
+		}
+	} 
+	// See: https://docs.zephyrproject.org/latest/reference/kconfig/CONFIG_NRF_802154_CCA_CORR_LIMIT.html?highlight=nrf%20cca#cmdoption-arg-config-nrf-802154-cca-corr-limit
+	// See: https://docs.zephyrproject.org/latest/reference/kconfig/CONFIG_NRF_802154_CCA_CORR_THRESHOLD.html?highlight=nrf%20cca#cmdoption-arg-config-nrf-802154-cca-corr-threshold
 	/* Do work and keep track of Time Left */
 	for (int ch = ParamLocal.StartCH; ch <= ParamLocal.StopCH; ch++)
 	{
@@ -534,7 +549,7 @@ void ST_PACKETS_fn(void)
 		{
 			//chrep_local.back().Avg_NOISE_RSSI = simple_nrf_radio.RSSI(40); //Find out how long it takes and rise itirations
 			k_sleep(K_MSEC(5));																							 //Let Slave meassure noise and prepare Reception
-			PktCnt_temp = simple_nrf_radio.BurstCntPkt(radio_pkt_Tx, K_MSEC(k_timer_remaining_get(&state_timer2) - 15)); //Margin to let Slave Receive longer than sending and log data
+			PktCnt_temp = simple_nrf_radio.BurstCntPkt(radio_pkt_Tx, ParamLocal.CCMA_CA ,K_MSEC(k_timer_remaining_get(&state_timer2) - 15)); //Margin to let Slave Receive longer than sending and log data
 																														 //Let Slave End Reception
 		}
 		else
@@ -563,10 +578,10 @@ void ST_REPORT_REQ_fn(u8_t CH, u8_t NodeIdx)
 	k_timer_start(&state_timer, K_MSEC(ST_TIME_REPORT_REQ_MS), K_MSEC(0));
 	synctimer_setSyncTimeCompareInt((synctimer_getSyncTime() + ST_TIME_REPORT_REQ_MS * 1000 + ST_TIME_MARGIN_MS * 1000), ST_transition_cb);
 	// Prepare Node Req
+	simple_nrf_radio.setCH(CH); // Because when switching from or to IEEE the Channel has to be set before switching the mode (Maybee Modulator Issue?)
 	simple_nrf_radio.setMode(CommonMode);
 	simple_nrf_radio.setAA(ReportsReqAddress);
 	simple_nrf_radio.setTxP(CommonTxPower);
-	simple_nrf_radio.setCH(CH);
 	radio_pkt_Tx.length = sizeof(RepoReq_pkt_TX);
 	radio_pkt_Tx.PDU = (u8_t *)&RepoReq_pkt_TX;
 	radio_pkt_Rx.length = sizeof(RepoReq_pkt_RX);

@@ -198,6 +198,8 @@ u16_t Simple_nrf_radio::BurstCntPkt(RADIO_PACKET tx_pkt, u8_t CCA_Mode, k_timeou
     ISR_Thread_ID = k_current_get();                                                                                                               // Set Interrupt Thread to wakeup
     if (nrf_radio_mode_get(NRF_RADIO) == NRF_RADIO_MODE_BLE_LR125KBIT || nrf_radio_mode_get(NRF_RADIO) == NRF_RADIO_MODE_BLE_LR500KBIT){
         nrf_radio_shorts_enable(NRF_RADIO, NRF_RADIO_SHORT_READY_START_MASK | NRF_RADIO_SHORT_PHYEND_DISABLE_MASK | NRF_RADIO_SHORT_END_DISABLE_MASK | NRF_RADIO_SHORT_DISABLED_TXEN_MASK); // Slow things Down for LR Becasuse using regular short leads to Packet loss
+    } else if ((nrf_radio_mode_get(NRF_RADIO) == NRF_RADIO_MODE_IEEE802154_250KBIT) && (CCA_Mode != 0)) {
+            nrf_radio_shorts_enable(NRF_RADIO, NRF_RADIO_SHORT_RXREADY_CCASTART_MASK | NRF_RADIO_SHORT_CCAIDLE_TXEN_MASK | NRF_RADIO_SHORT_TXREADY_START_MASK | NRF_RADIO_SHORT_END_DISABLE_MASK | NRF_RADIO_SHORT_DISABLED_RXEN_MASK | NRF_RADIO_SHORT_CCABUSY_DISABLE_MASK);
     } else {
         nrf_radio_shorts_enable(NRF_RADIO, NRF_RADIO_SHORT_READY_START_MASK | NRF_RADIO_SHORT_PHYEND_START_MASK | NRF_RADIO_SHORT_END_START_MASK); // Start after Ready and Disable after END or PHY-End
     }
