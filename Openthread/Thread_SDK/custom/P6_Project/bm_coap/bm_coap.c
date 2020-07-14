@@ -40,7 +40,7 @@ typedef struct
     otIp6Address peer_address;         /**< An address of a related server node. */
 } state_t;
 
-otIp6Address bm_master_address, bm_slave_address, bm_group_address;
+otIp6Address bm_master_address, bm_group_address;
 
 uint8_t bm_group_nr = 0;
 const char *bm_group_address_array[NUMBER_OF_IP6_GROUPS] = {"ff02::3", 
@@ -368,7 +368,7 @@ static void bm_start_request_handler(void                 * p_context,
                                      const otMessageInfo  * p_message_info)
 {
     NRF_LOG_INFO("Master: got start request")
-
+    otIp6Address bm_slave_address;
 
     do
     {
@@ -387,6 +387,8 @@ static void bm_start_request_handler(void                 * p_context,
         {
             NRF_LOG_INFO("benchmark request handler - missing message")
         }
+
+        bm_save_slave_address(bm_slave_address);
 
         if (otCoapMessageGetType(p_message) == OT_COAP_TYPE_CONFIRMABLE)
         {

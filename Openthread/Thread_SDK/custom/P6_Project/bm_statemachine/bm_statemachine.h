@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <openthread/ip6.h>
 
 /* Typdef for benchmark state */
 typedef enum
@@ -59,6 +60,12 @@ void bm_sm_new_state_set(uint8_t state);
  * @details 
  */
 void bm_save_message_info(bm_message_info message);
+
+/**@brief 
+ *
+ * @details 
+ */
+void bm_save_slave_address(otIp6Address slave_address);
 
 /**@brief 
  *

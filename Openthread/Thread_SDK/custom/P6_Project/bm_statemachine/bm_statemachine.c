@@ -29,7 +29,9 @@ APP_TIMER_DEF(m_msg_10_timer);
 bm_message_info message_info[NUMBER_OF_NETWORK_TIME_ELEMENTS] = {0};
 
 uint16_t bm_message_info_nr = 0;
+uint16_t bm_slave_nr = 0;
 
+otIp6Address bm_slave_address[60] = {};
 uint32_t  bm_time = 0;
 uint8_t   bm_new_state = 0;
 uint8_t   bm_actual_state = 0;
@@ -43,6 +45,12 @@ void bm_save_message_info(bm_message_info message)
 {
     message_info[bm_message_info_nr] = message;
     bm_message_info_nr++;
+}
+
+void bm_save_slave_address(otIp6Address slave_address)
+{
+    bm_slave_address[bm_slave_nr] = slave_address;
+    bm_slave_nr++;
 }
 
 void bm_sm_time_set(uint32_t time)
