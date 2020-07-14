@@ -24,3 +24,4 @@ target_sources(app PRIVATE
 # Include all files in folder src
 FILE(GLOB app_sources src/*.c)
 target_sources(app PRIVATE ${app_sources})
+target_include_directories(app PRIVATE include)
