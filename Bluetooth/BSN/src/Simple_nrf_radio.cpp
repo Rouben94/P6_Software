@@ -271,7 +271,7 @@ s32_t Simple_nrf_radio::Receive(RADIO_PACKET *rx_pkt, k_timeout_t timeout)
         //printk("Timeout nothing received \n");
     }
     nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_RSSISTOP);
-    radio_disable();
+    //radio_disable();
     return ret;
 }
 /**
