@@ -5,12 +5,14 @@ extern "C" {
 #ifndef BM_TIMESYNC_H
 #define BM_TIMESYNC_H
 
+extern bool bm_state_synced; // Signal the Synced State of the Timesync
+extern bool bm_synctimer_timeout_compare_int; // Signal that a Timeout Compare Interrupt on Synctimer is Occured
 
 /**
 * Init the Sync Timer
 *
 */
-extern void bm_timesync_init();
+extern void synctimer_init();
 
 /**
 * Timestamp Capture clear
@@ -71,7 +73,19 @@ extern uint64_t synctimer_getSyncTime();
 */
 extern void synctimer_setSyncTimeCompareInt(uint64_t ts ,void (*cc_cb)());
 
+/* Sets a Compare Interrupt which occurs after the specified time in us */
+void synctimer_setCompareInt(uint32_t timeout_ms);
+
+/* Sleeps for the given Timeout in ms */
+void bm_sleep(uint32_t timeout_ms);
+
 extern void config_debug_ppi_and_gpiote_radio_state();
+
+void bm_radio_init();
+
+void bm_timesync_Publish(uint32_t timeout_ms, uint64_t ST_INIT_MESH_STACK_TS);
+
+uint64_t bm_timesync_Subscribe(uint32_t timeout_ms);
 
 #endif
 

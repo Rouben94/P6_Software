@@ -11,6 +11,7 @@
 #include <hal/nrf_radio.h>
 
 #include "bm_timesync.h"
+#include "bm_cli.h"
 
 #if defined(DPPI_PRESENT) || defined(__NRFX_DOXYGEN__)
 #include <nrfx_dppi.h>
@@ -27,7 +28,11 @@ static uint32_t OverflowCNT_int_synced_ts = 0;
 static const uint32_t RxChainDelay_us = 35; // Meassured Chain Delay (40 with IEEE803.4.15)
 
 static void (*sync_compare_callback)();
-static bool synctimer_timeout_compare_int = false; // Simple Flag for signaling the Compare interrupt
+bool bm_synctimer_timeout_compare_int = false; // Simple Flag for signaling the Compare interrupt
+
+bool bm_state_synced = false;  // Init the Synced State
+
+k_tid_t wakeup_thread_tid;
 
 /* Zephyr Way */
 ISR_DIRECT_DECLARE(bm_timer_handler)
@@ -38,6 +43,7 @@ ISR_DIRECT_DECLARE(bm_timer_handler)
         synctimer->EVENTS_COMPARE[5] = false;
         OverflowCNT++;
     }
+    // Transistion Handler
     if (synctimer->EVENTS_COMPARE[4] == true)
     {
         synctimer->EVENTS_COMPARE[4] = false;
@@ -46,12 +52,14 @@ ISR_DIRECT_DECLARE(bm_timer_handler)
             sync_compare_callback();
         }
     }
-    if (synctimer->EVENTS_COMPARE[0] == true)
+    // Sleep Handler
+    if (synctimer->EVENTS_COMPARE[3] == true)
     {
-        synctimer_timeout_compare_int = true;
-        synctimer->EVENTS_COMPARE[0] = false;
-        synctimer->INTENSET &= ~((uint32_t)NRF_TIMER_INT_COMPARE0_MASK); // Disable Compare Event 0 Interrupt
+        bm_synctimer_timeout_compare_int = true;
+        synctimer->EVENTS_COMPARE[3] = false;
+        synctimer->INTENSET &= ~((uint32_t)NRF_TIMER_INT_COMPARE3_MASK); // Disable Compare Event 0 Interrupt
     }
+    k_wakeup(wakeup_thread_tid);
     ISR_DIRECT_PM();
     return 1;
 }
@@ -77,6 +85,7 @@ void TIMER4_IRQHandler(void){
 /* Timer init */
 extern void synctimer_init()
 {
+    wakeup_thread_tid = k_current_get();
     // Takes 4294s / 71min to expire
     nrf_timer_bit_width_set(synctimer, NRF_TIMER_BIT_WIDTH_32);
     nrf_timer_frequency_set(synctimer, NRF_TIMER_FREQ_1MHz);
@@ -241,12 +250,24 @@ extern void synctimer_setSyncTimeCompareInt(uint64_t ts, void (*cc_cb)())
 }
 
 /* Sets a Compare Interrupt which occurs after the specified time in us */
-void synctimer_setCompareInt(uint32_t timeout_us)
+void synctimer_setCompareInt(uint32_t timeout_ms)
 {
-    synctimer->EVENTS_COMPARE[0] = false;
-    nrf_timer_task_trigger(synctimer, nrf_timer_capture_task_get(NRF_TIMER_CC_CHANNEL0));
-    synctimer->CC[0] = nrf_timer_cc_get(synctimer, NRF_TIMER_CC_CHANNEL0) + timeout_us;
-    synctimer->INTENSET |= (uint32_t)NRF_TIMER_INT_COMPARE0_MASK; // Enable Compare Event 0 Interrupt
+    synctimer->EVENTS_COMPARE[3] = false;
+    synctimer->CC[3] = (uint32_t)synctimer_getSyncTime() + timeout_ms*1000;
+    synctimer->INTENSET |= (uint32_t)NRF_TIMER_INT_COMPARE3_MASK; // Enable Compare Event 3 Interrupt
+}
+
+/* Sleeps for the given Timeout in ms */
+void bm_sleep(uint32_t timeout_ms){
+    bm_synctimer_timeout_compare_int = false; // Reset Interrupt Flags
+    synctimer_setCompareInt(timeout_ms);
+    while (!(bm_synctimer_timeout_compare_int))
+    {
+        //__SEV();__WFE();__WFE(); // Wait for Timer Interrupt nRF5SDK Way
+        k_sleep(K_FOREVER); // Zephyr Way
+    }
+    bm_synctimer_timeout_compare_int = false; // Reset Interrupt Flags
+    return;
 }
 
 void config_debug_ppi_and_gpiote_radio_state()
@@ -306,25 +327,29 @@ void config_debug_ppi_and_gpiote_radio_state()
 #define IEEE_MAX_PAYLOAD_LEN 127
 
 
-struct RADIO_PACKET
-{
+typedef struct {
     uint8_t length;
     u8_t *PDU;    // Pointer to PDU
     u8_t Rx_RSSI; // Received RSSI of Packet
-};
+} RADIO_PACKET;
 
-struct PACKET_PDU_ALIGNED
-{
+RADIO_PACKET Radio_Packet_TX,Radio_Packet_RX;
+
+typedef struct {
     uint8_t length;
-    u8_t PDU[RADIO_MAX_PAYLOAD_LEN - 1];    // Max Size of PDU
-} __attribute__((packed)) tx_pkt_aligned;   // Attribute informing compiler to pack all members to 8bits or 1byte
+    u8_t PDU[RADIO_MAX_PAYLOAD_LEN - 1];      // Max Size of PDU
+} __attribute__((packed)) PACKET_PDU_ALIGNED; // Attribute informing compiler to pack all members to 8bits or 1byte
 
-struct PACKET_PDU_ALIGNED_IEEE /* For IEEE The address has to be transmitted explicit */
+static PACKET_PDU_ALIGNED tx_pkt_aligned;
+
+typedef struct  /* For IEEE The address has to be transmitted explicit */
 {
     uint8_t length;
     u32_t address;
-    u8_t PDU[IEEE_MAX_PAYLOAD_LEN - sizeof(address) - 1]; // Max Size of PDU
-} __attribute__((packed)) tx_pkt_aligned_IEEE;            // Attribute informing compiler to pack all members to 8bits or 1byte
+    u8_t PDU[IEEE_MAX_PAYLOAD_LEN - 4 - 1]; // Max Size of PDU
+} __attribute__((packed)) PACKET_PDU_ALIGNED_IEEE;        // Attribute informing compiler to pack all members to 8bits or 1byte
+
+static PACKET_PDU_ALIGNED_IEEE tx_pkt_aligned_IEEE;
 
 static int const BLE_CH_freq[40] = {2404, 2406, 2408, 2410, 2412, 2414, 2416, 2418, 2420, 2422, 2424, 2428, 2430, 2432, 2434, 2436, 2438, 2440, 2442, 2444, 2446, 2448, 2450, 2452, 2454, 2456, 2458, 2460, 2462, 2464, 2466, 2468, 2470, 2472, 2474, 2476, 2478, 2402, 2426, 2480};
 static int const IEEE802_15_4_CH_freq[16] = {2405, 2410, 2415, 2420, 2425, 2430, 2435, 2440, 2445, 2450, 2455, 2460, 2465, 2470, 2475, 2480}; // List of IEEE802.15.4 Channels
@@ -416,12 +441,48 @@ void bm_radio_setMode(nrf_radio_mode_t m)
     nrf_radio_packet_configure(NRF_RADIO, &packet_conf);
 }
 
+void bm_radio_setCH(u8_t CH)
+{
+    // Accept only numbers within 0-39 for BLE Channels
+    if ((39 >= CH && CH >= 0) && nrf_radio_mode_get(NRF_RADIO) != NRF_RADIO_MODE_IEEE802154_250KBIT)
+    {
+        nrf_radio_frequency_set(NRF_RADIO, BLE_CH_freq[CH]);
+        nrf_radio_datawhiteiv_set(NRF_RADIO, CH);
+        //printk("Set Frequency to %d\n", BLE_CH_freq[CH]);
+    }
+    else if (26 >= CH && CH >= 11) // Accept only numbers within 11-26 for IEEE802.15.4 Channels
+    {
+        nrf_radio_frequency_set(NRF_RADIO, IEEE802_15_4_CH_freq[CH - 11]);
+    }
+}
+
+void bm_radio_setTxP(nrf_radio_txpower_t TxP)
+{
+    nrf_radio_txpower_set(NRF_RADIO, TxP);
+}
+
+void bm_radio_setAA(u32_t aa)
+{
+    address = aa; // Store the Access Address
+    /* Set the device address 0 to use when transmitting. */
+    nrf_radio_txaddress_set(NRF_RADIO, 0);
+    /* Enable the device address 0 to use to select which addresses to
+	 	* receive
+	 	*/
+    nrf_radio_rxaddresses_set(NRF_RADIO, 1);
+    /* Set the access address */
+    nrf_radio_prefix0_set(NRF_RADIO, (aa >> 24) & RADIO_PREFIX0_AP0_Msk);
+    nrf_radio_base0_set(NRF_RADIO, (aa << 8) & 0xFFFFFF00);
+    //nrf_radio_sfd_set(NRF_RADIO, (aa >> 24) & RADIO_PREFIX0_AP0_Msk); // Set the SFD for the IEEE Radio Mode to the Prefix (first byte of Address) -> Dont do because of CCA Carrier Mode
+}
+
 
 bool bm_radio_crcok_int = false;
 /* Zephyr Way */
-ISR_DIRECT_DECLARE(bm_radio_handler)
-{
-    //printk("Interrupt\n");
+/*
+static void bm_radio_handler(){
+    bm_cli_log("Interrupt\n");
+    k_sleep(K_MSEC(10));
     if (nrf_radio_event_check(NRF_RADIO,NRF_RADIO_EVENT_CRCOK)){
         bm_radio_crcok_int = true;
     }
@@ -429,9 +490,27 @@ ISR_DIRECT_DECLARE(bm_radio_handler)
     nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_PHYEND);   // Clear ISR Event PHYEND
     nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_CRCOK);    // Clear ISR Event CRCOK
     nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_CRCERROR); // Clear ISR Event CRCError
+    k_wakeup(wakeup_thread_tid);
+}
+*/
+/*
+ISR_DIRECT_DECLARE(bm_radio_handler)
+{
+    bm_cli_log("Interrupt\n");
+    k_sleep(K_MSEC(10));
+    if (nrf_radio_event_check(NRF_RADIO,NRF_RADIO_EVENT_CRCOK)){
+        bm_radio_crcok_int = true;
+    }
+    nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_END);      // Clear ISR Event END
+    nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_PHYEND);   // Clear ISR Event PHYEND
+    nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_CRCOK);    // Clear ISR Event CRCOK
+    nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_CRCERROR); // Clear ISR Event CRCError
+    k_wakeup(wakeup_thread_tid);
     ISR_DIRECT_PM();
     return 1;
 }
+*/
+
 
 /* NRF SDK WAY 
 void RADIO_IRQHandler(void){
@@ -450,19 +529,19 @@ void bm_radio_init()
 {
     // Enable the High Frequency clock on the processor. This is a pre-requisite for
     // the RADIO module. Without this clock, no communication is possible.
+    wakeup_thread_tid = k_current_get();
     bm_radio_clock_init();
     nrf_radio_power_set(NRF_RADIO, 1);                      // Power ON Radio
     bm_radio_disable();                                     // Disable Radio
-    setMode(NRF_RADIO_MODE_BLE_1MBIT);                      // Set Mode to BLE 1MBITS
-    setAA(0x8E89BED6);                                      // Default Advertisment Address BLE 0x8E89BED6
-    setCH(11);                                              // Default Advertisment Channel
-    setTxP(NRF_RADIO_TXPOWER_0DBM);                         // Set Tx Power to 0dbm
-    IRQ_DIRECT_CONNECT(RADIO_IRQn, 6, bm_radio_handler, 0); // Connect Radio ISR Zephyr WAY
-    irq_enable(RADIO_IRQn);                                 // Enable Radio ISR Zephyr WAY
+    bm_radio_setMode(NRF_RADIO_MODE_BLE_1MBIT);                      // Set Mode to BLE 1MBITS
+    bm_radio_setAA(0x8E89BED6);                                      // Default Advertisment Address BLE 0x8E89BED6
+    bm_radio_setCH(11);                                              // Default Advertisment Channel
+    bm_radio_setTxP(NRF_RADIO_TXPOWER_0DBM);                         // Set Tx Power to 0dbm
+    //IRQ_DIRECT_CONNECT(RADIO_IRQn, 6, bm_radio_handler, 0); // Connect Radio ISR Zephyr WAY
+    //irq_connect_dynamic(RADIO_IRQn, 6, bm_radio_handler, NULL, 0); // Connect Radio ISR Zephyr WAY
+    //irq_enable(RADIO_IRQn);                                 // Enable Radio ISR Zephyr WAY
     // NVIC_EnableIRQ(RADIO_IRQn);                               // Enable Radio ISR NRF SDK WAY
 }
-
-
 
 void bm_radio_send(RADIO_PACKET tx_pkt)
 {
@@ -489,15 +568,17 @@ void bm_radio_send(RADIO_PACKET tx_pkt)
     }
     nrf_radio_packetptr_set(NRF_RADIO, tx_buf);                           
     nrf_radio_shorts_enable(NRF_RADIO, NRF_RADIO_SHORT_READY_START_MASK | NRF_RADIO_SHORT_END_DISABLE_MASK | NRF_RADIO_SHORT_PHYEND_DISABLE_MASK); // Start after Ready and Disable after END or PHY-End
+    nrf_radio_event_clear(NRF_RADIO,NRF_RADIO_EVENT_DISABLED);
     nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_TXEN);
     while (!nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_DISABLED))
     {
-        __SEV();__WFE();__WFE(); // Wait for the Disabled Event
+        __SEV();__WFE();__WFE(); // Wait for Timer Interrupt nRF5SDK Way
+        // k_sleep(K_FOREVER); // Zephyr Way
     }
-    radio_disable();
+    bm_radio_disable();
 }
 
-uint32_t bm_radio_receive(RADIO_PACKET *rx_pkt, uint32_t timeout_ms)
+bool bm_radio_receive(RADIO_PACKET *rx_pkt, uint32_t timeout_ms)
 {
     bm_radio_disable();
     /* Initialize Rx Buffer */
@@ -517,14 +598,18 @@ uint32_t bm_radio_receive(RADIO_PACKET *rx_pkt, uint32_t timeout_ms)
     nrf_radio_int_enable(NRF_RADIO, NRF_RADIO_INT_CRCOK_MASK);                                                                                                                                                 // Set Interrupt Thread to wakeup
     nrf_radio_shorts_enable(NRF_RADIO, NRF_RADIO_SHORT_READY_START_MASK | NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK | NRF_RADIO_SHORT_PHYEND_START_MASK | NRF_RADIO_SHORT_END_START_MASK); // Start after Ready and Start after END -> wait for CRCOK Event otherwise keep on receiving
     nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_RXEN);
-    synctimer_timeout_compare_int = false; bm_radio_crcok_int = false; // Reset Interrupt Flags
-    synctimer_setCompareInt(timeout_ms*1000);
-    while (!(bm_radio_crcok_int) && !(synctimer_timeout_compare_int))
+    
+    bm_synctimer_timeout_compare_int = false; bm_radio_crcok_int = false; // Reset Interrupt Flags
+    synctimer_setCompareInt(timeout_ms);
+    while (!(nrf_radio_event_check(NRF_RADIO,NRF_RADIO_EVENT_CRCOK)) && !(bm_synctimer_timeout_compare_int))
     {
-        __SEV();__WFE();__WFE(); // Wait for the Disabled Event or Timer Interrupt
+        __SEV();__WFE();__WFE(); // Wait for Timer Interrupt nRF5SDK Way
+        //k_sleep(K_FOREVER); // Zephyr Way
     }
-    bool ret = bm_radio_crcok_int; // Save the Feedback if a 
-    synctimer_timeout_compare_int = false; bm_radio_crcok_int = false; // Reset Interrupt Flags
+    bool ret = nrf_radio_event_check(NRF_RADIO,NRF_RADIO_EVENT_CRCOK); // Save the Feedback if something received
+    nrf_radio_event_clear(NRF_RADIO,NRF_RADIO_EVENT_CRCOK);
+    bm_synctimer_timeout_compare_int = false; bm_radio_crcok_int = false; // Reset Interrupt Flags
+    
     if (ret != false)
     {
         //printk("Received Sample RSSI: %d \n", nrf_radio_rssi_sample_get(NRF_RADIO));
@@ -552,11 +637,79 @@ uint32_t bm_radio_receive(RADIO_PACKET *rx_pkt, uint32_t timeout_ms)
         //printk("Timeout nothing received \n");
     }
     nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_RSSISTOP);
-    radio_disable();
+    bm_radio_disable();
     return ret;
 }
 
+/* ============================ Timesync Process ===============================*/
 
-void bm_timesync_Publish(timeout_ms)
+#define TimesyncAddress 0x9CE74F9A
+#define CommonMode NRF_RADIO_MODE_BLE_1MBIT		// Common Mode
+#define CommonStartCH 37							// Common Start Channel
+#define CommonEndCH 39								// Common End Channel
+#define CommonCHCnt CommonEndCH - CommonStartCH + 1 // Common Channel Count
+// Selection Between nrf52840 and nrf5340 of TxPower -> The highest available for Common Channel is recomended
+#if defined(RADIO_TXPOWER_TXPOWER_Pos8dBm) || defined(__NRFX_DOXYGEN__)
+#define CommonTxPower NRF_RADIO_TXPOWER_POS8DBM // Common Tx Power < 8 dBm
+#elif defined(RADIO_TXPOWER_TXPOWER_0dBm) || defined(__NRFX_DOXYGEN__)
+#define CommonTxPower NRF_RADIO_TXPOWER_0DBM // Common Tx Power < 0 dBm
+#endif
+
+typedef struct 
 {
+	uint64_t LastTxTimestamp;
+    uint64_t ST_INIT_MESH_STACK_TS;
+} __attribute__((packed)) TimesyncPkt ;
+
+TimesyncPkt Tsync_pkt_TX, Tsync_pkt_RX;
+
+void bm_timesync_Publish(uint32_t timeout_ms, uint64_t ST_INIT_MESH_STACK_TS)
+{
+    uint64_t start_time = synctimer_getSyncTime(); // Get the current Timestamp
+    uint8_t ch = CommonStartCH; // init Channel
+    bm_radio_setMode(CommonMode);
+    bm_radio_setAA(TimesyncAddress);
+	bm_radio_setTxP(CommonTxPower);
+    synctimer_TimeStampCapture_clear();
+	synctimer_TimeStampCapture_enable();
+	Radio_Packet_TX.length = sizeof(Tsync_pkt_TX);
+	Radio_Packet_TX.PDU = (u8_t *)&Tsync_pkt_TX;
+    while((start_time + timeout_ms*1000) >  synctimer_getSyncTime()){ // Do while timeout not exceeded
+        bm_radio_setCH(ch);
+		Tsync_pkt_TX.LastTxTimestamp = synctimer_getTxTimeStamp();
+        Tsync_pkt_TX.ST_INIT_MESH_STACK_TS = ST_INIT_MESH_STACK_TS;
+		bm_radio_send(Radio_Packet_TX);
+        // Increase channel
+        ch++;
+        if (ch>CommonEndCH){ch = CommonStartCH;}
+    }
+    synctimer_TimeStampCapture_disable();
+}
+
+uint64_t bm_timesync_Subscribe(uint32_t timeout_ms)
+{
+    uint64_t start_time = synctimer_getSyncTime(); // Get the current Timestamp
+    uint8_t ch = CommonStartCH; // init Channel
+    bm_radio_setMode(CommonMode);
+    bm_radio_setAA(TimesyncAddress);
+	bm_radio_setTxP(CommonTxPower);
+    synctimer_TimeStampCapture_clear();
+	synctimer_TimeStampCapture_enable();
+    while(((start_time + timeout_ms*1000) >  synctimer_getSyncTime()+200*1000) && !bm_state_synced){ // Do while timeout not exceeded or not synced
+        bm_radio_setCH(ch);
+		if (bm_radio_receive(&Radio_Packet_RX,100)){ // Receive while 1000ms
+            synctimer_TimeStampCapture_disable();
+            // Keep on Receiving for the last Tx Timestamp
+            if (bm_radio_receive(&Radio_Packet_RX,100)){ // Receive while 1000ms
+                synctimer_setSync(((TimesyncPkt *)Radio_Packet_RX.PDU)->LastTxTimestamp);
+				bm_state_synced = true;
+                return ((TimesyncPkt *)Radio_Packet_RX.PDU)->ST_INIT_MESH_STACK_TS;
+            }
+        };
+        // Increase channel
+        ch++;
+        if (ch>CommonEndCH){ch = CommonStartCH;}
+    }
+    synctimer_TimeStampCapture_disable();
+    return bm_state_synced;
 }
