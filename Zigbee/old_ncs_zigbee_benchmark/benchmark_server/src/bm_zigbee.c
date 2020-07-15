@@ -583,7 +583,6 @@ void zboss_signal_handler(zb_bufid_t bufid)
 			LOG_INF("Node restarted with Local Node Address: Short: 0x%x, IEEE/Long: 0x%s", local_node_short_addr, local_nodel_ieee_addr_buf);
 		}
 		break;
-		break;
 	default:
 
 		ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
