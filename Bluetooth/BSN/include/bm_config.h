@@ -5,7 +5,7 @@ extern "C" {
 #ifndef BM_CONFIG_H
 #define BM_CONFIG_H
 
-#define isTimeMaster 1									// Node is the Master (1) or Slave (0)
+#define isTimeMaster 0									// Node is the Master (1) or Slave (0)
 
 #ifdef __cplusplus
 }
