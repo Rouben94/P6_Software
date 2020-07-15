@@ -18,7 +18,8 @@ project(NONE)
 FILE(GLOB app_sources_c src/*.c)
 FILE(GLOB app_sources_cpp src/*.cpp)
 
-target_sources(app PRIVATE
-	${app_sources_c}
-	${app_sources_cpp})
+# target_sources(app PRIVATE
+# 	${app_sources_c}
+# 	${app_sources_cpp})
+target_sources(app PRIVATE src/main.cpp src/Simple_nrf_radio.cpp)
 target_include_directories(app PRIVATE include)
