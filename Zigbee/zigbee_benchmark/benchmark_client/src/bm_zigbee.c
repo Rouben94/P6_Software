@@ -3,6 +3,7 @@
 #include "zb_error_handler.h"
 #include "zb_mem_config_custom.h"
 #include "zboss_api.h"
+#include "zboss_api_addons.h"
 #include "zigbee_helpers.h"
 
 #include "app_timer.h"
@@ -16,33 +17,56 @@
 #include "bm_config.h"
 #include "bm_zigbee.h"
 
-typedef struct light_switch_bulb_params_s {
-  zb_uint8_t endpoint;
-  zb_uint16_t short_addr;
-} light_switch_bulb_params_t;
-
-typedef struct light_switch_button_s {
-  zb_bool_t in_progress;
-  zb_time_t timestamp;
-} light_switch_button_t;
-
-typedef struct light_switch_ctx_s {
-  light_switch_bulb_params_t bulb_params;
-  light_switch_button_t button;
-} light_switch_ctx_t;
-
-static zb_void_t find_light_bulb_timeout(zb_bufid_t bufid);
+//static zb_void_t find_light_bulb_timeout(zb_bufid_t bufid);
 
 static light_switch_ctx_t m_device_ctx;
-static zb_uint8_t m_attr_zcl_version = ZB_ZCL_VERSION;
-static zb_uint8_t m_attr_power_source = ZB_ZCL_BASIC_POWER_SOURCE_UNKNOWN;
-static zb_uint16_t m_attr_identify_time = 0;
+static bm_client_device_ctx_t dev_ctx;
+
+//static zb_uint8_t m_attr_zcl_version = ZB_ZCL_VERSION;
+//static zb_uint8_t m_attr_power_source = ZB_ZCL_BASIC_POWER_SOURCE_UNKNOWN;
+//static zb_uint16_t m_attr_identify_time = 0;
 
 /* Declare attribute list for Basic cluster. */
-ZB_ZCL_DECLARE_BASIC_ATTRIB_LIST(basic_attr_list, &m_attr_zcl_version, &m_attr_power_source);
+ZB_ZCL_DECLARE_BASIC_ATTRIB_LIST_EXT(
+    basic_attr_list,
+    &dev_ctx.basic_attr.zcl_version,
+    &dev_ctx.basic_attr.app_version,
+    &dev_ctx.basic_attr.stack_version,
+    &dev_ctx.basic_attr.hw_version,
+    dev_ctx.basic_attr.mf_name,
+    dev_ctx.basic_attr.model_id,
+    dev_ctx.basic_attr.date_code,
+    &dev_ctx.basic_attr.power_source,
+    dev_ctx.basic_attr.location_id,
+    &dev_ctx.basic_attr.ph_env,
+    dev_ctx.basic_attr.sw_ver);
 
 /* Declare attribute list for Identify cluster. */
-ZB_ZCL_DECLARE_IDENTIFY_ATTRIB_LIST(identify_attr_list, &m_attr_identify_time);
+ZB_ZCL_DECLARE_IDENTIFY_ATTRIB_LIST(identify_attr_list, &dev_ctx.identify_attr.identify_time);
+
+/* Declare attribute list for Scenes cluster. */
+ZB_ZCL_DECLARE_SCENES_ATTRIB_LIST(
+    scenes_attr_list,
+    &dev_ctx.scenes_attr.scene_count,
+    &dev_ctx.scenes_attr.current_scene,
+    &dev_ctx.scenes_attr.current_group,
+    &dev_ctx.scenes_attr.scene_valid,
+    &dev_ctx.scenes_attr.name_support);
+
+/* Declare attribute list for Groups cluster. */
+ZB_ZCL_DECLARE_GROUPS_ATTRIB_LIST(
+    groups_attr_list,
+    &dev_ctx.groups_attr.name_support);
+
+/* On/Off cluster attributes additions data */
+ZB_ZCL_DECLARE_ON_OFF_ATTRIB_LIST(
+    on_off_attr_list,
+    &dev_ctx.on_off_attr.on_off);
+
+ZB_ZCL_DECLARE_LEVEL_CONTROL_ATTRIB_LIST(
+    level_control_attr_list,
+    &dev_ctx.level_control_attr.current_level,
+    &dev_ctx.level_control_attr.remaining_time);
 
 /* Declare cluster list for Dimmer Switch device (Identify, Basic, Scenes, Groups, On Off, Level Control). */
 /* Only clusters Identify and Basic have attributes. */
@@ -50,13 +74,128 @@ ZB_HA_DECLARE_DIMMER_SWITCH_CLUSTER_LIST(dimmer_switch_clusters,
     basic_attr_list,
     identify_attr_list);
 
+/* Declare cluster list for Controllable Output device (Identify, Basic, Scenes, Groups, On Off, Level Control). */
+ZB_HA_DECLARE_LEVEL_CONTROLLABLE_OUTPUT_CLUSTER_LIST(bm_control_clusters,
+    basic_attr_list,
+    identify_attr_list,
+    scenes_attr_list,
+    groups_attr_list,
+    on_off_attr_list,
+    level_control_attr_list);
+
 /* Declare endpoint for Dimmer Switch device. */
 ZB_HA_DECLARE_DIMMER_SWITCH_EP(dimmer_switch_ep,
     LIGHT_SWITCH_ENDPOINT,
     dimmer_switch_clusters);
 
+/* Declare endpoint for Controllable Output device. */
+/* Will be used to control the benchmarking behvior of the node. */
+ZB_HA_DECLARE_LEVEL_CONTROLLABLE_OUTPUT_EP(bm_control_ep,
+    BENCHMARK_CONTROL_ENDPOINT,
+    bm_control_clusters);
+
 /* Declare application's device context (list of registered endpoints) for Dimmer Switch device. */
-ZB_HA_DECLARE_DIMMER_SWITCH_CTX(dimmer_switch_ctx, dimmer_switch_ep);
+ZBOSS_DECLARE_DEVICE_CTX_2_EP(bm_client_ctx,
+    dimmer_switch_ep,
+    bm_control_ep);
+
+/************************************ Forward Declarations ***********************************************/
+
+void buttons_handler(bsp_event_t evt);
+static void light_switch_send_on_off(zb_bufid_t bufid, zb_uint16_t on_off);
+void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t on_off);
+void bm_send_control_message_cb(zb_bufid_t bufid, zb_uint16_t level);
+void bm_send_message(zb_uint8_t param);
+void bm_read_message_info(zb_uint16_t timeout);
+void bm_save_message_info(bm_message_info message);
+
+/* Array of structs to save benchmark message info to */
+bm_message_info message_info[NUMBER_OF_BENCHMARK_REPORT_MESSAGES] = {0};
+
+zb_uint32_t bm_msg_cnt;
+zb_uint32_t bm_msg_cnt_sent;
+zb_uint32_t bm_time_interval_msec;
+zb_uint16_t bm_message_info_nr = 0;
+zb_uint32_t timeout;
+zb_uint32_t time_random;
+zb_uint32_t timeslot;
+
+zb_ieee_addr_t local_node_ieee_addr;
+zb_uint16_t local_node_short_addr;
+char local_nodel_ieee_addr_buf[17] = {0};
+int local_node_addr_len;
+
+/************************************ Benchmark Client Cluster Attribute Init ***********************************************/
+
+/**@brief Function for initializing all clusters attributes.
+ */
+static void bm_client_clusters_attr_init(void) {
+  /* Basic cluster attributes data */
+  dev_ctx.basic_attr.zcl_version = ZB_ZCL_VERSION;
+  dev_ctx.basic_attr.app_version = BENCHMARK_INIT_BASIC_APP_VERSION;
+  dev_ctx.basic_attr.stack_version = BENCHMARK_INIT_BASIC_STACK_VERSION;
+  dev_ctx.basic_attr.hw_version = BENCHMARK_INIT_BASIC_HW_VERSION;
+
+  /* Use ZB_ZCL_SET_STRING_VAL to set strings, because the first byte
+	 * should contain string length without trailing zero.
+	 *
+	 * For example "test" string wil be encoded as:
+	 *   [(0x4), 't', 'e', 's', 't']
+	 */
+  ZB_ZCL_SET_STRING_VAL(
+      dev_ctx.basic_attr.mf_name,
+      BENCHMARK_INIT_BASIC_MANUF_NAME,
+      ZB_ZCL_STRING_CONST_SIZE(BENCHMARK_INIT_BASIC_MANUF_NAME));
+
+  ZB_ZCL_SET_STRING_VAL(
+      dev_ctx.basic_attr.model_id,
+      BENCHMARK_INIT_BASIC_MODEL_ID,
+      ZB_ZCL_STRING_CONST_SIZE(BENCHMARK_INIT_BASIC_MODEL_ID));
+
+  ZB_ZCL_SET_STRING_VAL(
+      dev_ctx.basic_attr.date_code,
+      BENCHMARK_INIT_BASIC_DATE_CODE,
+      ZB_ZCL_STRING_CONST_SIZE(BENCHMARK_INIT_BASIC_DATE_CODE));
+
+  dev_ctx.basic_attr.power_source = BENCHMARK_INIT_BASIC_POWER_SOURCE;
+
+  ZB_ZCL_SET_STRING_VAL(
+      dev_ctx.basic_attr.location_id,
+      BENCHMARK_INIT_BASIC_LOCATION_DESC,
+      ZB_ZCL_STRING_CONST_SIZE(BENCHMARK_INIT_BASIC_LOCATION_DESC));
+
+  dev_ctx.basic_attr.ph_env = BENCHMARK_INIT_BASIC_PH_ENV;
+
+  /* Identify cluster attributes data. */
+  dev_ctx.identify_attr.identify_time =
+      ZB_ZCL_IDENTIFY_IDENTIFY_TIME_DEFAULT_VALUE;
+
+  /* On/Off cluster attributes data. */
+  dev_ctx.on_off_attr.on_off = (zb_bool_t)ZB_ZCL_ON_OFF_IS_ON;
+
+  dev_ctx.level_control_attr.current_level =
+      ZB_ZCL_LEVEL_CONTROL_LEVEL_MAX_VALUE;
+  dev_ctx.level_control_attr.remaining_time =
+      ZB_ZCL_LEVEL_CONTROL_REMAINING_TIME_DEFAULT_VALUE;
+
+  ZB_ZCL_SET_ATTRIBUTE(
+      BENCHMARK_CONTROL_ENDPOINT,
+      ZB_ZCL_CLUSTER_ID_ON_OFF,
+      ZB_ZCL_CLUSTER_SERVER_ROLE,
+      ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID,
+      (zb_uint8_t *)&dev_ctx.on_off_attr.on_off,
+      ZB_FALSE);
+
+  ZB_ZCL_SET_ATTRIBUTE(
+      BENCHMARK_CONTROL_ENDPOINT,
+      ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL,
+      ZB_ZCL_CLUSTER_SERVER_ROLE,
+      ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID,
+      (zb_uint8_t *)&dev_ctx.level_control_attr.current_level,
+      ZB_FALSE);
+}
+
+/************************************ General Init Functions ***********************************************/
 
 /**@brief Function for the Timer initialization.
  *
@@ -79,240 +218,6 @@ static void log_init(void) {
   NRF_LOG_DEFAULT_BACKENDS_INIT();
 }
 
-/**@brief Function for sending ON/OFF requests to the light bulb.
- *
- * @param[in]   bufid    Non-zero reference to Zigbee stack buffer that will be used to construct on/off request.
- * @param[in]   on_off   Requested state of the light bulb.
- */
-static zb_void_t light_switch_send_on_off(zb_bufid_t bufid, zb_uint16_t on_off) {
-  zb_uint8_t cmd_id;
-
-  if (on_off) {
-    cmd_id = ZB_ZCL_CMD_ON_OFF_ON_ID;
-  } else {
-    cmd_id = ZB_ZCL_CMD_ON_OFF_OFF_ID;
-  }
-
-  NRF_LOG_INFO("Send ON/OFF command: %d", on_off);
-
-  ZB_ZCL_ON_OFF_SEND_REQ(bufid,
-      m_device_ctx.bulb_params.short_addr,
-      ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
-      m_device_ctx.bulb_params.endpoint,
-      LIGHT_SWITCH_ENDPOINT,
-      ZB_AF_HA_PROFILE_ID,
-      ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
-      cmd_id,
-      NULL);
-}
-
-/**@brief Function for sending step requests to the light bulb.
- *
- * @param[in]   bufid        Non-zero reference to Zigbee stack buffer that will be used to construct step request.
- * @param[in]   is_step_up   Boolean parameter selecting direction of step change.
- */
-static zb_void_t light_switch_send_step(zb_bufid_t bufid, zb_uint16_t is_step_up) {
-  zb_uint8_t step_dir;
-
-  if (is_step_up) {
-    step_dir = ZB_ZCL_LEVEL_CONTROL_STEP_MODE_UP;
-  } else {
-    step_dir = ZB_ZCL_LEVEL_CONTROL_STEP_MODE_DOWN;
-  }
-
-  NRF_LOG_INFO("Send step level command: %d", is_step_up);
-
-  ZB_ZCL_LEVEL_CONTROL_SEND_STEP_REQ(bufid,
-      m_device_ctx.bulb_params.short_addr,
-      ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
-      m_device_ctx.bulb_params.endpoint,
-      LIGHT_SWITCH_ENDPOINT,
-      ZB_AF_HA_PROFILE_ID,
-      ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
-      NULL,
-      step_dir,
-      LIGHT_SWITCH_DIMM_STEP,
-      LIGHT_SWITCH_DIMM_TRANSACTION_TIME);
-}
-
-/**@brief Callback function receiving finding procedure results.
- *
- * @param[in]   bufid   Reference to Zigbee stack buffer used to pass received data.
- */
-static zb_void_t find_light_bulb_cb(zb_bufid_t bufid) {
-  zb_zdo_match_desc_resp_t *p_resp = (zb_zdo_match_desc_resp_t *)zb_buf_begin(bufid);      // Get the beginning of the response
-  zb_apsde_data_indication_t *p_ind = ZB_BUF_GET_PARAM(bufid, zb_apsde_data_indication_t); // Get the pointer to the parameters buffer, which stores APS layer response
-  zb_uint8_t *p_match_ep;
-  zb_ret_t zb_err_code;
-
-  if ((p_resp->status == ZB_ZDP_STATUS_SUCCESS) && (p_resp->match_len > 0) && (m_device_ctx.bulb_params.short_addr == 0xFFFF)) {
-    /* Match EP list follows right after response header */
-    p_match_ep = (zb_uint8_t *)(p_resp + 1);
-
-    /* We are searching for exact cluster, so only 1 EP may be found */
-    m_device_ctx.bulb_params.endpoint = *p_match_ep;
-    m_device_ctx.bulb_params.short_addr = p_ind->src_addr;
-
-    NRF_LOG_INFO("Found bulb addr: %d ep: %d", m_device_ctx.bulb_params.short_addr, m_device_ctx.bulb_params.endpoint);
-
-    zb_err_code = ZB_SCHEDULE_APP_ALARM_CANCEL(find_light_bulb_timeout, ZB_ALARM_ANY_PARAM);
-    ZB_ERROR_CHECK(zb_err_code);
-
-    bsp_board_led_on(BULB_FOUND_LED);
-  }
-
-  if (bufid) {
-    zb_buf_free(bufid);
-  }
-}
-
-/**@brief Function for sending ON/OFF and Level Control find request.
- *
- * @param[in]   bufid   Non-zero reference to Zigbee stack buffer that will be used to construct find request.
- */
-static zb_void_t find_light_bulb(zb_bufid_t bufid) {
-  zb_zdo_match_desc_param_t *p_req;
-
-  /* Initialize pointers inside buffer and reserve space for zb_zdo_match_desc_param_t request */
-  p_req = zb_buf_initial_alloc(bufid, sizeof(zb_zdo_match_desc_param_t) + (1) * sizeof(zb_uint16_t));
-
-  p_req->nwk_addr = MATCH_DESC_REQ_ROLE;         // Send to devices specified by MATCH_DESC_REQ_ROLE
-  p_req->addr_of_interest = MATCH_DESC_REQ_ROLE; // Get responses from devices specified by MATCH_DESC_REQ_ROLE
-  p_req->profile_id = ZB_AF_HA_PROFILE_ID;       // Look for Home Automation profile clusters
-
-  /* We are searching for 2 clusters: On/Off and Level Control Server */
-  p_req->num_in_clusters = 2;
-  p_req->num_out_clusters = 0;
-  /*lint -save -e415 // Suppress warning 415 "likely access of out-of-bounds pointer" */
-  p_req->cluster_list[0] = ZB_ZCL_CLUSTER_ID_ON_OFF;
-  p_req->cluster_list[1] = ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL;
-  /*lint -restore */
-  m_device_ctx.bulb_params.short_addr = 0xFFFF; // Set 0xFFFF to reset short address in order to parse only one response.
-  UNUSED_RETURN_VALUE(zb_zdo_match_desc_req(bufid, find_light_bulb_cb));
-}
-
-/**@brief Finding procedure timeout handler.
- *
- * @param[in]   bufid   Reference to Zigbee stack buffer that will be used to construct find request.
- */
-static zb_void_t find_light_bulb_timeout(zb_bufid_t bufid) {
-  zb_ret_t zb_err_code;
-
-  if (bufid) {
-    NRF_LOG_INFO("Bulb not found, try again");
-    zb_err_code = ZB_SCHEDULE_APP_ALARM(find_light_bulb, bufid, MATCH_DESC_REQ_START_DELAY);
-    ZB_ERROR_CHECK(zb_err_code);
-    zb_err_code = ZB_SCHEDULE_APP_ALARM(find_light_bulb_timeout, 0, MATCH_DESC_REQ_TIMEOUT);
-    ZB_ERROR_CHECK(zb_err_code);
-  } else {
-    zb_err_code = zb_buf_get_out_delayed(find_light_bulb_timeout);
-    ZB_ERROR_CHECK(zb_err_code);
-  }
-}
-
-/**@brief Callback for detecting button press duration.
- *
- * @param[in]   button   BSP Button that was pressed.
- */
-static zb_void_t light_switch_button_handler(zb_uint8_t button) {
-  zb_time_t current_time;
-  zb_bool_t short_expired;
-  zb_bool_t on_off;
-  zb_ret_t zb_err_code;
-
-  current_time = ZB_TIMER_GET();
-
-  if (button == LIGHT_SWITCH_BUTTON_ON) {
-    on_off = ZB_TRUE;
-  } else {
-    on_off = ZB_FALSE;
-  }
-
-  if (ZB_TIME_SUBTRACT(current_time, m_device_ctx.button.timestamp) > LIGHT_SWITCH_BUTTON_THRESHOLD) {
-    short_expired = ZB_TRUE;
-  } else {
-    short_expired = ZB_FALSE;
-  }
-
-  /* Check if button was released during LIGHT_SWITCH_BUTTON_SHORT_POLL_TMO. */
-  if (!bsp_button_is_pressed(button)) {
-    if (!short_expired) {
-      /* Allocate output buffer and send on/off command. */
-      zb_err_code = zb_buf_get_out_delayed_ext(light_switch_send_on_off, on_off, 0);
-      ZB_ERROR_CHECK(zb_err_code);
-    }
-
-    /* Button released - wait for accept next event. */
-    m_device_ctx.button.in_progress = ZB_FALSE;
-  } else {
-    if (short_expired) {
-      /* The button is still pressed - allocate output buffer and send step command. */
-      zb_err_code = zb_buf_get_out_delayed_ext(light_switch_send_step, on_off, 0);
-      ZB_ERROR_CHECK(zb_err_code);
-      zb_err_code = ZB_SCHEDULE_APP_ALARM(light_switch_button_handler, button, LIGHT_SWITCH_BUTTON_LONG_POLL_TMO);
-      if (zb_err_code == RET_OVERFLOW) {
-        NRF_LOG_WARNING("Can not schedule another alarm, queue is full.");
-        m_device_ctx.button.in_progress = ZB_FALSE;
-      } else {
-        ZB_ERROR_CHECK(zb_err_code);
-      }
-    } else {
-      /* Wait another LIGHT_SWITCH_BUTTON_SHORT_POLL_TMO, until LIGHT_SWITCH_BUTTON_THRESHOLD will be reached. */
-      zb_err_code = ZB_SCHEDULE_APP_ALARM(light_switch_button_handler, button, LIGHT_SWITCH_BUTTON_SHORT_POLL_TMO);
-      if (zb_err_code == RET_OVERFLOW) {
-        NRF_LOG_WARNING("Can not schedule another alarm, queue is full.");
-        m_device_ctx.button.in_progress = ZB_FALSE;
-      } else {
-        ZB_ERROR_CHECK(zb_err_code);
-      }
-    }
-  }
-}
-
-/**@brief Callback for button events.
- *
- * @param[in]   evt      Incoming event from the BSP subsystem.
- */
-static void buttons_handler(bsp_event_t evt) {
-  zb_ret_t zb_err_code;
-  zb_uint32_t button;
-
-  /* Inform default signal handler about user input at the device. */
-  user_input_indicate();
-
-  if (m_device_ctx.bulb_params.short_addr == 0xFFFF) {
-    /* No bulb found yet. */
-    return;
-  }
-
-  switch (evt) {
-  case BSP_EVENT_KEY_0:
-    button = LIGHT_SWITCH_BUTTON_ON;
-    break;
-
-  case BSP_EVENT_KEY_1:
-    button = LIGHT_SWITCH_BUTTON_OFF;
-    break;
-
-  default:
-    NRF_LOG_INFO("Unhandled BSP Event received: %d", evt);
-    return;
-  }
-
-  if (!m_device_ctx.button.in_progress) {
-    m_device_ctx.button.in_progress = ZB_TRUE;
-    m_device_ctx.button.timestamp = ZB_TIMER_GET();
-
-    zb_err_code = ZB_SCHEDULE_APP_ALARM(light_switch_button_handler, button, LIGHT_SWITCH_BUTTON_SHORT_POLL_TMO);
-    if (zb_err_code == RET_OVERFLOW) {
-      NRF_LOG_WARNING("Can not schedule another alarm, queue is full.");
-      m_device_ctx.button.in_progress = ZB_FALSE;
-    } else {
-      ZB_ERROR_CHECK(zb_err_code);
-    }
-  }
-}
-
 /**@brief Function for initializing LEDs and buttons.
  */
 static zb_void_t leds_buttons_init(void) {
@@ -326,19 +231,297 @@ static zb_void_t leds_buttons_init(void) {
   bsp_board_leds_off();
 }
 
-/**@brief Function to set the Sleeping Mode according to the SLEEPY_ON_BUTTON state.
-*/
-static zb_void_t sleepy_device_setup(void) {
-  zb_set_rx_on_when_idle(bsp_button_is_pressed(SLEEPY_ON_BUTTON) ? ZB_FALSE : ZB_TRUE);
+/************************************ Light Switch Functions ***********************************************/
 
-#if !defined DISABLE_POWER_CONSUMPTION_OPTIMIZATION
-  /* If sleepy behaviour is enabled, power off unused RAM to save maximum energy */
-  if (ZB_PIBCACHE_RX_ON_WHEN_IDLE() == ZB_FALSE) {
-    zigbee_power_down_unused_ram();
+/**@brief Function for sending ON/OFF requests to the desired Group ID.
+ *
+ * @param[in]   bufid    Non-zero reference to Zigbee stack buffer that will be used to construct on/off request.
+ * @param[in]   on_off   Requested state of the light bulb.
+ */
+static zb_void_t light_switch_send_on_off(zb_bufid_t bufid, zb_uint16_t on_off) {
+  zb_uint8_t cmd_id;
+  zb_uint16_t group_id = GROUP_ID;
+
+  if (on_off) {
+    cmd_id = ZB_ZCL_CMD_ON_OFF_ON_ID;
+  } else {
+    cmd_id = ZB_ZCL_CMD_ON_OFF_OFF_ID;
   }
-#endif /* ! defined DISABLE_POWER_CONSUMPTION_OPTIMIZATION */
+
+  NRF_LOG_INFO("Send ON/OFF command: %d to group id: %d", on_off, group_id);
+
+  ZB_ZCL_ON_OFF_SEND_REQ(bufid,
+      group_id,
+      ZB_APS_ADDR_MODE_16_GROUP_ENDP_NOT_PRESENT,
+      0,
+      LIGHT_SWITCH_ENDPOINT,
+      ZB_AF_HA_PROFILE_ID,
+      ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
+      cmd_id,
+      NULL);
 }
 
+/************************************ Button Handler Functions ***********************************************/
+
+/**@brief Callback for detecting button press duration.
+ *
+ * @param[in]   button   BSP Button that was pressed.
+ */
+zb_void_t bm_button_handler(zb_uint8_t button) {
+  zb_time_t current_time;
+  zb_bool_t short_expired;
+  zb_bool_t on_off;
+  zb_ret_t zb_err_code;
+  zb_uint8_t random_level_value;
+
+  NRF_LOG_INFO("Button pressed: %d", button);
+
+  current_time = ZB_TIMER_GET();
+
+  switch (button) {
+  case LIGHT_SWITCH_BUTTON_ON:
+    on_off = ZB_TRUE;
+
+    /* Allocate output buffer and send on/off command. */
+    zb_err_code = zb_buf_get_out_delayed_ext(light_switch_send_on_off, on_off, 0);
+    ZB_ERROR_CHECK(zb_err_code);
+    NRF_LOG_INFO("Light Switch BUTTON_ON pressed");
+    break;
+  case LIGHT_SWITCH_BUTTON_OFF:
+    on_off = ZB_FALSE;
+
+    /* Allocate output buffer and send on/off command. */
+    zb_err_code = zb_buf_get_out_delayed_ext(light_switch_send_on_off, on_off, 0);
+    ZB_ERROR_CHECK(zb_err_code);
+    NRF_LOG_INFO("Light Switch BUTTON_OFF pressed");
+
+    break;
+
+  case BENCHMARK_BUTTON:
+    //zb_err_code = ZB_SCHEDULE_APP_ALARM(bm_zigbee, 0, 0);
+    bm_msg_cnt_sent = 0;
+    bm_msg_cnt = 20;
+    bm_time_interval_msec = 20000;
+    timeslot = bm_time_interval_msec / bm_msg_cnt;
+    timeout = timeslot;
+
+    zb_err_code = ZB_SCHEDULE_APP_CALLBACK(bm_send_message, 0);
+    ZB_ERROR_CHECK(zb_err_code);
+    break;
+
+  case TEST_BUTTON:
+    random_level_value = ZB_RANDOM_VALUE(256);
+    zb_err_code = zb_buf_get_out_delayed_ext(bm_send_control_message_cb, random_level_value, 0);
+    ZB_ERROR_CHECK(zb_err_code);
+
+    break;
+
+  default:
+    NRF_LOG_INFO("Unhandled BSP Event received: %d", button);
+    return;
+  }
+
+  m_device_ctx.button.in_progress = ZB_FALSE;
+}
+
+/**@brief Callback for button events.
+ *
+ * @param[in]   evt      Incoming event from the BSP subsystem.
+ */
+void buttons_handler(bsp_event_t evt) {
+  zb_ret_t zb_err_code;
+  zb_uint32_t button;
+
+  /* Inform default signal handler about user input at the device. */
+  user_input_indicate();
+
+  switch (evt) {
+  case BSP_EVENT_KEY_0:
+    button = LIGHT_SWITCH_BUTTON_ON;
+    break;
+
+  case BSP_EVENT_KEY_1:
+    button = LIGHT_SWITCH_BUTTON_OFF;
+    break;
+
+  case BSP_EVENT_KEY_2:
+    NRF_LOG_INFO("BENCHMARK - Button pressed");
+    button = BENCHMARK_BUTTON;
+    break;
+
+  case BSP_EVENT_KEY_3:
+    NRF_LOG_INFO("TEST - Button pressed");
+    button = TEST_BUTTON;
+    break;
+
+  default:
+    NRF_LOG_INFO("Unhandled BSP Event received: %d", evt);
+    return;
+  }
+
+  if (!m_device_ctx.button.in_progress) {
+    m_device_ctx.button.in_progress = ZB_TRUE;
+    m_device_ctx.button.timestamp = ZB_TIMER_GET();
+
+    zb_err_code = ZB_SCHEDULE_APP_ALARM(bm_button_handler, button, LIGHT_SWITCH_BUTTON_SHORT_POLL_TMO);
+    if (zb_err_code == RET_OVERFLOW) {
+      NRF_LOG_WARNING("Can not schedule another alarm, queue is full.");
+      m_device_ctx.button.in_progress = ZB_FALSE;
+    } else {
+      ZB_ERROR_CHECK(zb_err_code);
+    }
+  }
+}
+
+/************************************ Benchmark Functions ***********************************************/
+
+/* Function to send Benchmark Control Message */
+void bm_send_control_message_cb(zb_bufid_t bufid, zb_uint16_t level) {
+
+  NRF_LOG_INFO("Benchmark Control Message send.");
+  /* Send Move to level request. Level value is uint8. */
+  ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
+      local_node_short_addr,
+      ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
+      BENCHMARK_CONTROL_ENDPOINT,
+      BENCHMARK_CLIENT_ENDPOINT,
+      ZB_AF_HA_PROFILE_ID,
+      ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
+      NULL,
+      level,
+      0);
+}
+
+/* Function to send Benchmark Message */
+void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t level) {
+  zb_uint16_t group_id = GROUP_ID;
+  NRF_LOG_INFO("Benchmark Message Callback send.");
+
+  /* Send Move to level request. Level value is uint8. */
+  ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
+      group_id,
+      ZB_APS_ADDR_MODE_16_GROUP_ENDP_NOT_PRESENT,
+      BENCHMARK_SERVER_ENDPOINT,
+      BENCHMARK_CLIENT_ENDPOINT,
+      ZB_AF_HA_PROFILE_ID,
+      ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
+      NULL,
+      level,
+      0);
+}
+
+void bm_send_message(zb_uint8_t param) {
+  zb_ret_t zb_err_code;
+  zb_uint8_t random_level_value;
+
+  if (bm_msg_cnt_sent < bm_msg_cnt) {
+    random_level_value = ZB_RANDOM_VALUE(256);
+
+    time_random = ZB_RANDOM_VALUE(timeslot);
+    timeout = time_random;
+
+    zb_err_code = zb_buf_get_out_delayed_ext(bm_send_message_cb, random_level_value, 0);
+    ZB_ERROR_CHECK(zb_err_code);
+
+    zb_err_code = ZB_SCHEDULE_APP_ALARM(bm_send_message, 0, ZB_MILLISECONDS_TO_BEACON_INTERVAL(timeout));
+    ZB_ERROR_CHECK(zb_err_code);
+
+    bm_read_message_info(timeout);
+    bm_msg_cnt_sent++;
+
+  } else {
+    NRF_LOG_INFO("BENCHMARK finished. %d packets sent.", bm_msg_cnt_sent);
+  }
+}
+
+/* TODO: Description */
+void bm_read_message_info(zb_uint16_t timeout) {
+  bm_message_info message;
+
+  message.message_id = 0;
+  message.RSSI = 0;
+  message.number_of_hops = 0;
+  message.data_size = 0;
+  zb_get_long_address(message.src_addr);
+  message.group_addr = GROUP_ID;
+  message.net_time = 0;
+
+  message.net_time = ZB_TIME_BEACON_INTERVAL_TO_MSEC(ZB_TIMER_GET());
+  message.message_id = ZB_ZCL_GET_SEQ_NUM() + 1;
+
+  NRF_LOG_INFO("Benchmark Message send, TimeStamp: %lld, MessageID: %d, TimeOut: %u", message.net_time, message.message_id, timeout);
+
+  bm_save_message_info(message);
+}
+
+/* TODO: Description */
+void bm_save_message_info(bm_message_info message) {
+  message_info[bm_message_info_nr] = message;
+  bm_message_info_nr++;
+}
+
+/* TODO: Description */
+void bm_send_reporting_message(zb_uint8_t bufid) {
+  NRF_LOG_INFO("Send Benchmark Report");
+}
+
+/* TODO: Description */
+void bm_receive_config(zb_uint8_t bufid) {
+  NRF_LOG_INFO("Received Config-Set command");
+}
+
+/************************************ Zigbee event handler ***********************************************/
+
+/**@brief Callback function for handling custom ZCL commands.
+ *
+ * @param[in]   bufid   Reference to Zigbee stack buffer
+ *                      used to pass received data.
+ */
+static zb_uint8_t bm_zcl_handler(zb_bufid_t bufid) {
+  zb_zcl_parsed_hdr_t cmd_info;
+
+  ZB_ZCL_COPY_PARSED_HEADER(bufid, &cmd_info);
+  NRF_LOG_INFO("%s with Endpoint ID: %hd, Cluster ID: %d", __func__, cmd_info.addr_data.common_data.dst_endpoint, cmd_info.cluster_id);
+
+  switch (cmd_info.cluster_id) {
+  case ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL:
+    ZB_SCHEDULE_APP_ALARM(bm_receive_config, bufid, 0);
+    break;
+  case ZB_ZCL_CLUSTER_ID_ON_OFF:
+    ZB_SCHEDULE_APP_ALARM(bm_receive_config, bufid, 0);
+    break;
+  default:
+    break;
+  }
+
+  return ZB_FALSE;
+}
+
+/**@brief Callback function for handling ZCL commands.
+ *
+ * @param[in]   bufid   Reference to Zigbee stack buffer
+ *                      used to pass received data.
+ */
+static zb_void_t zcl_device_cb(zb_bufid_t bufid) {
+  zb_zcl_device_callback_param_t *device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
+  NRF_LOG_INFO("%s id %hd", __func__, device_cb_param->device_cb_id);
+
+  /* Set default response value. */
+  device_cb_param->status = RET_OK;
+
+  switch (device_cb_param->device_cb_id) {
+  case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
+    NRF_LOG_INFO("Level control setting to %d", device_cb_param->cb_param.level_control_set_value_param.new_value);
+
+    break;
+  default:
+    device_cb_param->status = RET_ERROR;
+    break;
+  }
+  NRF_LOG_INFO("%s status: %hd", __func__, device_cb_param->status);
+}
+
+/************************************ ZBOSS signal handler ***********************************************/
 /**@brief Zigbee stack event handler.
  *
  * @param[in]   bufid   Reference to the Zigbee stack buffer used to pass signal.
@@ -353,20 +536,27 @@ void zboss_signal_handler(zb_bufid_t bufid) {
   zigbee_led_status_update(bufid, ZIGBEE_NETWORK_STATE_LED);
 
   switch (sig) {
-  case ZB_BDB_SIGNAL_DEVICE_REBOOT:
-    /* fall-through */
   case ZB_BDB_SIGNAL_STEERING:
     /* Call default signal handler. */
     ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
+
     if (status == RET_OK) {
-      /* Check the light device address */
-      if (m_device_ctx.bulb_params.short_addr == 0xFFFF) {
-        zb_err_code = ZB_SCHEDULE_APP_ALARM(find_light_bulb, bufid, MATCH_DESC_REQ_START_DELAY);
-        ZB_ERROR_CHECK(zb_err_code);
-        zb_err_code = ZB_SCHEDULE_APP_ALARM(find_light_bulb_timeout, 0, MATCH_DESC_REQ_TIMEOUT);
-        ZB_ERROR_CHECK(zb_err_code);
-        bufid = 0; // Do not free buffer - it will be reused by find_light_bulb callback
-      }
+
+      /* Read local node address */
+      zb_get_long_address(local_node_ieee_addr);
+      local_node_short_addr = zb_address_short_by_ieee(local_node_ieee_addr);
+      local_node_addr_len = ieee_addr_to_str(local_nodel_ieee_addr_buf, sizeof(local_nodel_ieee_addr_buf), local_node_ieee_addr);
+      NRF_LOG_INFO("Network Steering finished with Local Node Address: Short: 0x%x, IEEE/Long: 0x%s", local_node_short_addr, local_nodel_ieee_addr_buf);
+    }
+    break;
+
+  case ZB_BDB_SIGNAL_DEVICE_REBOOT:
+    if (status == RET_OK) {
+      /* Read local node address */
+      zb_get_long_address(local_node_ieee_addr);
+      local_node_short_addr = zb_address_short_by_ieee(local_node_ieee_addr);
+      local_node_addr_len = ieee_addr_to_str(local_nodel_ieee_addr_buf, sizeof(local_nodel_ieee_addr_buf), local_node_ieee_addr);
+      NRF_LOG_INFO("Node restarted with Local Node Address: Short: 0x%x, IEEE/Long: 0x%s", local_node_short_addr, local_nodel_ieee_addr_buf);
     }
     break;
 
@@ -407,7 +597,6 @@ void bm_zigbee_init(void) {
 
   zb_set_ed_timeout(ED_AGING_TIMEOUT_64MIN);
   zb_set_keepalive_timeout(ZB_MILLISECONDS_TO_BEACON_INTERVAL(3000));
-  sleepy_device_setup();
 
   /* Initialize application context structure. */
   UNUSED_RETURN_VALUE(ZB_MEMSET(&m_device_ctx, 0, sizeof(light_switch_ctx_t)));
@@ -416,7 +605,15 @@ void bm_zigbee_init(void) {
   m_device_ctx.bulb_params.short_addr = 0xFFFF;
 
   /* Register dimmer switch device context (endpoints). */
-  ZB_AF_REGISTER_DEVICE_CTX(&dimmer_switch_ctx);
+  ZB_AF_REGISTER_DEVICE_CTX(&bm_client_ctx);
+
+  /* Register callback for handling ZCL commands. */
+  ZB_AF_SET_ENDPOINT_HANDLER(BENCHMARK_CLIENT_ENDPOINT, bm_zcl_handler);
+  ZB_AF_SET_ENDPOINT_HANDLER(BENCHMARK_CONTROL_ENDPOINT, bm_zcl_handler);
+  ZB_ZCL_REGISTER_DEVICE_CB(zcl_device_cb);
+
+  /* Initialzie Cluster Attributes */
+  bm_client_clusters_attr_init();
 }
 
 void bm_zigbee_enable(void) {

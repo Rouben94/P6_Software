@@ -3,6 +3,16 @@
 #ifndef BM_ZIGBEE_H
 #define BM_ZIGBEE_H
 
+typedef struct
+{
+  zb_zcl_basic_attrs_ext_t basic_attr;
+  zb_zcl_identify_attrs_t identify_attr;
+  zb_zcl_scenes_attrs_t scenes_attr;
+  zb_zcl_groups_attrs_t groups_attr;
+  zb_zcl_on_off_attrs_ext_t on_off_attr;
+  zb_zcl_level_control_attrs_t level_control_attr;
+} bulb_device_ctx_t;
+
 /* Struct for benchmark message information */
 typedef struct
 {
@@ -17,13 +27,12 @@ typedef struct
   bool data_size;
 } bm_message_info;
 
-
 void bm_zigbee_init(void);
 
 void bm_zigbee_enable(void);
 
 void bm_save_message_info(bm_message_info message);
 
+void bm_read_message_info(zb_uint16_t timeout);
 
 #endif //BM_ZIGBEE_H
-

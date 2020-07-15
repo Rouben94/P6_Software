@@ -6,6 +6,7 @@
 #include "sdk_config.h"
 #include "zb_error_handler.h"
 #include "zboss_api.h"
+#include "zboss_api_addons.h"
 #include "zigbee_helpers.h"
 
 #include "nrf_log.h"
