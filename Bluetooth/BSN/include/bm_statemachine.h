@@ -8,5 +8,7 @@ extern "C" {
 /* Statemachine Process... normaly doesnt exit */
 void bm_statemachine();
 
-
+#ifdef __cplusplus
+}
+#endif
 #endif
