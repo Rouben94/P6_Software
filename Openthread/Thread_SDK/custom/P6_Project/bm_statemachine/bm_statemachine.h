@@ -27,6 +27,7 @@ typedef struct
 {
     otIp6Address source_address;
     otIp6Address dest_address;
+    otIp6Address grp_address;
     uint64_t net_time;
     uint64_t net_time_ack;
     uint16_t number_of_hops;

@@ -221,19 +221,16 @@ static void coap_default_handler(void                * p_context,
  * @section Benchmark Coap Unicast result response to master
  **************************************************************************************************/
 static void bm_coap_result_response_handler(void                * p_context,
-                                           otMessage           * p_message,
-                                           const otMessageInfo * p_message_info,
-                                           otError               result)
+                                            otMessage           * p_message,
+                                            const otMessageInfo * p_message_info,
+                                            otError               result)
 {
     if (result == OT_ERROR_NONE)
     {
       if (otCoapMessageGetType(p_message) == OT_COAP_TYPE_ACKNOWLEDGMENT)
       {
           NRF_LOG_INFO("Slave: Result succesfull transmitted");
-          if (m_config.coap_client_enabled)
-          {
-            bm_sm_new_state_set(BM_STATE_2_SLAVE);
-          }
+          bm_sm_new_state_set(BM_STATE_2_SLAVE);
       }      
     }
     else 
@@ -746,8 +743,9 @@ static void bm_probe_message_handler(void                 * p_context,
         message.RSSI = otMessageGetRss(p_message);
         message.message_id = otCoapMessageGetMessageId(p_message);
         message.number_of_hops = (HOP_LIMIT_DEFAULT - p_message_info->mHopLimit);
-        message.source_address = *otThreadGetMeshLocalEid(thread_ot_instance_get());
-        message.dest_address = bm_group_address;
+        message.source_address = p_message_info->mSockAddr;
+        message.dest_address = *otThreadGetMeshLocalEid(thread_ot_instance_get());
+        message.grp_address = bm_group_address;
         message.net_time_ack = 0;
 
 
@@ -790,7 +788,9 @@ void bm_coap_probe_message_send(uint8_t state)
     message.RSSI = 0;
     message.number_of_hops = 0;
     message.source_address = *otThreadGetMeshLocalEid(thread_ot_instance_get());
-    message.dest_address = bm_group_address;
+    error = otIp6AddressFromString("0", &message.dest_address );
+    ASSERT(error == OT_ERROR_NONE);
+    message.grp_address = bm_group_address;
     message.net_time_ack = 0;
 
     do

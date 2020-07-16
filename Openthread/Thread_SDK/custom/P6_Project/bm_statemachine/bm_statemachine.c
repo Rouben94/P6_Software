@@ -16,7 +16,6 @@
 #define NUMBER_OF_NODES 60
 
 APP_TIMER_DEF(m_benchmark_timer);
-
 APP_TIMER_DEF(m_result_timer);
 APP_TIMER_DEF(m_msg_1_timer);
 APP_TIMER_DEF(m_msg_2_timer);
@@ -65,6 +64,7 @@ void bm_save_result(bm_message_info message)
     if(message.index == 0 && !bm_stop)
     {
         bm_sm_new_state_set(BM_STATE_2_MASTER);
+        app_timer_stop(m_result_timer);
     }
     
     index = message.index;    
@@ -208,7 +208,7 @@ static void m_benchmark_handler(void * p_context)
 
 static void m_result_handler(void * p_context)
 {
-    bm_new_state = BM_STATE_2_SLAVE;
+    bm_new_state = BM_STATE_2_MASTER;
 }
 
 /***************************************************************************************************
@@ -249,10 +249,13 @@ static void state_1_master(void)
 
 static void state_2_master(void)
 {   
+    uint32_t error;
     if (bm_slave_nr != 0)
     {
         bm_slave_nr--;
         bm_coap_result_request_send(bm_slave_address[bm_slave_nr]);
+        error = app_timer_start(m_result_timer, APP_TIMER_TICKS(1000), NULL);
+        ASSERT(error == NRF_SUCCESS);
     }
     
     bm_new_state = BM_EMPTY_STATE;

@@ -20,6 +20,7 @@ void bm_cli_write_result(bm_message_info message_info)
     char buf6[50] = {"\0"};
     char buf7[50] = {"\0"};
     char buf8[50] = {"\0"};
+    char buf9[50] = {"\0"};
 
     sprintf(buf1, "ID: %u, ", message_info.message_id);
     sprintf(buf2, "Time: %u us, ", message_info.net_time);
@@ -28,13 +29,14 @@ void bm_cli_write_result(bm_message_info message_info)
     sprintf(buf5, "RSSI: %d dB, ", message_info.RSSI);
     sprintf(buf6, "Src: %x:%x:%x:%x:%x:%x:%x:%x, ", message_info.source_address.mFields.m16[0], message_info.source_address.mFields.m16[1], message_info.source_address.mFields.m16[2], message_info.source_address.mFields.m16[3], message_info.source_address.mFields.m16[4], message_info.source_address.mFields.m16[5], message_info.source_address.mFields.m16[6], message_info.source_address.mFields.m16[7]);
     sprintf(buf7, "Dst: %x:%x:%x:%x:%x:%x:%x:%x, ", message_info.dest_address.mFields.m16[0], message_info.dest_address.mFields.m16[1], message_info.dest_address.mFields.m16[2], message_info.dest_address.mFields.m16[3], message_info.dest_address.mFields.m16[4], message_info.dest_address.mFields.m16[5], message_info.dest_address.mFields.m16[6], message_info.dest_address.mFields.m16[7]);
+    sprintf(buf8, "Grp: %x:%x:%x:%x:%x:%x:%x:%x, ", message_info.grp_address.mFields.m16[0], message_info.grp_address.mFields.m16[1], message_info.grp_address.mFields.m16[2], message_info.grp_address.mFields.m16[3], message_info.grp_address.mFields.m16[4], message_info.grp_address.mFields.m16[5], message_info.grp_address.mFields.m16[6], message_info.grp_address.mFields.m16[7]);
 
     if (message_info.data_size)
     {
-        sprintf(buf8, "Data: 1024 byte \r\n");
+        sprintf(buf9, "Data: 1024 byte \r\n");
     } else if (!message_info.data_size)
     {
-        sprintf(buf8, "Data: 1 bit \r\n");
+        sprintf(buf9, "Data: 1 bit \r\n");
     }
     
     otCliOutput(buf1, sizeof(buf1));
@@ -45,4 +47,5 @@ void bm_cli_write_result(bm_message_info message_info)
     otCliOutput(buf6, sizeof(buf6));
     otCliOutput(buf7, sizeof(buf7));
     otCliOutput(buf8, sizeof(buf8));
+    otCliOutput(buf9, sizeof(buf9));
 }
