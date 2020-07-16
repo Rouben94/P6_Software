@@ -55,6 +55,7 @@ ISR_DIRECT_DECLARE(bm_timer_handler)
     // Sleep Handler
     if (synctimer->EVENTS_COMPARE[3] == true)
     {
+        //printk("Interrupt CC3\n");
         bm_synctimer_timeout_compare_int = true;
         synctimer->EVENTS_COMPARE[3] = false;
         synctimer->INTENSET &= ~((uint32_t)NRF_TIMER_INT_COMPARE3_MASK); // Disable Compare Event 0 Interrupt
@@ -253,7 +254,8 @@ extern void synctimer_setSyncTimeCompareInt(uint64_t ts, void (*cc_cb)())
 void synctimer_setCompareInt(uint32_t timeout_ms)
 {
     synctimer->EVENTS_COMPARE[3] = false;
-    synctimer->CC[3] = (uint32_t)synctimer_getSyncTime() + timeout_ms*1000;
+    nrf_timer_task_trigger(synctimer, nrf_timer_capture_task_get(NRF_TIMER_CC_CHANNEL0));
+    synctimer->CC[3] = nrf_timer_cc_get(synctimer, NRF_TIMER_CC_CHANNEL0) + timeout_ms*1000;
     synctimer->INTENSET |= (uint32_t)NRF_TIMER_INT_COMPARE3_MASK; // Enable Compare Event 3 Interrupt
 }
 
@@ -609,16 +611,18 @@ bool bm_radio_receive(RADIO_PACKET *rx_pkt, uint32_t timeout_ms)
     {
         //__SEV();__WFE();__WFE(); // Wait for Timer Interrupt nRF5SDK Way
         __NOP(); // Since the LLL Driver owns the Interrupt we have to Poll
-        if (((PACKET_PDU_ALIGNED *)rx_buf_ptr)->length > 0){
+        if ((((PACKET_PDU_ALIGNED *)rx_buf_ptr)->length == 16) && nrf_radio_event_check(NRF_RADIO,NRF_RADIO_EVENT_CRCOK)){
             rx_pkt->PDU = ((PACKET_PDU_ALIGNED *)rx_buf_ptr)->PDU;
             rx_pkt->length = ((PACKET_PDU_ALIGNED *)rx_buf_ptr)->length;
             memcpy(rx_pkt->PDU,((PACKET_PDU_ALIGNED *)rx_buf_ptr)->PDU,((PACKET_PDU_ALIGNED *)rx_buf_ptr)->length);
-            //printk("%u\n",(uint32_t)((TimesyncPkt *)rx_pkt->PDU)->LastTxTimestamp);
+            //printk("hoi\n");
             //printk("%u\n",(uint32_t)((TimesyncPkt *)rx_pkt->PDU)->ST_INIT_MESH_STACK_TS);
+            //printk("%u\n",(uint32_t)((TimesyncPkt *)rx_pkt->PDU)->LastTxTimestamp);
             //printk("%u\n",(uint32_t)((TimesyncPkt *)((PACKET_PDU_ALIGNED *)rx_buf_ptr)->PDU)->LastTxTimestamp);
             //printk("%u\n",(uint32_t)((TimesyncPkt *)((PACKET_PDU_ALIGNED *)rx_buf_ptr)->PDU)->ST_INIT_MESH_STACK_TS);
             bm_radio_disable();
             nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_RSSISTOP);
+            nrf_radio_event_clear(NRF_RADIO,NRF_RADIO_EVENT_CRCOK);
             bm_synctimer_timeout_compare_int = false;// Reset Interrupt Flags
             return true;
         }
@@ -667,10 +671,11 @@ void bm_timesync_Publish(uint32_t timeout_ms, uint64_t ST_INIT_MESH_STACK_TS)
 		Tsync_pkt_TX.LastTxTimestamp = synctimer_getTxTimeStamp();
         Tsync_pkt_TX.ST_INIT_MESH_STACK_TS = ST_INIT_MESH_STACK_TS;
         //printk("TIME Start: %u\n",(uint32_t)synctimer_getSyncTime());
+        //printk("Sent TX Timestamp: %u\n",(uint32_t)Tsync_pkt_TX.LastTxTimestamp);
 		bm_radio_send(Radio_Packet_TX);
         //printk("TIME END: %u\n",(uint32_t)synctimer_getSyncTime());
         // Increase channel
-        //ch++;
+        ch++;
         if (ch>CommonEndCH){ch = CommonStartCH;}
     }
     synctimer_TimeStampCapture_disable();
@@ -686,6 +691,7 @@ uint64_t bm_timesync_Subscribe(uint32_t timeout_ms)
 	bm_radio_setTxP(CommonTxPower);
     synctimer_TimeStampCapture_clear();
 	synctimer_TimeStampCapture_enable();
+    bm_state_synced = false;
     while(((start_time + timeout_ms*1000) >  synctimer_getSyncTime()+200*1000) && !bm_state_synced){ // Do while timeout not exceeded or not synced
         bm_radio_setCH(ch);
         synctimer_TimeStampCapture_clear();
@@ -694,14 +700,15 @@ uint64_t bm_timesync_Subscribe(uint32_t timeout_ms)
             synctimer_TimeStampCapture_disable();
             // Keep on Receiving for the last Tx Timestamp
             if (bm_radio_receive(&Radio_Packet_RX,100)){ // Receive while 1000ms
-                //printk("%u\n",(uint32_t)((TimesyncPkt *)Radio_Packet_RX.PDU)->LastTxTimestamp);
+                //printk("Next State TS: %u\n",(uint32_t)((TimesyncPkt *)Radio_Packet_RX.PDU)->ST_INIT_MESH_STACK_TS);
+                //printk("Last Tx TS: %u\n",(uint32_t)((TimesyncPkt *)Radio_Packet_RX.PDU)->LastTxTimestamp);
                 synctimer_setSync(((TimesyncPkt *)Radio_Packet_RX.PDU)->LastTxTimestamp);
 				bm_state_synced = true;
                 return ((TimesyncPkt *)Radio_Packet_RX.PDU)->ST_INIT_MESH_STACK_TS;
             }
         };
         // Increase channel
-        //ch++;
+        ch++;
         if (ch>CommonEndCH){ch = CommonStartCH;}
     }
     synctimer_TimeStampCapture_disable();

@@ -58,13 +58,13 @@ void ST_TIMESYNC_fn(void)
     else
     {
         ST_INIT_MESH_STACK_TS = bm_timesync_Subscribe(ST_TIMESYNC_TIME_MS);
-        if (ST_INIT_MESH_STACK_TS > 0)
+        if (ST_INIT_MESH_STACK_TS > synctimer_getSyncTime())
         {
             synctimer_setSyncTimeCompareInt(ST_INIT_MESH_STACK_TS, ST_transition_cb);
             while (ST_INIT_MESH_STACK_TS > (synctimer_getSyncTime() + ST_MARGIN_TIME_MS * 1000 + ST_TIMESYNC_BACKOFF_TIME_MS * 1000))
             { // Check if there is Time Left for Propagating Timesync further
                 bm_sleep(ST_TIMESYNC_BACKOFF_TIME_MS);
-                bm_timesync_Publish(ST_INIT_MESH_STACK_TS - (synctimer_getSyncTime() + ST_MARGIN_TIME_MS * 1000), ST_INIT_MESH_STACK_TS); // Propagate the Timesync further
+                bm_timesync_Publish((uint32_t)(ST_INIT_MESH_STACK_TS - (synctimer_getSyncTime() + ST_MARGIN_TIME_MS * 1000))/1000, ST_INIT_MESH_STACK_TS); // Propagate the Timesync further
             }
         }
     }
