@@ -48,6 +48,288 @@
 #endif
 // <h> Zigbee 
 
+// <e> FDS_ENABLED - fds - Flash data storage module
+//==========================================================
+#ifndef FDS_ENABLED
+#define FDS_ENABLED 1
+#endif
+// <h> Pages - Virtual page settings
+
+// <i> Configure the number of virtual pages to use and their size.
+//==========================================================
+// <o> FDS_VIRTUAL_PAGES - Number of virtual flash pages to use. 
+// <i> One of the virtual pages is reserved by the system for garbage collection.
+// <i> Therefore, the minimum is two virtual pages: one page to store data and one page to be used by the system for garbage collection.
+// <i> The total amount of flash memory that is used by FDS amounts to @ref FDS_VIRTUAL_PAGES * @ref FDS_VIRTUAL_PAGE_SIZE * 4 bytes.
+
+#ifndef FDS_VIRTUAL_PAGES
+#define FDS_VIRTUAL_PAGES 3
+#endif
+
+// <o> FDS_VIRTUAL_PAGE_SIZE  - The size of a virtual flash page.
+ 
+
+// <i> Expressed in number of 4-byte words.
+// <i> By default, a virtual page is the same size as a physical page.
+// <i> The size of a virtual page must be a multiple of the size of a physical page.
+// <1024=> 1024 
+// <2048=> 2048 
+
+#ifndef FDS_VIRTUAL_PAGE_SIZE
+#define FDS_VIRTUAL_PAGE_SIZE 1024
+#endif
+
+// <o> FDS_VIRTUAL_PAGES_RESERVED - The number of virtual flash pages that are used by other modules. 
+// <i> FDS module stores its data in the last pages of the flash memory.
+// <i> By setting this value, you can move flash end address used by the FDS.
+// <i> As a result the reserved space can be used by other modules.
+
+#ifndef FDS_VIRTUAL_PAGES_RESERVED
+#define FDS_VIRTUAL_PAGES_RESERVED 0
+#endif
+
+// </h> 
+//==========================================================
+
+// <h> Backend - Backend configuration
+
+// <i> Configure which nrf_fstorage backend is used by FDS to write to flash.
+//==========================================================
+// <o> FDS_BACKEND  - FDS flash backend.
+ 
+
+// <i> NRF_FSTORAGE_SD uses the nrf_fstorage_sd backend implementation using the SoftDevice API. Use this if you have a SoftDevice present.
+// <i> NRF_FSTORAGE_NVMC uses the nrf_fstorage_nvmc implementation. Use this setting if you don't use the SoftDevice.
+// <1=> NRF_FSTORAGE_NVMC 
+// <2=> NRF_FSTORAGE_SD 
+
+#ifndef FDS_BACKEND
+#define FDS_BACKEND 1
+#endif
+
+// </h> 
+//==========================================================
+
+// <h> Queue - Queue settings
+
+//==========================================================
+// <o> FDS_OP_QUEUE_SIZE - Size of the internal queue. 
+// <i> Increase this value if you frequently get synchronous FDS_ERR_NO_SPACE_IN_QUEUES errors.
+
+#ifndef FDS_OP_QUEUE_SIZE
+#define FDS_OP_QUEUE_SIZE 4
+#endif
+
+// </h> 
+//==========================================================
+
+// <h> CRC - CRC functionality
+
+//==========================================================
+// <e> FDS_CRC_CHECK_ON_READ - Enable CRC checks.
+
+// <i> Save a record's CRC when it is written to flash and check it when the record is opened.
+// <i> Records with an incorrect CRC can still be 'seen' by the user using FDS functions, but they cannot be opened.
+// <i> Additionally, they will not be garbage collected until they are deleted.
+//==========================================================
+#ifndef FDS_CRC_CHECK_ON_READ
+#define FDS_CRC_CHECK_ON_READ 1
+#endif
+// <o> FDS_CRC_CHECK_ON_WRITE  - Perform a CRC check on newly written records.
+ 
+
+// <i> Perform a CRC check on newly written records.
+// <i> This setting can be used to make sure that the record data was not altered while being written to flash.
+// <1=> Enabled 
+// <0=> Disabled 
+
+#ifndef FDS_CRC_CHECK_ON_WRITE
+#define FDS_CRC_CHECK_ON_WRITE 0
+#endif
+
+// </e>
+
+// </h> 
+//==========================================================
+
+// <h> Users - Number of users
+
+//==========================================================
+// <o> FDS_MAX_USERS - Maximum number of callbacks that can be registered. 
+#ifndef FDS_MAX_USERS
+#define FDS_MAX_USERS 4
+#endif
+
+
+// <q> CRC16_ENABLED  - crc16 - CRC16 calculation routines
+ 
+
+#ifndef CRC16_ENABLED
+#define CRC16_ENABLED 1
+#endif
+
+// <e> MEM_MANAGER_ENABLED - mem_manager - Dynamic memory allocator
+//==========================================================
+#ifndef MEM_MANAGER_ENABLED
+#define MEM_MANAGER_ENABLED 1
+#endif
+// <o> MEMORY_MANAGER_SMALL_BLOCK_COUNT - Size of each memory blocks identified as 'small' block.  <0-255> 
+
+
+#ifndef MEMORY_MANAGER_SMALL_BLOCK_COUNT
+#define MEMORY_MANAGER_SMALL_BLOCK_COUNT 64
+#endif
+
+// <o> MEMORY_MANAGER_SMALL_BLOCK_SIZE -  Size of each memory blocks identified as 'small' block. 
+// <i>  Size of each memory blocks identified as 'small' block. Memory block are recommended to be word-sized.
+
+#ifndef MEMORY_MANAGER_SMALL_BLOCK_SIZE
+#define MEMORY_MANAGER_SMALL_BLOCK_SIZE 64
+#endif
+
+// <o> MEMORY_MANAGER_MEDIUM_BLOCK_COUNT - Size of each memory blocks identified as 'medium' block.  <0-255> 
+
+
+#ifndef MEMORY_MANAGER_MEDIUM_BLOCK_COUNT
+#define MEMORY_MANAGER_MEDIUM_BLOCK_COUNT 16
+#endif
+
+// <o> MEMORY_MANAGER_MEDIUM_BLOCK_SIZE -  Size of each memory blocks identified as 'medium' block. 
+// <i>  Size of each memory blocks identified as 'medium' block. Memory block are recommended to be word-sized.
+
+#ifndef MEMORY_MANAGER_MEDIUM_BLOCK_SIZE
+#define MEMORY_MANAGER_MEDIUM_BLOCK_SIZE 256
+#endif
+
+// <o> MEMORY_MANAGER_LARGE_BLOCK_COUNT - Size of each memory blocks identified as 'large' block.  <0-255> 
+
+
+#ifndef MEMORY_MANAGER_LARGE_BLOCK_COUNT
+#define MEMORY_MANAGER_LARGE_BLOCK_COUNT 4
+#endif
+
+// <o> MEMORY_MANAGER_LARGE_BLOCK_SIZE -  Size of each memory blocks identified as 'large' block. 
+// <i>  Size of each memory blocks identified as 'large' block. Memory block are recommended to be word-sized.
+
+#ifndef MEMORY_MANAGER_LARGE_BLOCK_SIZE
+#define MEMORY_MANAGER_LARGE_BLOCK_SIZE 512
+#endif
+
+// <o> MEMORY_MANAGER_XLARGE_BLOCK_COUNT - Size of each memory blocks identified as 'extra large' block.  <0-255> 
+
+
+#ifndef MEMORY_MANAGER_XLARGE_BLOCK_COUNT
+#define MEMORY_MANAGER_XLARGE_BLOCK_COUNT 5
+#endif
+
+// <o> MEMORY_MANAGER_XLARGE_BLOCK_SIZE -  Size of each memory blocks identified as 'extra large' block. 
+// <i>  Size of each memory blocks identified as 'extra large' block. Memory block are recommended to be word-sized.
+
+#ifndef MEMORY_MANAGER_XLARGE_BLOCK_SIZE
+#define MEMORY_MANAGER_XLARGE_BLOCK_SIZE 2816
+#endif
+
+// <o> MEMORY_MANAGER_XXLARGE_BLOCK_COUNT - Size of each memory blocks identified as 'extra extra large' block.  <0-255> 
+
+
+#ifndef MEMORY_MANAGER_XXLARGE_BLOCK_COUNT
+#define MEMORY_MANAGER_XXLARGE_BLOCK_COUNT 0
+#endif
+
+// <o> MEMORY_MANAGER_XXLARGE_BLOCK_SIZE -  Size of each memory blocks identified as 'extra extra large' block. 
+// <i>  Size of each memory blocks identified as 'extra extra large' block. Memory block are recommended to be word-sized.
+
+#ifndef MEMORY_MANAGER_XXLARGE_BLOCK_SIZE
+#define MEMORY_MANAGER_XXLARGE_BLOCK_SIZE 3444
+#endif
+
+// <o> MEMORY_MANAGER_XSMALL_BLOCK_COUNT - Size of each memory blocks identified as 'extra small' block.  <0-255> 
+
+
+#ifndef MEMORY_MANAGER_XSMALL_BLOCK_COUNT
+#define MEMORY_MANAGER_XSMALL_BLOCK_COUNT 0
+#endif
+
+// <o> MEMORY_MANAGER_XSMALL_BLOCK_SIZE -  Size of each memory blocks identified as 'extra small' block. 
+// <i>  Size of each memory blocks identified as 'extra large' block. Memory block are recommended to be word-sized.
+
+#ifndef MEMORY_MANAGER_XSMALL_BLOCK_SIZE
+#define MEMORY_MANAGER_XSMALL_BLOCK_SIZE 64
+#endif
+
+// <o> MEMORY_MANAGER_XXSMALL_BLOCK_COUNT - Size of each memory blocks identified as 'extra extra small' block.  <0-255> 
+
+
+#ifndef MEMORY_MANAGER_XXSMALL_BLOCK_COUNT
+#define MEMORY_MANAGER_XXSMALL_BLOCK_COUNT 0
+#endif
+
+// <o> MEMORY_MANAGER_XXSMALL_BLOCK_SIZE -  Size of each memory blocks identified as 'extra extra small' block. 
+// <i>  Size of each memory blocks identified as 'extra extra small' block. Memory block are recommended to be word-sized.
+
+#ifndef MEMORY_MANAGER_XXSMALL_BLOCK_SIZE
+#define MEMORY_MANAGER_XXSMALL_BLOCK_SIZE 32
+#endif
+
+// <e> MEM_MANAGER_CONFIG_LOG_ENABLED - Enables logging in the module.
+//==========================================================
+#ifndef MEM_MANAGER_CONFIG_LOG_ENABLED
+#define MEM_MANAGER_CONFIG_LOG_ENABLED 0
+#endif
+// <o> MEM_MANAGER_CONFIG_LOG_LEVEL  - Default Severity level
+ 
+// <0=> Off 
+// <1=> Error 
+// <2=> Warning 
+// <3=> Info 
+// <4=> Debug 
+
+#ifndef MEM_MANAGER_CONFIG_LOG_LEVEL
+#define MEM_MANAGER_CONFIG_LOG_LEVEL 3
+#endif
+
+// <o> MEM_MANAGER_CONFIG_INFO_COLOR  - ANSI escape code prefix.
+ 
+// <0=> Default 
+// <1=> Black 
+// <2=> Red 
+// <3=> Green 
+// <4=> Yellow 
+// <5=> Blue 
+// <6=> Magenta 
+// <7=> Cyan 
+// <8=> White 
+
+#ifndef MEM_MANAGER_CONFIG_INFO_COLOR
+#define MEM_MANAGER_CONFIG_INFO_COLOR 0
+#endif
+
+// <o> MEM_MANAGER_CONFIG_DEBUG_COLOR  - ANSI escape code prefix.
+ 
+// <0=> Default 
+// <1=> Black 
+// <2=> Red 
+// <3=> Green 
+// <4=> Yellow 
+// <5=> Blue 
+// <6=> Magenta 
+// <7=> Cyan 
+// <8=> White 
+
+#ifndef MEM_MANAGER_CONFIG_DEBUG_COLOR
+#define MEM_MANAGER_CONFIG_DEBUG_COLOR 0
+#endif
+
+// </e>
+
+// <q> MEM_MANAGER_DISABLE_API_PARAM_CHECK  - Disable API parameter checks in the module.
+ 
+
+#ifndef MEM_MANAGER_DISABLE_API_PARAM_CHECK
+#define MEM_MANAGER_DISABLE_API_PARAM_CHECK 0
+#endif
+
+// </e>
 
 /********************************* RTT Logging module ***************************************************/
 

@@ -1,6 +1,7 @@
 #ifndef BM_CONFIG_H
 #define BM_CONFIG_H
 
+
 #define IEEE_CHANNEL_MASK (1l << ZIGBEE_CHANNEL) /**< Scan only one, predefined channel to find the coordinator. */
 //#define IEEE_CHANNEL_MASK                   0x07fff800U
 #define LIGHT_SWITCH_ENDPOINT 1                              /**< Source endpoint used to control light bulb. */

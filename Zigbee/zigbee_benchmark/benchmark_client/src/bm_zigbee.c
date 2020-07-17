@@ -17,6 +17,8 @@
 #include "bm_config.h"
 #include "bm_zigbee.h"
 
+#include "bm_flash_save.h"
+
 static light_switch_ctx_t m_device_ctx;
 static bm_client_device_ctx_t dev_ctx;
 
@@ -308,7 +310,8 @@ zb_void_t bm_button_handler(zb_uint8_t button) {
     break;
 
   case TEST_BUTTON:
-    random_level_value = ZB_RANDOM_VALUE(256);
+    //random_level_value = ZB_RANDOM_VALUE(256);
+    flash_read();
 
     break;
 
@@ -469,8 +472,9 @@ void bm_read_message_info(zb_uint16_t timeout) {
 void bm_save_message_info(bm_message_info message) {
   message_info[bm_message_info_nr] = message;
   bm_message_info_nr++;
-}
 
+  flash_write(*((Measurement *)&message));
+}
 
 ///* Callback function to send Benchmark Reporting Message */
 //void bm_send_reporting_message_cb(zb_bufid_t bufid, bm_message_info message) {
@@ -499,6 +503,19 @@ void bm_save_message_info(bm_message_info message) {
 /* TODO: Description */
 void bm_receive_config(zb_uint8_t bufid) {
   NRF_LOG_INFO("Received Config-Set command");
+}
+
+/* Callback function to read Benchmark Message Info data from Flash and write to Log. */
+void bm_read_flash_data_cb(Measurement *data) {
+
+  NRF_LOG_INFO("<REPORT>, %d, %llu, %llu, %d, %d, %d",
+      data->message_id,
+      data->net_time,
+      data->ack_net_time,
+      data->number_of_hops,
+      data->rssi,
+      data->src_addr);
+  NRF_LOG_INFO("<REPORT>, %d , %d, %d", data->dst_addr, data->group_addr, data->data_size);
 }
 
 /************************************ Zigbee event handler ***********************************************/
@@ -610,6 +627,7 @@ void bm_zigbee_init(void) {
   timers_init();
   log_init();
   leds_buttons_init();
+  flash_save_init(bm_read_flash_data_cb);
 
   /* Set Zigbee stack logging level and traffic dump subsystem. */
   ZB_SET_TRACE_LEVEL(ZIGBEE_TRACE_LEVEL);
