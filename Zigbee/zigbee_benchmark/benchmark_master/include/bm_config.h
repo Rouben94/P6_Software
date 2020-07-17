@@ -21,6 +21,8 @@
 #define BENCHMARK_CLIENT_ENDPOINT 1   /* ZCL Endpoint of the Benchmark Client */
 #define BENCHMARK_SERVER_ENDPOINT 10  /* ZCL Endpoint of the Benchmark Server */
 #define BENCHMARK_CONTROL_ENDPOINT 11 /* ZCL Endpoint for Benchmark Control */
+#define BENCHMARK_REPORTING_ENDPOINT 12 /* ZCL Endpoint for Benchmark Reporting Message */
+
 #define BENCHMARK_BUTTON BSP_BOARD_BUTTON_3
 
 #endif //BM_ZIGBEE_H

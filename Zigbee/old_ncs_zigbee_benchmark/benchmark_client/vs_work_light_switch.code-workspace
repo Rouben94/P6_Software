@@ -7,5 +7,9 @@
 			"path": "..\\..\\..\\..\\..\\..\\..\\..\\Tools\\NRF\\ncs\\v1.3.0"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"files.associations": {
+			"charconv": "cpp"
+		}
+	}
 }

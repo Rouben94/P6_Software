@@ -17,14 +17,8 @@
 #include "bm_config.h"
 #include "bm_zigbee.h"
 
-//static zb_void_t find_light_bulb_timeout(zb_bufid_t bufid);
-
 static light_switch_ctx_t m_device_ctx;
 static bm_client_device_ctx_t dev_ctx;
-
-//static zb_uint8_t m_attr_zcl_version = ZB_ZCL_VERSION;
-//static zb_uint8_t m_attr_power_source = ZB_ZCL_BASIC_POWER_SOURCE_UNKNOWN;
-//static zb_uint16_t m_attr_identify_time = 0;
 
 /* Declare attribute list for Basic cluster. */
 ZB_ZCL_DECLARE_BASIC_ATTRIB_LIST_EXT(
@@ -108,6 +102,7 @@ void bm_send_control_message_cb(zb_bufid_t bufid, zb_uint16_t level);
 void bm_send_message(zb_uint8_t param);
 void bm_read_message_info(zb_uint16_t timeout);
 void bm_save_message_info(bm_message_info message);
+void bm_reporting_message(zb_bufid_t bufid, zb_uint16_t level);
 
 /* Array of structs to save benchmark message info to */
 bm_message_info message_info[NUMBER_OF_BENCHMARK_REPORT_MESSAGES] = {0};
@@ -116,9 +111,12 @@ zb_uint32_t bm_msg_cnt;
 zb_uint32_t bm_msg_cnt_sent;
 zb_uint32_t bm_time_interval_msec;
 zb_uint16_t bm_message_info_nr = 0;
+zb_uint16_t bm_message_info_cnt = 0;
 zb_uint32_t timeout;
 zb_uint32_t time_random;
 zb_uint32_t timeslot;
+
+uint16_t bm_rep_seq_num;
 
 zb_ieee_addr_t local_node_ieee_addr;
 zb_uint16_t local_node_short_addr;
@@ -311,8 +309,6 @@ zb_void_t bm_button_handler(zb_uint8_t button) {
 
   case TEST_BUTTON:
     random_level_value = ZB_RANDOM_VALUE(256);
-    zb_err_code = zb_buf_get_out_delayed_ext(bm_send_control_message_cb, random_level_value, 0);
-    ZB_ERROR_CHECK(zb_err_code);
 
     break;
 
@@ -377,11 +373,24 @@ void buttons_handler(bsp_event_t evt) {
 
 /* Function to send Benchmark Control Message */
 void bm_send_control_message_cb(zb_bufid_t bufid, zb_uint16_t level) {
-
+  zb_uint16_t group_id = GROUP_ID;
+  zb_nwk_broadcast_address_t broadcast_addr = ZB_NWK_BROADCAST_ALL_DEVICES;
   NRF_LOG_INFO("Benchmark Control Message send.");
-  /* Send Move to level request. Level value is uint8. */
+
+  //  /* Send Move to level request. Level value is uint8. */
+  //  ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
+  //      local_node_short_addr,
+  //      ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
+  //      BENCHMARK_CONTROL_ENDPOINT,
+  //      BENCHMARK_CLIENT_ENDPOINT,
+  //      ZB_AF_HA_PROFILE_ID,
+  //      ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
+  //      NULL,
+  //      level,
+  //      0);
+
   ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
-      local_node_short_addr,
+      broadcast_addr,
       ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
       BENCHMARK_CONTROL_ENDPOINT,
       BENCHMARK_CLIENT_ENDPOINT,
@@ -437,12 +446,14 @@ void bm_send_message(zb_uint8_t param) {
 /* TODO: Description */
 void bm_read_message_info(zb_uint16_t timeout) {
   bm_message_info message;
+  zb_ieee_addr_t ieee_src_addr;
 
   message.message_id = 0;
-  message.RSSI = 0;
+  message.rssi = 0;
   message.number_of_hops = 0;
   message.data_size = 0;
-  zb_get_long_address(message.src_addr);
+  zb_get_long_address(ieee_src_addr);
+  message.src_addr = zb_address_short_by_ieee(ieee_src_addr);
   message.group_addr = GROUP_ID;
   message.net_time = 0;
 
@@ -460,10 +471,30 @@ void bm_save_message_info(bm_message_info message) {
   bm_message_info_nr++;
 }
 
-/* TODO: Description */
-void bm_send_reporting_message(zb_uint8_t bufid) {
-  NRF_LOG_INFO("Send Benchmark Report");
-}
+
+///* Callback function to send Benchmark Reporting Message */
+//void bm_send_reporting_message_cb(zb_bufid_t bufid, bm_message_info message) {
+//  zb_uint16_t group_id = GROUP_ID;
+//  NRF_LOG_INFO("Benchmark Message Callback send.");
+//}
+
+///* Function to send Benchmark Reporting Message */
+//void bm_send_reporting_message(zb_uint8_t bufid) {
+//  zb_ret_t zb_err_code;
+//  zb_uint16_t t_reporting_interval = 100;
+//
+//  if (bm_message_info_cnt < bm_message_info_nr) {
+//
+//    zb_err_code = zb_buf_get_out_delayed_ext(bm_reporting_message, 0, 0);
+//    ZB_ERROR_CHECK(zb_err_code);
+//
+//    zb_err_code = ZB_SCHEDULE_APP_ALARM(bm_send_reporting_message, 0, ZB_MILLISECONDS_TO_BEACON_INTERVAL(t_reporting_interval));
+//    ZB_ERROR_CHECK(zb_err_code);
+//
+//    NRF_LOG_INFO("Send Benchmark Report: %d of %d", bm_message_info_cnt, bm_message_info_nr);
+//    bm_message_info_cnt++;
+//  }
+//}
 
 /* TODO: Description */
 void bm_receive_config(zb_uint8_t bufid) {

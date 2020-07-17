@@ -487,7 +487,9 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid)
 	zb_uint8_t cluster_id;
 	zb_uint8_t attr_id;
 	zb_zcl_device_callback_param_t *device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
-
+	zb_zcl_device_cmd_generic_param_t *device_cb_param2 = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_cmd_generic_param_t);
+	device_cb_param2
+	
 	LOG_INF("%s id %hd", __func__, device_cb_param->device_cb_id);
 
 	// Set default response value.

@@ -39,10 +39,13 @@
 #endif
 
 /* Benchmark specific Definitions*/
-#define BENCHMARK_CLIENT_ENDPOINT 1   /* ZCL Endpoint of the Benchmark Client */
-#define BENCHMARK_SERVER_ENDPOINT 10  /* ZCL Endpoint of the Benchmark Server */
-#define BENCHMARK_CONTROL_ENDPOINT 11 /* ZCL Endpoint for Benchmark Control */
-#define GROUP_ID 0xB331               /* Group ID to send Benchmark message to.*/
+#define BENCHMARK_CLIENT_ENDPOINT 1     /* ZCL Endpoint of the Benchmark Client */
+#define BENCHMARK_SERVER_ENDPOINT 10    /* ZCL Endpoint of the Benchmark Server */
+#define BENCHMARK_CONTROL_ENDPOINT 11   /* ZCL Endpoint for Benchmark Control */
+#define BENCHMARK_REPORTING_ENDPOINT 12 /* ZCL Endpoint for Benchmark Reporting Message */
+#define GROUP_ID 0xB331                 /* Group ID to send Benchmark message to.*/
+
+#define BENCHMARK_CUSTOM_CMD_ID 0x55    /* Custom Benchmark Command ID */
 
 #define NUMBER_OF_BENCHMARK_REPORT_MESSAGES 1000 /* Size of the Benchmark Reporting Array message_info */
 

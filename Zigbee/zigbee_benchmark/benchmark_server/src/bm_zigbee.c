@@ -21,25 +21,6 @@
 #include "bm_config.h"
 #include "bm_zigbee.h"
 
-///* Declare endpoint for Dimmable Light device with scenes. */
-//#define ZB_HA_DECLARE_LIGHT_EP(ep_name, ep_id, cluster_list)                      \
-//  ZB_ZCL_DECLARE_HA_DIMMABLE_LIGHT_SIMPLE_DESC(ep_name, ep_id,                    \
-//      ZB_HA_DIMMABLE_LIGHT_IN_CLUSTER_NUM, ZB_HA_DIMMABLE_LIGHT_OUT_CLUSTER_NUM); \
-//  ZBOSS_DEVICE_DECLARE_REPORTING_CTX(reporting_info##device_ctx_name,             \
-//      ZB_HA_DIMMABLE_LIGHT_REPORT_ATTR_COUNT);                                    \
-//  ZBOSS_DEVICE_DECLARE_LEVEL_CONTROL_CTX(cvc_alarm_info##device_ctx_name,         \
-//      ZB_HA_DIMMABLE_LIGHT_CVC_ATTR_COUNT);                                       \
-//  ZB_AF_DECLARE_ENDPOINT_DESC(ep_name, ep_id, ZB_AF_HA_PROFILE_ID,                \
-//      0,                                                                          \
-//      NULL,                                                                       \
-//      ZB_ZCL_ARRAY_SIZE(cluster_list, zb_zcl_cluster_desc_t),                     \
-//      cluster_list,                                                               \
-//      (zb_af_simple_desc_1_1_t *)&simple_desc_##ep_name,                          \
-//      ZB_HA_DIMMABLE_LIGHT_REPORT_ATTR_COUNT,                                     \
-//      reporting_info##device_ctx_name,                                            \
-//      ZB_HA_DIMMABLE_LIGHT_CVC_ATTR_COUNT,                                        \
-//      cvc_alarm_info##device_ctx_name)
-
 #if !defined ZB_ROUTER_ROLE
 #error Define ZB_ROUTER_ROLE to compile light bulb (Router) source code.
 #endif
@@ -98,33 +79,37 @@ ZB_HA_DECLARE_DIMMABLE_LIGHT_CLUSTER_LIST(dimmable_light_clusters,
     on_off_attr_list,
     level_control_attr_list);
 
-/* Declare cluster list for Controllable Output device (Identify, Basic, Scenes, Groups, On Off, Level Control). */
-ZB_HA_DECLARE_LEVEL_CONTROLLABLE_OUTPUT_CLUSTER_LIST(bm_control_clusters,
+/* Declare cluster list for Controllable Output device (Identify, Basic, Scenes, Groups, On Off, Level Control). 
+ * Only clusters Identify and Basic have attributes.*/
+ZB_HA_DECLARE_DIMMER_SWITCH_CLUSTER_LIST(bm_control_clusters,
     basic_attr_list,
-    identify_attr_list,
-    scenes_attr_list,
-    groups_attr_list,
-    on_off_attr_list,
-    level_control_attr_list);
+    identify_attr_list);
 
-//ZB_HA_DECLARE_LIGHT_EP(dimmable_light_ep,
-//    HA_DIMMABLE_LIGHT_ENDPOINT,
-//    dimmable_light_clusters);
+ZB_HA_DECLARE_CONFIGURATION_TOOL_CLUSTER_LIST(bm_report_clusters, basic_attr_list, identify_attr_list);
 
+/* Declare endpoint for Dimmable Light device. */
 ZB_HA_DECLARE_DIMMABLE_LIGHT_EP(
     dimmable_light_ep,
     HA_DIMMABLE_LIGHT_ENDPOINT,
     dimmable_light_clusters);
 
-/* Declare endpoint for Controllable Output device. */
+/* Declare endpoint for Dimmer Switch device. */
 /* Will be used to control the benchmarking behavior of the node. */
-ZB_HA_DECLARE_LEVEL_CONTROLLABLE_OUTPUT_EP(bm_control_ep,
+ZB_HA_DECLARE_DIMMER_SWITCH_EP(bm_control_ep,
     BENCHMARK_CONTROL_ENDPOINT,
     bm_control_clusters);
 
-ZBOSS_DECLARE_DEVICE_CTX_2_EP(bm_server_ctx,
+ZB_HA_DECLARE_CONFIGURATION_TOOL_EP(bm_report_ep, BENCHMARK_REPORTING_ENDPOINT, bm_report_clusters);
+
+/* Declare application's device context (list of registered endpoints)
+ * for Benchmark Server device.*/
+//ZBOSS_DECLARE_DEVICE_CTX_2_EP(bm_server_ctx,
+//    dimmable_light_ep,
+//    bm_control_ep);
+ZBOSS_DECLARE_DEVICE_CTX_3_EP(bm_server_ctx,
     dimmable_light_ep,
-    bm_control_ep);
+    bm_control_ep,
+    bm_report_ep);
 
 /************************************ Forward Declarations ***********************************************/
 
@@ -387,6 +372,7 @@ static zb_void_t add_group_id(zb_bufid_t bufid) {
  * @param[in]   bufid   Reference to Zigbee stack buffer used to pass received data.
  */
 void bm_receive_message(zb_bufid_t bufid) {
+  zb_ieee_addr_t ieee_src_addr;
 
   zb_zcl_parsed_hdr_t cmd_info;
   ZB_ZCL_COPY_PARSED_HEADER(bufid, &cmd_info);
@@ -401,12 +387,12 @@ void bm_receive_message(zb_bufid_t bufid) {
   memcpy(&message.src_addr, &(cmd_info.addr_data.common_data.source.u.short_addr), sizeof(zb_uint16_t));
   addr_type = cmd_info.addr_data.common_data.source.addr_type;
 
-  zb_get_long_address(message.ieee_dst_addr);
-  message.dst_addr = zb_address_short_by_ieee(message.ieee_dst_addr);
+  zb_get_long_address(ieee_src_addr);
+  message.dst_addr = zb_address_short_by_ieee(ieee_src_addr);
   message.group_addr = GROUP_ID;
 
   zb_zdo_get_diag_data(message.src_addr, &lqi, &rssi);
-  message.RSSI = rssi;
+  message.rssi = rssi;
   message.number_of_hops = 0;
   //message.data_size = ZB_TRUE;
   message.net_time = ZB_TIME_BEACON_INTERVAL_TO_MSEC(ZB_TIMER_GET());
@@ -430,7 +416,7 @@ void bm_save_message_info(bm_message_info message) {
 
 /* TODO: Description */
 void bm_send_reporting_message(zb_uint8_t bufid) {
-  NRF_LOG_INFO("Send Benchmark Report");
+  NRF_LOG_INFO("Receive Benchmark Report");
 }
 
 /* TODO: Description */
@@ -439,6 +425,8 @@ void bm_receive_config(zb_uint8_t bufid) {
 }
 
 /************************************ Zigbee event handler ***********************************************/
+
+/* TODO: Separate ZCL Handler for each endpoint */
 
 /**@brief Callback function for handling custom ZCL commands.
  *
@@ -451,23 +439,46 @@ static zb_uint8_t bm_zcl_handler(zb_bufid_t bufid) {
   ZB_ZCL_COPY_PARSED_HEADER(bufid, &cmd_info);
   NRF_LOG_INFO("%s with Endpoint ID: %hd, Cluster ID: %d", __func__, cmd_info.addr_data.common_data.dst_endpoint, cmd_info.cluster_id);
 
-  switch (cmd_info.cluster_id) {
+  if (cmd_info.cluster_id == ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL) {
 
-  case ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL:
-    ZB_SCHEDULE_APP_CALLBACK(bm_receive_message, bufid);
-    break;
+    switch (cmd_info.addr_data.common_data.dst_endpoint) {
 
-  case ZB_ZCL_CLUSTER_ID_ON_OFF:
-    ZB_SCHEDULE_APP_CALLBACK(bm_receive_config, bufid);
-    break;
+    case BENCHMARK_SERVER_ENDPOINT:
+      ZB_SCHEDULE_APP_CALLBACK(bm_receive_message, bufid);
+      break;
 
-  default:
-    break;
+    case BENCHMARK_CONTROL_ENDPOINT:
+      ZB_SCHEDULE_APP_CALLBACK(bm_receive_config, bufid);
+      break;
+
+    case BENCHMARK_REPORTING_ENDPOINT:
+      ZB_SCHEDULE_APP_CALLBACK(bm_send_reporting_message, bufid);
+      break;
+
+    default:
+      break;
+    }
   }
-
   return ZB_FALSE;
 }
 
+/**@brief Callback function for handling custom ZCL commands.
+ *
+ * @param[in]   bufid   Reference to Zigbee stack buffer
+ *                      used to pass received data.
+ */
+static zb_uint8_t bm_zcl_report_ep_handler(zb_bufid_t bufid) {
+  zb_zcl_parsed_hdr_t cmd_info;
+
+  ZB_ZCL_COPY_PARSED_HEADER(bufid, &cmd_info);
+  //zb_zcl_device_callback_param_t *p_device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
+
+  NRF_LOG_INFO("%s with Endpoint ID: %hd, Cluster ID: %d, Command ID: %d", __func__, cmd_info.addr_data.common_data.dst_endpoint, cmd_info.cluster_id, cmd_info.cmd_id);
+
+  ZB_SCHEDULE_APP_CALLBACK(bm_send_reporting_message, bufid);
+
+  return ZB_FALSE;
+}
 /**@brief Callback function for handling ZCL commands.
  *
  * @param[in]   bufid   Reference to Zigbee stack buffer used to pass received data.
@@ -606,6 +617,7 @@ void bm_zigbee_init(void) {
   /* Register callback for handling ZCL commands. */
   ZB_AF_SET_ENDPOINT_HANDLER(BENCHMARK_SERVER_ENDPOINT, bm_zcl_handler);
   ZB_AF_SET_ENDPOINT_HANDLER(BENCHMARK_CONTROL_ENDPOINT, bm_zcl_handler);
+  ZB_AF_SET_ENDPOINT_HANDLER(BENCHMARK_REPORTING_ENDPOINT, bm_zcl_report_ep_handler);
   ZB_ZCL_REGISTER_DEVICE_CB(zcl_device_cb);
 
   bm_server_clusters_attr_init();
