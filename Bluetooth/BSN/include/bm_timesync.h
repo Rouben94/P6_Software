@@ -47,6 +47,8 @@ extern void synctimer_stop();
 * @return Latest Tx Timestamp
 */
 extern uint64_t synctimer_getTxTimeStamp();
+/* Get previous Tx sync timestamp with respect to Timediff to Master */
+extern uint64_t synctimer_getSyncedTxTimeStamp();
 /**
 * Get previous Rx sync timestamp
 *

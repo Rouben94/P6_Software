@@ -177,7 +177,27 @@ extern void synctimer_stop()
 /* Get previous Tx sync timestamp */
 extern uint64_t synctimer_getTxTimeStamp()
 {
-    return ((uint64_t)OverflowCNT << 32 | nrf_timer_cc_get(synctimer, NRF_TIMER_CC_CHANNEL1));
+    return ((uint64_t)OverflowCNT << 32 | nrf_timer_cc_get(synctimer, NRF_TIMER_CC_CHANNEL1)) + Timestamp_Diff;
+}
+
+/* Get previous Tx sync timestamp with respect to Timediff to Master */
+extern uint64_t synctimer_getSyncedTxTimeStamp()
+{
+    if (Timestamp_Slave > Timestamp_Master)
+    {
+        //Timestamp_Diff = Timestamp_Slave - Timestamp_Master;
+        return ((uint64_t)OverflowCNT << 32 | nrf_timer_cc_get(synctimer, NRF_TIMER_CC_CHANNEL1)) - Timestamp_Diff;
+    }
+    else if ((Timestamp_Master > Timestamp_Slave))
+    {
+        //Timestamp_Diff = Timestamp_Master - Timestamp_Slave;
+        return ((uint64_t)OverflowCNT << 32 | nrf_timer_cc_get(synctimer, NRF_TIMER_CC_CHANNEL1)) + Timestamp_Diff;
+    }
+    else
+    {
+        //Timestamp_Diff = 0;
+        return ((uint64_t)OverflowCNT << 32 | nrf_timer_cc_get(synctimer, NRF_TIMER_CC_CHANNEL1));
+    }
 }
 
 /* Get previous Rx sync timestamp */
@@ -710,7 +730,8 @@ void bm_timesync_Publish(uint32_t timeout_ms, uint64_t ST_INIT_MESH_STACK_TS)
     Radio_Packet_TX.PDU = (u8_t *)&Tsync_pkt_TX;
     Tsync_pkt_TX.MAC_Address_LSB = LSB_MAC_Address;
     Tsync_pkt_TX.seq = 0;
-    Tsync_pkt_TX.TimeDiff_to_Master = Timestamp_Diff;
+    //Tsync_pkt_TX.TimeDiff_to_Master = Timestamp_Diff;
+    Tsync_pkt_TX.TimeDiff_to_Master = 0;
     if (Timestamp_Master > Timestamp_Slave){
         Tsync_pkt_TX.TimeDiff_to_Master_sign = true;
     } else if (Timestamp_Master < Timestamp_Slave){
@@ -725,7 +746,8 @@ void bm_timesync_Publish(uint32_t timeout_ms, uint64_t ST_INIT_MESH_STACK_TS)
         // Timeslot for each Channel should grant at least 2 Subsequent Packets to be Sent...
         while ((start_time + ((timeout_ms / CH_slicer) * 1000)) > synctimer_getSyncTime())
         { // Dividing for Timeslot for each CHannel (must be a Divisor of the Number of Channels)
-            Tsync_pkt_TX.LastTxTimestamp = synctimer_getTxTimeStamp();
+            //Tsync_pkt_TX.LastTxTimestamp = synctimer_getTxTimeStamp();
+            Tsync_pkt_TX.LastTxTimestamp = synctimer_getSyncedTxTimeStamp();
             Tsync_pkt_TX.ST_INIT_MESH_STACK_TS = ST_INIT_MESH_STACK_TS;
             //bm_cli_log("TIME Start: %u\n",(uint32_t)synctimer_getSyncTime());
             //bm_cli_log("Sent TX Timestamp: %u\n",(uint32_t)Tsync_pkt_TX.LastTxTimestamp);
@@ -787,24 +809,26 @@ bool bm_timesync_Subscribe(uint32_t timeout_ms, void (*cc_cb)())
                 //bm_cli_log("Received 1. SEQ: %d, 2. SEQ: %d\n",((TimesyncPkt *)Radio_Packet_RX.PDU)->seq,((TimesyncPkt *)Radio_Packet_RX_2.PDU)->seq);
                 if ((Tsync_pkt_RX.MAC_Address_LSB == Tsync_pkt_RX_2.MAC_Address_LSB) && (Tsync_pkt_RX.seq == (Tsync_pkt_RX_2.seq - 1)))
                 {
-                    if (Tsync_pkt_RX.MAC_Address_LSB == 0xE4337238 || false) // For Debug
-                    //if (Tsync_pkt_RX.MAC_Address_LSB == 0x8ec92859 || false) // For Debug
+                    //if (Tsync_pkt_RX.MAC_Address_LSB == 0xE4337238 || false) // For Debug (1)
+                    if (Tsync_pkt_RX.MAC_Address_LSB == 0x8ec92859 || false) // For Debug (2)
                     {                        
                         synctimer_setSync(Tsync_pkt_RX_2.LastTxTimestamp,Tsync_pkt_RX_2.TimeDiff_to_Master,Tsync_pkt_RX_2.TimeDiff_to_Master_sign);
                         bm_cli_log("Synced Time: %u\n",(uint32_t)synctimer_getSyncTime());
                         uint64_t Next_State_TS = Tsync_pkt_RX_2.ST_INIT_MESH_STACK_TS;
+                        /*
                         if(Tsync_pkt_RX_2.TimeDiff_to_Master_sign){
                             Next_State_TS = Next_State_TS + Tsync_pkt_RX_2.TimeDiff_to_Master;
                         } else {
                             Next_State_TS = Next_State_TS - Tsync_pkt_RX_2.TimeDiff_to_Master;
                         }
+                        */
                         if (Next_State_TS > synctimer_getSyncTime()){
                             bm_state_synced = true; 
                             synctimer_setSyncTimeCompareInt(Tsync_pkt_RX_2.ST_INIT_MESH_STACK_TS,cc_cb);                           
                             bm_cli_log("Synced with Time Master: %x\n", Tsync_pkt_RX_2.MAC_Address_LSB);
                             return true;
                         } else {
-                            bm_cli_log("TS of next state is in the past\n");
+                            bm_cli_log("TS of next state is in the past (%u < %u)\n",(uint32_t)Next_State_TS,(uint32_t)synctimer_getSyncTime());
                         }                     
                     }
                 }
