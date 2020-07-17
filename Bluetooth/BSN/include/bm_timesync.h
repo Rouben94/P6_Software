@@ -86,7 +86,7 @@ void bm_sleep(uint32_t timeout_ms);
 
 extern void config_debug_ppi_and_gpiote_radio_state();
 
-void bm_radio_init();
+
 
 void bm_timesync_Publish(uint32_t timeout_ms, uint64_t ST_INIT_MESH_STACK_TS, bool Just_Once);
 
