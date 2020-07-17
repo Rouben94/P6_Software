@@ -28,9 +28,10 @@
 #define ST_DEINIT_MESH_STACK_TIME_MS 1000
 
 #define ST_MARGIN_TIME_MS 5            // Margin for State Transition (Let the State Terminate)
-#define ST_TIMESYNC_BACKOFF_TIME_MS 30 // Backoff time maximal for retransmitt the Timesync Packet
+#define ST_TIMESYNC_BACKOFF_TIME_MS 30 // Backoff time maximal for retransmitt the Timesync Packet -> Should be in good relation to Timesync Timeslot
 
 uint8_t currentState = ST_TIMESYNC; // Init the Statemachine in the Timesync State
+bool wait_for_transition = false;   // Signal that a Waiting for a Transition is active
 bool transition = false;            // Signal that a Transition has occured
 
 static void ST_transition_cb(void)
@@ -44,6 +45,10 @@ static void ST_transition_cb(void)
     {
         currentState = ST_TIMESYNC;
     }
+    if (!wait_for_transition){
+        bm_cli_log("ERROR: Statemachine out of Sync !!!\n");
+        bm_cli_log("Please reset Device\n");
+    }
     transition = true;
     bm_cli_log("Current State: %d\n", currentState);
 }
@@ -54,7 +59,7 @@ void ST_TIMESYNC_fn(void)
     synctimer_setSyncTimeCompareInt(ST_INIT_MESH_STACK_TS, ST_transition_cb);
     if (isTimeMaster)
     {
-        bm_timesync_Publish(ST_TIMESYNC_TIME_MS, ST_INIT_MESH_STACK_TS);
+        bm_timesync_Publish(ST_TIMESYNC_TIME_MS, ST_INIT_MESH_STACK_TS,false);
     }
     else
     {
@@ -62,9 +67,8 @@ void ST_TIMESYNC_fn(void)
         {
             while (synctimer_getSyncTimeCompareIntTS() > (synctimer_getSyncTime() + ST_MARGIN_TIME_MS * 1000 + ST_TIMESYNC_BACKOFF_TIME_MS * 1000))
             { // Check if there is Time Left for Propagating Timesync further
-                bm_sleep(ST_TIMESYNC_BACKOFF_TIME_MS);
-                bm_cli_log("Timeout for Publishing: %u\n",(uint32_t)(((synctimer_getSyncTimeCompareIntTS() - synctimer_getSyncTime())/1000) - ST_MARGIN_TIME_MS));
-                bm_timesync_Publish((uint32_t)(((synctimer_getSyncTimeCompareIntTS() - synctimer_getSyncTime())/1000) - ST_MARGIN_TIME_MS), synctimer_getSyncTimeCompareIntTS()); // Propagate the Timesync further
+                bm_sleep(bm_rand_32 % ST_TIMESYNC_BACKOFF_TIME_MS); // Sleep from 0 till Random Backoff Time
+                bm_timesync_Publish(0, synctimer_getSyncTimeCompareIntTS(),true); // Propagate the Timesync further just once for each Channel
             }
         }
     }
@@ -82,11 +86,13 @@ void ST_INIT_MESH_STACK_fn(void)
 
 void ST_WAIT_FOR_TRANSITION_fn()
 {
+    wait_for_transition = true;
     while (!(transition))
     {
         //__SEV();__WFE();__WFE(); // Wait for Timer Interrupt nRF5SDK Way
         k_sleep(K_FOREVER); // Zephyr Way
     }
+    wait_for_transition = false;
     transition = false;
     return;
 }

@@ -694,7 +694,7 @@ bool bm_radio_receive(RADIO_PACKET *rx_pkt, uint32_t timeout_ms)
 
 TimesyncPkt Tsync_pkt_TX, Tsync_pkt_RX, Tsync_pkt_RX_2;
 
-void bm_timesync_Publish(uint32_t timeout_ms, uint64_t ST_INIT_MESH_STACK_TS)
+void bm_timesync_Publish(uint32_t timeout_ms, uint64_t ST_INIT_MESH_STACK_TS, bool Just_Once)
 {
     uint64_t start_time = synctimer_getSyncTime(); // Get the current Timestamp
     uint8_t ch = CommonStartCH;                    // init Channel
@@ -709,16 +709,24 @@ void bm_timesync_Publish(uint32_t timeout_ms, uint64_t ST_INIT_MESH_STACK_TS)
     Tsync_pkt_TX.MAC_Address_LSB = LSB_MAC_Address;
     Tsync_pkt_TX.seq = 0;
     uint8_t CH_slicer = CHslice;
-    while ((start_time + timeout_ms * 1000) > synctimer_getSyncTime())
+    uint8_t Just_Once_cnt = 0;
+    while ((start_time + timeout_ms * 1000) > synctimer_getSyncTime() || Just_Once)
     { // Do while timeout not exceeded
         bm_radio_setCH(ch);
         // Timeslot for each Channel should grant at least 2 Subsequent Packets to be Sent...
-        while ((start_time + ((timeout_ms / CH_slicer) * 1000)) > synctimer_getSyncTime())
+        while ((start_time + ((timeout_ms / CH_slicer) * 1000)) > synctimer_getSyncTime() || Just_Once)
         { // Dividing for Timeslot for each CHannel (must be a Divisor of the Number of Channels)
             Tsync_pkt_TX.LastTxTimestamp = synctimer_getSyncedTxTimeStamp();
             Tsync_pkt_TX.ST_INIT_MESH_STACK_TS = ST_INIT_MESH_STACK_TS;
             bm_radio_send(Radio_Packet_TX);
             Tsync_pkt_TX.seq++; // Increase Sequence Number
+            if(Just_Once){
+                Just_Once_cnt++;
+                if (Just_Once_cnt > 10){ // Should not take too long but at least to Transmissions are required
+                    Just_Once_cnt = 0;
+                    break;
+                }
+            }
         }
         CH_slicer--; // Decrease Channel Slicer
         if (CH_slicer == 0)
@@ -729,6 +737,7 @@ void bm_timesync_Publish(uint32_t timeout_ms, uint64_t ST_INIT_MESH_STACK_TS)
         if (ch > CommonEndCH)
         {
             ch = CommonStartCH;
+            Just_Once = false;
         }
     }
     synctimer_TimeStampCapture_disable();
