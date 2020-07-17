@@ -7,6 +7,7 @@
 
 #ifdef ZEPHYR_BLE_MESH
 #include <zephyr.h>
+#include "bm_blemesh.h"
 #elif defined NRF_SDK_Zigbee
 #include "bm_zigbee.h"
 #endif
@@ -25,7 +26,7 @@
 
 // Timeslots for the Sates in ms. The Timesync has to be accurate enough.
 #define ST_TIMESYNC_TIME_MS 3000 // -> Optimized for 50 Nodes, 3 Channels and BLE LR125kBit
-#define ST_BENCHMARK_TIME_MS 10000
+#define ST_BENCHMARK_TIME_MS 1000000000000 // Just for Testing
 #define ST_SAVE_FLASH_TIME_MS 1000
 
 #define ST_MARGIN_TIME_MS 5            // Margin for State Transition (Let the State Terminate)
@@ -73,6 +74,7 @@ void ST_BENCHMARK_fn(void) {
   uint64_t start_time = synctimer_getSyncTime(); // Get the current Timestamp
 
   #ifdef ZEPHYR_BLE_MESH
+  bm_blemesh_enable();
   bm_sleep(ST_BENCHMARK_TIME_MS); // Sleep the Rest of the Time
   #elif defined NRF_SDK_Zigbee
   /* Initialize Zigbee stack. */

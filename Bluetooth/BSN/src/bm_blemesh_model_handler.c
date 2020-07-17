@@ -4,10 +4,18 @@
  * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
  */
 
+#include "bm_config.h"
+#include "bm_log.h"
+#include "bm_simple_buttons_and_leds.h"
+#include "bm_timesync.h"
+#include "bm_blemesh.h"
+#include "bm_blemesh_model_handler.h"
+
+
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/mesh/models.h>
-#include "bm_simple_buttons_and_leds.h"
-#include "bm_blemesh_model_handler.h"
+
+
 
 /** Configuration server definition */
 static struct bt_mesh_cfg_srv cfg_srv = {
@@ -15,7 +23,7 @@ static struct bt_mesh_cfg_srv cfg_srv = {
 	.beacon = BT_MESH_BEACON_ENABLED,
 	.frnd = IS_ENABLED(CONFIG_BT_MESH_FRIEND),
 	.gatt_proxy = IS_ENABLED(CONFIG_BT_MESH_GATT_PROXY),
-	.default_ttl = 7,
+	.default_ttl = BLE_MESH_TTL,
 
 	/* 3 transmissions with 20ms interval */
 	.net_transmit = BT_MESH_TRANSMIT(2, 20),
@@ -26,21 +34,39 @@ static struct bt_mesh_cfg_srv cfg_srv = {
 static struct bt_mesh_cfg_cli cfg_cli = {
 };
 
+
 /** Generic OnOff client definition */
 static void status_handler_onoff_cli(struct bt_mesh_onoff_cli *cli,
 						   struct bt_mesh_msg_ctx *ctx,
 						   const struct bt_mesh_onoff_status *status)
 {
-	// To be used
+	printk("Ack Recv TID %u\n",cli->tid);
+	printk("Ack Recv Time %u%u\n",(uint32_t)(synctimer_getSyncTime() >> 32 ),(uint32_t)synctimer_getSyncTime());
+	printk("Ack Recv Hops Took %u\n",BLE_MESH_TTL-ctx->recv_ttl);
+	printk("Ack Recv RSSI %d\n",ctx->recv_rssi);
+	printk("Ack Recv Src Adr %x\n",ctx->addr);
+	printk("Ack Recv Dst Adr %x\n",ctx->recv_dst);
+	printk("Ack Recv Group Adr %x\n",ctx->recv_dst);
+	printk("Ack Recv Size %u\n",cli->pub.msg->len);
 }
+
 struct bt_mesh_onoff_cli on_off_cli = BT_MESH_ONOFF_CLI_INIT(&status_handler_onoff_cli);
 
 static void button0_cb(){
 	int err;
-			struct bt_mesh_onoff_set set = {
-			.on_off = button0_toggle_state_get(),
-		};	
+	struct bt_mesh_onoff_set set = {
+		.on_off = button0_toggle_state_get(),
+	};	
 	err = bt_mesh_onoff_cli_set_unack(&on_off_cli, NULL, &set);
+	//err = bt_mesh_onoff_cli_set(&on_off_cli, NULL, &set, NULL);
+	printk("Sent TID %u\n",on_off_cli.tid);
+	printk("Sent Time %u%u\n",(uint32_t)(synctimer_getSyncTime() >> 32 ),(uint32_t)synctimer_getSyncTime());
+	printk("Sent TTL %u\n",on_off_cli.model->pub->ttl);
+	printk("Sent RSSI %d\n",0);
+	printk("Sent Src Adr %x\n",addr);
+	printk("Sent Dst Adr %x\n",on_off_cli.model->pub->addr);
+	printk("Sent Group Adr %x\n",on_off_cli.model->pub->addr);
+	printk("Sent Size %u\n",on_off_cli.pub.msg->len);
 }
 
 /** ON/OFF Server definition */
@@ -52,6 +78,15 @@ static void led_set(struct bt_mesh_onoff_srv *srv, struct bt_mesh_msg_ctx *ctx,
 	led0_set(set->on_off);
 	// Update Response Status
 	rsp->present_on_off = set->on_off;
+	// Log the Event
+	printk("Recv TID %u\n",srv->prev_transaction.tid+1);
+	printk("Recv Time %u%u\n",(uint32_t)(synctimer_getSyncTime() >> 32 ),(uint32_t)synctimer_getSyncTime());
+	printk("Recv Hops Took %u\n",BLE_MESH_TTL-ctx->recv_ttl);
+	printk("Recv RSSI %d\n",ctx->recv_rssi);
+	printk("Recv Src Adr %x\n",ctx->addr);
+	printk("Recv Dst Adr %x\n",ctx->recv_dst);
+	printk("Recv Group Adr %x\n",ctx->recv_dst);
+	printk("Recv Size %u\n",srv->model->pub->msg->len);
 }
 
 static void led_get(struct bt_mesh_onoff_srv *srv, struct bt_mesh_msg_ctx *ctx,
@@ -107,6 +142,7 @@ static const struct bt_mesh_comp comp = {
 	.elem = elements,
 	.elem_count = ARRAY_SIZE(elements),
 };
+
 
 const struct bt_mesh_comp *bm_blemesh_model_handler_init(void)
 {

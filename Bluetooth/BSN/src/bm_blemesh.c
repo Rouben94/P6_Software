@@ -79,7 +79,7 @@ static const u32_t iv_index=0;
 
 
 static u8_t flags =0;
-static u16_t addr = 0x0b0d; // Unicast Address Range from 0-0x7FFF, 0-32767 ->Assigned Random
+u16_t addr = 0x0b0d; // Unicast Address Range from 0-0x7FFF, 0-32767 ->Assigned Random
 static bool initialized=false; // Flag if the Stack is initialized
 
 
@@ -184,7 +184,8 @@ void bm_blemesh_enable(void)
 	/* Add model publishing */
 	struct bt_mesh_cfg_mod_pub pub = {
 		.addr = GROUP_ADDR,
-		.app_idx = app_idx
+		.app_idx = app_idx,
+		.ttl = BLE_MESH_TTL
 	};
 	bt_mesh_cfg_mod_pub_set(net_idx, addr, addr, BT_MESH_MODEL_ID_GEN_ONOFF_CLI,
 						 &pub, &stat);

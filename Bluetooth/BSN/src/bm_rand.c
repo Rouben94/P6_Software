@@ -30,21 +30,9 @@ void bm_rand_get(void *dst, uint8_t len) {
 }
 
 void bm_rand_init() {
-
-  //bt_rand(&bm_rand_250_byte,sizeof(bm_rand_250_byte));
-  #ifdef ZEPHYR_BLE_MESH
-bm_rand_get(&bm_rand_32, sizeof(bm_rand_32));
-  NRF_LOG_INFO("32bit Random value initalized with: %u\n", bm_rand_32);
+  bm_rand_get(&bm_rand_32, sizeof(bm_rand_32));
+  bm_cli_log("32bit Random value initalized with: %u\n", bm_rand_32);
   bm_rand_get(bm_rand_250_byte, sizeof(bm_rand_250_byte));
-  NRF_LOG_INFO("250Byte Random Data initalized\n");
-#elif defined NRF_SDK_Zigbee
-
-bm_rand_get(&bm_rand_32, sizeof(bm_rand_32));
-  NRF_LOG_INFO("32bit Random value initalized with: %u\n", bm_rand_32);
-  bm_rand_get(bm_rand_250_byte, sizeof(bm_rand_250_byte));
-  NRF_LOG_INFO("250Byte Random Data initalized\n");
-#endif
-  
-  
+  bm_cli_log("250Byte Random Data initalized\n");  
   return;
 }

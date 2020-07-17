@@ -193,7 +193,6 @@ void RADIO_IRQHandler(void){
 void bm_radio_init() {
   // Enable the High Frequency clock on the processor. This is a pre-requisite for
   // the RADIO module. Without this clock, no communication is possible.
-  wakeup_thread_tid = k_current_get();
   bm_radio_clock_init();
   nrf_radio_power_set(NRF_RADIO, 1);          // Power ON Radio
   bm_radio_disable();                         // Disable Radio

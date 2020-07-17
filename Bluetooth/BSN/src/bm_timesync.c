@@ -451,7 +451,7 @@ bool bm_timesync_Subscribe(uint32_t timeout_ms, void (*cc_cb)()) {
       if (bm_radio_receive(&Radio_Packet_RX, time_left / CH_slicer) && ((start_time + timeout_ms * 1000) > synctimer_getSyncTime())) { // Dividing for Timeslot for each CHannel (must be a Divisor of the Number of Channels)
         Tsync_pkt_RX_2 = *(TimesyncPkt *)Radio_Packet_RX.PDU;                                                                           // Bring the sheep to a dry place
         if ((Tsync_pkt_RX.MAC_Address_LSB == Tsync_pkt_RX_2.MAC_Address_LSB) && (Tsync_pkt_RX.seq == (Tsync_pkt_RX_2.seq - 1))) {
-          if (Tsync_pkt_RX.MAC_Address_LSB == 0xE4337238 || false) // For Debug (1)
+          if (Tsync_pkt_RX.MAC_Address_LSB == 0xE4337238 || true) // For Debug (1)
           //if (Tsync_pkt_RX.MAC_Address_LSB == 0x8ec92859 || false) // For Debug (2)
           {
             synctimer_setSync(Tsync_pkt_RX_2.LastTxTimestamp);

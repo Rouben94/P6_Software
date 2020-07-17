@@ -9,12 +9,18 @@ extern "C" {
 #include <stdbool.h>
 
 // Change the following to switch the Protokoll Stack and SDK
-#define NRF_SDK_Zigbee
-//#define ZEPHYR
+//#define NRF_SDK_Zigbee
+#define ZEPHYR_BLE_MESH
 
 /* =============== Time Sync ===================== */
 #define isTimeMaster 1           // Node is the Master (1) or Slave (0)
 extern uint32_t LSB_MAC_Address; // LSB of Randomly Static Assigned MAC Address
+
+/* =============== Defines for Reporting ===================== */
+#define NUMBER_OF_BENCHMARK_REPORT_MESSAGES 1000 /* Size of the Benchmark Reporting Array message_info */
+
+/* =============== BLE MESH Stuff ===================== */
+#define BLE_MESH_TTL 7 // Maybee optimize
 
 /* ================= Zigbee Stuff ====================== */
 #define MAX_CHILDREN 10                          /**< The maximum amount of connected devices. Setting this value to 0 disables association to this device.  */
