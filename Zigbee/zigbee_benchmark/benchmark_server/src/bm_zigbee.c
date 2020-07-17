@@ -587,7 +587,7 @@ void bm_zigbee_init(void) {
 
   /* Initialize timer, logging system and GPIOs. */
   timer_init();
-  log_init();
+  //log_init();
   leds_buttons_init();
 
   /* Set Zigbee stack logging level and traffic dump subsystem. */
@@ -622,6 +622,7 @@ void bm_zigbee_init(void) {
 
   bm_server_clusters_attr_init();
   level_control_set_value(m_dev_ctx.level_control_attr.current_level);
+ 
 }
 
 void bm_zigbee_enable(void) {
