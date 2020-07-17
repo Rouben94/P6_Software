@@ -669,7 +669,7 @@ bool bm_radio_receive(RADIO_PACKET *rx_pkt, uint32_t timeout_ms)
             bm_synctimer_timeout_compare_int = false; // Reset Interrupt Flags
             return true;
         }
-    }
+    }    
     bm_synctimer_timeout_compare_int = false; // Reset Interrupt Flags
     nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_RSSISTOP);
     bm_radio_disable();
@@ -754,18 +754,21 @@ bool bm_timesync_Subscribe(uint32_t timeout_ms, void (*cc_cb)())
     synctimer_TimeStampCapture_clear();
     synctimer_TimeStampCapture_enable();
     bm_state_synced = false;
-    uint8_t CH_slicer = CHslice;
+    uint8_t CH_slicer = CHslice; 
+    uint32_t time_left;   
     while (((start_time + timeout_ms * 1000) > synctimer_getSyncTime()) && !bm_state_synced)
     { // Do while timeout not exceeded or not synced
         bm_radio_setCH(ch);
         synctimer_TimeStampCapture_clear();
         synctimer_TimeStampCapture_enable();
-        if (bm_radio_receive(&Radio_Packet_RX, timeout_ms / CH_slicer) && ((start_time + timeout_ms * 1000) > synctimer_getSyncTime()))
+        time_left = ((start_time + timeout_ms * 1000) - synctimer_getSyncTime())/1000;
+        if (bm_radio_receive(&Radio_Packet_RX, time_left / CH_slicer) && ((start_time + timeout_ms * 1000) > synctimer_getSyncTime()))
         { // Dividing for Timeslot for each CHannel (must be a Divisor of the Number of Channels)
             synctimer_TimeStampCapture_disable();
             Tsync_pkt_RX = *(TimesyncPkt *)Radio_Packet_RX.PDU; // Bring the sheep to a dry place
             // Keep on Receiving for the last Tx Timestamp
-            if (bm_radio_receive(&Radio_Packet_RX, timeout_ms / CH_slicer) && ((start_time + timeout_ms * 1000) > synctimer_getSyncTime()))
+            time_left = ((start_time + timeout_ms * 1000) - synctimer_getSyncTime())/1000;
+            if (bm_radio_receive(&Radio_Packet_RX, time_left / CH_slicer) && ((start_time + timeout_ms * 1000) > synctimer_getSyncTime()))
             {                                                         // Dividing for Timeslot for each CHannel (must be a Divisor of the Number of Channels)
                 Tsync_pkt_RX_2 = *(TimesyncPkt *)Radio_Packet_RX.PDU; // Bring the sheep to a dry place
                 if ((Tsync_pkt_RX.MAC_Address_LSB == Tsync_pkt_RX_2.MAC_Address_LSB) && (Tsync_pkt_RX.seq == (Tsync_pkt_RX_2.seq - 1)))
@@ -799,7 +802,7 @@ bool bm_timesync_Subscribe(uint32_t timeout_ms, void (*cc_cb)())
         {
             ch = CommonStartCH;
         }
-    }
+    }    
     synctimer_TimeStampCapture_disable();
     return bm_state_synced;
 }
