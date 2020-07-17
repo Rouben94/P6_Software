@@ -22,21 +22,30 @@ void bm_cli_write_result(bm_message_info message_info)
     char buf8[50] = {"\0"};
     char buf9[50] = {"\0"};
 
-    sprintf(buf1, "ID: %u, ", message_info.message_id);
-    sprintf(buf2, "Time: %u us, ", message_info.net_time);
-    sprintf(buf3, "Ack_Time: %u us, ", message_info.net_time_ack);
-    sprintf(buf4, "Hops: %u, ", message_info.number_of_hops);
-    sprintf(buf5, "RSSI: %d dB, ", message_info.RSSI);
-    sprintf(buf6, "Src: %x:%x:%x:%x:%x:%x:%x:%x, ", message_info.source_address.mFields.m16[0], message_info.source_address.mFields.m16[1], message_info.source_address.mFields.m16[2], message_info.source_address.mFields.m16[3], message_info.source_address.mFields.m16[4], message_info.source_address.mFields.m16[5], message_info.source_address.mFields.m16[6], message_info.source_address.mFields.m16[7]);
-    sprintf(buf7, "Dst: %x:%x:%x:%x:%x:%x:%x:%x, ", message_info.dest_address.mFields.m16[0], message_info.dest_address.mFields.m16[1], message_info.dest_address.mFields.m16[2], message_info.dest_address.mFields.m16[3], message_info.dest_address.mFields.m16[4], message_info.dest_address.mFields.m16[5], message_info.dest_address.mFields.m16[6], message_info.dest_address.mFields.m16[7]);
-    sprintf(buf8, "Grp: %x:%x:%x:%x:%x:%x:%x:%x, ", message_info.grp_address.mFields.m16[0], message_info.grp_address.mFields.m16[1], message_info.grp_address.mFields.m16[2], message_info.grp_address.mFields.m16[3], message_info.grp_address.mFields.m16[4], message_info.grp_address.mFields.m16[5], message_info.grp_address.mFields.m16[6], message_info.grp_address.mFields.m16[7]);
+//    sprintf(buf1, "ID: %u, ", message_info.message_id);
+//    sprintf(buf2, "Time: %u us, ", message_info.net_time);
+//    sprintf(buf3, "Ack_Time: %u us, ", message_info.net_time_ack);
+//    sprintf(buf4, "Hops: %u, ", message_info.number_of_hops);
+//    sprintf(buf5, "RSSI: %d dB, ", message_info.RSSI);
+//    sprintf(buf6, "Src: %x, ", message_info.source_address.mFields.m16[7]);
+//    sprintf(buf7, "Dst: %x, ", message_info.dest_address.mFields.m16[7]);
+//    sprintf(buf8, "Grp: %x, ", message_info.grp_address.mFields.m16[7]);
+
+    sprintf(buf1, "%u ", message_info.message_id);
+    sprintf(buf2, "%u ", message_info.net_time);
+    sprintf(buf3, "%u ", message_info.net_time_ack);
+    sprintf(buf4, "%u ", message_info.number_of_hops);
+    sprintf(buf5, "%d ", message_info.RSSI);
+    sprintf(buf6, "%x ", message_info.source_address.mFields.m16[7]);
+    sprintf(buf7, "%x ", message_info.dest_address.mFields.m16[7]);
+    sprintf(buf8, "%x ", message_info.grp_address.mFields.m16[7]);
 
     if (message_info.data_size)
     {
-        sprintf(buf9, "Data: 1024 byte \r\n");
+        sprintf(buf9, "8192\r\n");
     } else if (!message_info.data_size)
     {
-        sprintf(buf9, "Data: 1 bit \r\n");
+        sprintf(buf9, "16\r\n");
     }
     
     otCliOutput(buf1, sizeof(buf1));

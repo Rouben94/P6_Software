@@ -47,31 +47,31 @@ typedef struct
 otIp6Address bm_master_address, bm_group_address;
 
 uint8_t bm_group_nr = 0;
-const char *bm_group_address_array[NUMBER_OF_IP6_GROUPS] = {"ff02::3", 
-                                                            "ff02::4",
-                                                            "ff02::5",
-                                                            "ff02::6",
-                                                            "ff02::7",
-                                                            "ff02::8",
-                                                            "ff02::9",
-                                                            "ff02::10",
-                                                            "ff02::11",
-                                                            "ff02::12",
-                                                            "ff02::13", 
-                                                            "ff02::14",
-                                                            "ff02::15",
-                                                            "ff02::16",
-                                                            "ff02::17",
-                                                            "ff02::18",
-                                                            "ff02::19",
-                                                            "ff02::20",
-                                                            "ff02::21",
-                                                            "ff02::22",
-                                                            "ff02::23",
-                                                            "ff02::24",
-                                                            "ff02::25",
-                                                            "ff02::26",
-                                                            "ff02::27"};
+const char *bm_group_address_array[NUMBER_OF_IP6_GROUPS] = {"ff03::3", 
+                                                            "ff03::4",
+                                                            "ff03::5",
+                                                            "ff03::6",
+                                                            "ff03::7",
+                                                            "ff03::8",
+                                                            "ff03::9",
+                                                            "ff03::10",
+                                                            "ff03::11",
+                                                            "ff03::12",
+                                                            "ff03::13", 
+                                                            "ff03::14",
+                                                            "ff03::15",
+                                                            "ff03::16",
+                                                            "ff03::17",
+                                                            "ff03::18",
+                                                            "ff03::19",
+                                                            "ff03::20",
+                                                            "ff03::21",
+                                                            "ff03::22",
+                                                            "ff03::23",
+                                                            "ff03::24",
+                                                            "ff03::25",
+                                                            "ff03::26",
+                                                            "ff03::27"};
 
 static thread_coap_utils_configuration_t          m_config;
 
@@ -752,16 +752,16 @@ static void bm_probe_message_handler(void                 * p_context,
         message.net_time_ack = 0;
 
 
-        if (otMessageRead(p_message, otMessageGetOffset(p_message), &bm_probe, sizeof(bm_probe)) == 2)
+        if (otMessageRead(p_message, otMessageGetOffset(p_message), &bm_probe, 2*sizeof(bm_probe)) == 2)
         {
             NRF_LOG_INFO("Server: Got 1 bit message");
-            message.message_id = bm_probe[0];
+            message.message_id = (((uint16_t)bm_probe[0]) << 8) | ((uint16_t)bm_probe[1]);
             bsp_board_led_invert(BSP_BOARD_LED_2);
             message.data_size = 0;
         } else
         {
             NRF_LOG_INFO("Server: Got 1024 byte message");
-            message.message_id = (((uint16_t)bm_probe[0] << 8) || (uint16_t)bm_probe[1]);
+            message.message_id = (((uint16_t)bm_probe[0]) << 8) | ((uint16_t)bm_probe[1]);
             bsp_board_led_invert(BSP_BOARD_LED_2);
             message.data_size = 1;
         }
@@ -786,10 +786,10 @@ void bm_coap_probe_message_send(uint8_t state)
     otInstance      * p_instance = thread_ot_instance_get();
     bm_message_info   message;
 
+    bm_message_ID++;
     uint8_t bm_big_probe[DATA_SIZE];
     bm_message_ID_random = otRandomNonCryptoGetUint16InRange(0, 255);
-    uint16_t bm_small_probe = (((uint16_t)bm_message_ID << 8) || (uint16_t)bm_message_ID_random);
-    bm_message_ID++;
+    uint8_t bm_small_probe[2] = {bm_message_ID, bm_message_ID_random};
     uint64_t time;
 
     otNetworkTimeGet(thread_ot_instance_get(), &message.net_time);
@@ -834,13 +834,13 @@ void bm_coap_probe_message_send(uint8_t state)
 
         if (state == BM_1bit)
         {
-            error = otMessageAppend(p_request, &bm_small_probe, sizeof(uint16_t));
+            error = otMessageAppend(p_request, &bm_small_probe, 2*sizeof(uint8_t));
             message.data_size = 0;
         } else if (state == BM_1024Bytes)
         {
             otRandomNonCryptoFillBuffer(bm_big_probe, DATA_SIZE);
-            bm_big_probe[0] = bm_message_ID;
-            bm_big_probe[1] = bm_message_ID_random;
+            bm_big_probe[0] = bm_small_probe[0];
+            bm_big_probe[1] = bm_small_probe[1];
             error = otMessageAppend(p_request, bm_big_probe, (DATA_SIZE*sizeof(uint8_t)));
             message.data_size = 1;
         }
@@ -858,11 +858,9 @@ void bm_coap_probe_message_send(uint8_t state)
                  
         error = otCoapSendRequest(p_instance, p_request, &messafe_info, NULL, p_instance);
 
-        message.message_id = bm_small_probe;
+        message.message_id = (((uint16_t)bm_small_probe[0]) << 8) | ((uint16_t)bm_small_probe[1]);
         bm_save_message_info(message);
     } while (false);
-
-    
 
     if (error != OT_ERROR_NONE && p_request != NULL)
     {
@@ -882,6 +880,8 @@ void thread_coap_utils_init(const thread_coap_utils_configuration_t * p_config)
     ASSERT(error == OT_ERROR_NONE);
 
     otCoapSetDefaultHandler(p_instance, coap_default_handler, NULL);
+
+    bm_message_ID = otRandomNonCryptoGetUint16InRange(0, 255);
 
     m_config = *p_config;
 
