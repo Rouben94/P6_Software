@@ -5,7 +5,7 @@
 #include <hal/nrf_radio.h>
 #include <string.h>
 
-#ifdef ZEPHYR
+#ifdef ZEPHYR_BLE_MESH
 
 /* ---------------------- RADIO AREA Zephyr ------------------------ */
 

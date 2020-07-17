@@ -14,7 +14,7 @@
 #include "bm_radio.h"
 #include "bm_timesync.h"
 
-#ifdef ZEPHYR
+#ifdef ZEPHYR_BLE_MESH
 #include <zephyr.h>
 #elif defined NRF_SDK_Zigbee
 #endif
@@ -38,7 +38,7 @@ bool bm_synctimer_timeout_compare_int = false; // Simple Flag for signaling the 
 
 bool bm_state_synced = false; // Init the Synced State
 
-#ifdef ZEPHYR
+#ifdef ZEPHYR_BLE_MESH
 
 k_tid_t wakeup_thread_tid;
 
@@ -102,7 +102,7 @@ extern void synctimer_init() {
   nrf_timer_bit_width_set(synctimer, NRF_TIMER_BIT_WIDTH_32);
   nrf_timer_frequency_set(synctimer, NRF_TIMER_FREQ_1MHz);
   nrf_timer_mode_set(synctimer, NRF_TIMER_MODE_TIMER);
-  #ifdef ZEPHYR
+  #ifdef ZEPHYR_BLE_MESH
   wakeup_thread_tid = k_current_get();
   IRQ_DIRECT_CONNECT(TIMER4_IRQn, 6, bm_timer_handler, 0); // Connect Timer ISR Zephyr WAY
   irq_enable(TIMER4_IRQn);                                 // Enable Timer ISR Zephyr WAY
@@ -291,7 +291,7 @@ void bm_sleep(uint32_t timeout_ms) {
   bm_synctimer_timeout_compare_int = false; // Reset Interrupt Flags
   synctimer_setCompareInt(timeout_ms);
   while (!(bm_synctimer_timeout_compare_int)) {
- #ifdef ZEPHYR
+ #ifdef ZEPHYR_BLE_MESH
     k_sleep(K_FOREVER); // Zephyr Way
 #elif defined NRF_SDK_Zigbee
     __SEV();
@@ -436,16 +436,19 @@ bool bm_timesync_Subscribe(uint32_t timeout_ms, void (*cc_cb)()) {
   synctimer_TimeStampCapture_clear();
   synctimer_TimeStampCapture_enable();
   bm_state_synced = false;
-  uint8_t CH_slicer = CHslice;
+  uint8_t CH_slicer = CHslice;  
+  uint32_t time_left;  
   while (((start_time + timeout_ms * 1000) > synctimer_getSyncTime()) && !bm_state_synced) { // Do while timeout not exceeded or not synced
     bm_radio_setCH(ch);
     synctimer_TimeStampCapture_clear();
-    synctimer_TimeStampCapture_enable();
-    if (bm_radio_receive(&Radio_Packet_RX, timeout_ms / CH_slicer) && ((start_time + timeout_ms * 1000) > synctimer_getSyncTime())) { // Dividing for Timeslot for each CHannel (must be a Divisor of the Number of Channels)
+    synctimer_TimeStampCapture_enable();    
+    time_left = ((start_time + timeout_ms * 1000) - synctimer_getSyncTime())/1000;
+    if (bm_radio_receive(&Radio_Packet_RX, time_left / CH_slicer) && ((start_time + timeout_ms * 1000) > synctimer_getSyncTime())) { // Dividing for Timeslot for each CHannel (must be a Divisor of the Number of Channels)
       synctimer_TimeStampCapture_disable();
       Tsync_pkt_RX = *(TimesyncPkt *)Radio_Packet_RX.PDU; // Bring the sheep to a dry place
       // Keep on Receiving for the last Tx Timestamp
-      if (bm_radio_receive(&Radio_Packet_RX, timeout_ms / CH_slicer) && ((start_time + timeout_ms * 1000) > synctimer_getSyncTime())) { // Dividing for Timeslot for each CHannel (must be a Divisor of the Number of Channels)
+      time_left = ((start_time + timeout_ms * 1000) - synctimer_getSyncTime())/1000;
+      if (bm_radio_receive(&Radio_Packet_RX, time_left / CH_slicer) && ((start_time + timeout_ms * 1000) > synctimer_getSyncTime())) { // Dividing for Timeslot for each CHannel (must be a Divisor of the Number of Channels)
         Tsync_pkt_RX_2 = *(TimesyncPkt *)Radio_Packet_RX.PDU;                                                                           // Bring the sheep to a dry place
         if ((Tsync_pkt_RX.MAC_Address_LSB == Tsync_pkt_RX_2.MAC_Address_LSB) && (Tsync_pkt_RX.seq == (Tsync_pkt_RX_2.seq - 1))) {
           if (Tsync_pkt_RX.MAC_Address_LSB == 0xE4337238 || false) // For Debug (1)

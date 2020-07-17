@@ -1,37 +1,32 @@
-
-#include "bm_cli.h"
 #include "bm_config.h"
+#include "bm_cli.h"
 #include "bm_radio.h"
 #include "bm_rand.h"
 #include "bm_timesync.h"
 
-#ifdef ZEPHYR
+
+#ifdef ZEPHYR_BLE_MESH
 #include <zephyr.h>
 #elif defined NRF_SDK_Zigbee
+#include "bm_zigbee.h"
 #endif
 
 #include "bm_statemachine.h"
 
+// Wait for Requests to Report or Start the Timesync after Reporting Done
+#define ST_IDLE 10
 // Master: Broadcast Timesync Packets ---- Slave: Listen for Broadcasts. If synced retransmit Timesync Packets with random Backof Delay for other Slaves
-#define ST_TIMESYNC 10
-// Init the Mesh Stack till Communication is established between all Nodes
-#define ST_INIT_MESH_STACK 20
+#define ST_TIMESYNC 50
 // Benchmark the Mesh Stack and Log the Data
-#define ST_BM_MESH_STACK 30
-// Report the Logged Data over the Mesh Stack
-#define ST_REPORT_MESH_STACK 40
-// Let the Master Publish the Data over to the Benchmark Controller (Slaves can Sleep)
-#define ST_PUBLISH 50
-// Deinit the Mesh Stack or Pause it to allow Direct Radio Acces for the Timesync
-#define ST_DEINIT_MESH_STACK 60
+#define ST_BENCHMARK 60
+// Save the Logged Data to Flash and Reset Device to shut down the Mesh Stack
+#define ST_SAVE_FLASH 70
+
 
 // Timeslots for the Sates in ms. The Timesync has to be accurate enough.
 #define ST_TIMESYNC_TIME_MS 3000 // -> Optimized for 50 Nodes, 3 Channels and BLE LR125kBit
-#define ST_INIT_MESH_STACK_TIME_MS 2000
-#define ST_BM_MESH_STACK_TIME_MS 10000
-#define ST_REPORT_MESH_STACK_TIME_MS 5000
-#define ST_PUBLISH_TIME_MS 1000
-#define ST_DEINIT_MESH_STACK_TIME_MS 1000
+#define ST_BENCHMARK_TIME_MS 10000
+#define ST_SAVE_FLASH_TIME_MS 1000
 
 #define ST_MARGIN_TIME_MS 5            // Margin for State Transition (Let the State Terminate)
 #define ST_TIMESYNC_BACKOFF_TIME_MS 30 // Backoff time maximal for retransmitt the Timesync Packet -> Should be in good relation to Timesync Timeslot
@@ -44,8 +39,8 @@ static void ST_transition_cb(void) {
   bm_cli_log("%u%u\n", (uint32_t)(synctimer_getSyncTime() >> 32), (uint32_t)synctimer_getSyncTime());                       // For Debug
   if ((currentState == ST_TIMESYNC && (bm_state_synced && !isTimeMaster)) || (currentState == ST_TIMESYNC && isTimeMaster)) // Not Synced Slave Nodes stay in Timesync State.
   {
-    currentState = ST_INIT_MESH_STACK;
-  } else if (currentState == ST_INIT_MESH_STACK) {
+    currentState = ST_BENCHMARK;
+  } else if (currentState == ST_BENCHMARK) {
     currentState = ST_TIMESYNC;
   }
   if (!wait_for_transition) {
@@ -57,10 +52,10 @@ static void ST_transition_cb(void) {
 }
 
 void ST_TIMESYNC_fn(void) {
-  uint64_t ST_INIT_MESH_STACK_TS = (synctimer_getSyncTime() + ST_TIMESYNC_TIME_MS * 1000 + ST_MARGIN_TIME_MS * 1000);
-  synctimer_setSyncTimeCompareInt(ST_INIT_MESH_STACK_TS, ST_transition_cb);
+  uint64_t ST_BENCHMARK_TS = (synctimer_getSyncTime() + ST_TIMESYNC_TIME_MS * 1000 + ST_MARGIN_TIME_MS * 1000);
+  synctimer_setSyncTimeCompareInt(ST_BENCHMARK_TS, ST_transition_cb);
   if (isTimeMaster) {
-    bm_timesync_Publish(ST_TIMESYNC_TIME_MS, ST_INIT_MESH_STACK_TS, false);
+    bm_timesync_Publish(ST_TIMESYNC_TIME_MS, ST_BENCHMARK_TS, false);
   } else {
     if (bm_timesync_Subscribe(ST_TIMESYNC_TIME_MS, ST_transition_cb)) {
       while (synctimer_getSyncTimeCompareIntTS() > (synctimer_getSyncTime() + ST_MARGIN_TIME_MS * 1000 + ST_TIMESYNC_BACKOFF_TIME_MS * 1000)) { // Check if there is Time Left for Propagating Timesync further
@@ -72,18 +67,33 @@ void ST_TIMESYNC_fn(void) {
   return;
 }
 
-void ST_INIT_MESH_STACK_fn(void) {
-  uint64_t ST_TIMESYNC_TS = (synctimer_getSyncTime() + ST_INIT_MESH_STACK_TIME_MS * 1000 + ST_MARGIN_TIME_MS * 1000);
+void ST_BENCHMARK_fn(void) {
+  uint64_t ST_TIMESYNC_TS = (synctimer_getSyncTime() + ST_BENCHMARK_TIME_MS * 1000 + ST_MARGIN_TIME_MS * 1000);
   synctimer_setSyncTimeCompareInt(ST_TIMESYNC_TS, ST_transition_cb);
+  uint64_t start_time = synctimer_getSyncTime(); // Get the current Timestamp
 
-  bm_sleep(ST_INIT_MESH_STACK_TIME_MS); // Sleep the Rest of the Time
+  #ifdef ZEPHYR_BLE_MESH
+  bm_sleep(ST_BENCHMARK_TIME_MS); // Sleep the Rest of the Time
+  #elif defined NRF_SDK_Zigbee
+  /* Initialize Zigbee stack. */
+  bm_zigbee_init();
+  /** Start Zigbee Stack. */
+  bm_zigbee_enable();
+  while (1) {
+    zboss_main_loop_iteration();
+    UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
+    if (ST_TIMESYNC_TS < (synctimer_getSyncTime() + ST_MARGIN_TIME_MS * 1000 + 1000 * 1000)) { // With additional Time for Exit the Stack
+      break;
+    }
+  }
+  #endif
   return;
 }
 
 void ST_WAIT_FOR_TRANSITION_fn() {
   wait_for_transition = true;
   while (!(transition)) {
-#ifdef ZEPHYR
+#ifdef ZEPHYR_BLE_MESH
     k_sleep(K_FOREVER); // Zephyr Way
 #elif defined NRF_SDK_Zigbee
     __SEV();
@@ -107,8 +117,8 @@ void bm_statemachine() {
     case ST_TIMESYNC:
       ST_TIMESYNC_fn();
       break;
-    case ST_INIT_MESH_STACK:
-      ST_INIT_MESH_STACK_fn();
+    case ST_BENCHMARK:
+      ST_BENCHMARK_fn();
       break;
     }
     ST_WAIT_FOR_TRANSITION_fn();

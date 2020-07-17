@@ -1,7 +1,7 @@
 #include "bm_cli.h"
 #include "bm_config.h"
 
-#ifdef ZEPHYR
+#ifdef ZEPHYR_BLE_MESH
 #include <zephyr.h>
 void bm_cli_log(const char *fmt, ...) {
   // Zephyr way to Log info

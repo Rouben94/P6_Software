@@ -7,7 +7,7 @@ extern "C" {
 
 #include "bm_config.h"
 
-#ifdef ZEPHYR
+#ifdef ZEPHYR_BLE_MESH
 #include <zephyr.h>
 #elif defined NRF_SDK_Zigbee
 #endif

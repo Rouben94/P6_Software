@@ -3,6 +3,14 @@
 #ifndef BM_ZIGBEE_H
 #define BM_ZIGBEE_H
 
+#include "zboss_api.h"
+#include "zcl/zb_zcl_basic_addons.h"
+#include "zcl/zb_zcl_scenes_addons.h"
+#include "zcl/zb_zcl_groups_addons.h"
+#include "zcl/zb_zcl_on_off_addons.h"
+#include "zcl/zb_zcl_level_control_addons.h"
+
+
 typedef struct
 {
   zb_zcl_basic_attrs_ext_t basic_attr;

@@ -8,13 +8,15 @@ extern "C" {
 #include <stdint.h>
 #include <stdbool.h>
 
+// Change the following to switch the Protokoll Stack and SDK
 #define NRF_SDK_Zigbee
 //#define ZEPHYR
 
-/* Time Sync */
-#define isTimeMaster 0           // Node is the Master (1) or Slave (0)
+/* =============== Time Sync ===================== */
+#define isTimeMaster 1           // Node is the Master (1) or Slave (0)
 extern uint32_t LSB_MAC_Address; // LSB of Randomly Static Assigned MAC Address
 
+/* ================= Zigbee Stuff ====================== */
 #define MAX_CHILDREN 10                          /**< The maximum amount of connected devices. Setting this value to 0 disables association to this device.  */
 #define IEEE_CHANNEL_MASK (1l << ZIGBEE_CHANNEL) /**< Scan only one, predefined channel to find the coordinator. */
 //#define IEEE_CHANNEL_MASK                 0x07fff800U

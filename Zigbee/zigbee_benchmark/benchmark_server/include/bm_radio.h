@@ -9,7 +9,7 @@ extern "C" {
 
 #include <hal/nrf_radio.h>
 
-#ifdef ZEPHYR
+#ifdef ZEPHYR_BLE_MESH
 #include <zephyr.h>
 #elif defined NRF_SDK_Zigbee
 #endif
