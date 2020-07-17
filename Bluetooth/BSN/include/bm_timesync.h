@@ -60,7 +60,7 @@ extern uint64_t synctimer_getRxTimeStamp();
 *
 * @param TxMasterTimeStamp Latest 
 */
-extern void synctimer_setSync(uint64_t TxMasterTimeStamp, uint64_t Timestamp_RelayDiff, bool Timestamp_RelayDiff_sign);
+extern void synctimer_setSync(uint64_t TxMasterTimeStamp);
 /**
 * Get Synchronised Timestamp
 *

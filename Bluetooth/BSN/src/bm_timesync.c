@@ -207,7 +207,7 @@ extern uint64_t synctimer_getRxTimeStamp()
 }
 
 /* Synchronise the timer offset with the received offset Timestamp */
-extern void synctimer_setSync(uint64_t TxMasterTimeStamp, uint64_t Timestamp_RelayDiff, bool Timestamp_RelayDiff_sign)
+extern void synctimer_setSync(uint64_t TxMasterTimeStamp)
 {
     Timestamp_Slave = ((uint64_t)OverflowCNT << 32 | nrf_timer_cc_get(synctimer, NRF_TIMER_CC_CHANNEL2)) - RxChainDelay_us;
     Timestamp_Master = TxMasterTimeStamp;
@@ -222,12 +222,6 @@ extern void synctimer_setSync(uint64_t TxMasterTimeStamp, uint64_t Timestamp_Rel
     else
     {
         Timestamp_Diff = 0;
-    }
-    // Add or Substract additional Diff from Timestamp Relay
-    if (Timestamp_RelayDiff_sign){
-        Timestamp_Diff = Timestamp_Diff + Timestamp_RelayDiff;
-    } else {
-        Timestamp_Diff = Timestamp_Diff - Timestamp_RelayDiff;
     }
 }
 
@@ -601,11 +595,9 @@ void bm_radio_init()
 typedef struct
 {
     uint64_t LastTxTimestamp;
-    uint64_t TimeDiff_to_Master;
     uint64_t ST_INIT_MESH_STACK_TS;
     uint32_t MAC_Address_LSB;
     uint8_t seq;
-    bool TimeDiff_to_Master_sign;
 } __attribute__((packed)) TimesyncPkt;
 
 void bm_radio_send(RADIO_PACKET tx_pkt)
@@ -614,7 +606,6 @@ void bm_radio_send(RADIO_PACKET tx_pkt)
     /* Setup Paket */
     if (nrf_radio_mode_get(NRF_RADIO) == NRF_RADIO_MODE_IEEE802154_250KBIT)
     {
-        //memset((u8_t *)&tx_pkt_aligned_IEEE, 0, sizeof((u8_t *)&tx_pkt_aligned_IEEE));     // Initialize Data Structure
         tx_pkt_aligned_IEEE.length = tx_pkt.length + 2 + sizeof(address);                  // Because Length includes CRC Field
         tx_pkt_aligned_IEEE.address = address;                                             // Save  address because IEEE wont transmit it by itself
         memset(tx_pkt_aligned_IEEE.PDU, 0, sizeof(tx_pkt_aligned_IEEE.PDU));               // Initialize Data Structure
@@ -624,7 +615,6 @@ void bm_radio_send(RADIO_PACKET tx_pkt)
     }
     else
     {
-        //memset((u8_t *)&tx_pkt_aligned, 0, sizeof((u8_t *)&tx_pkt_aligned)); // Initialize Data Structure
         tx_pkt_aligned.length = tx_pkt.length;
         memset(tx_pkt_aligned.PDU, 0, sizeof(tx_pkt_aligned.PDU));          // Initialize Data Structure
         memcpy(tx_pkt_aligned.PDU, tx_pkt.PDU, tx_pkt.length);              // Copy the MAC PDU to the RAM PDU
@@ -658,10 +648,8 @@ bool bm_radio_receive(RADIO_PACKET *rx_pkt, uint32_t timeout_ms)
         memset(rx_buf, 0, sizeof(rx_buf)); // Erase old Rx buffer content
         rx_buf_ptr = rx_buf;
     }
-    //memset(rx_buf_ptr, 0, sizeof(rx_buf_ptr)); // Erase old Rx buffer content
     nrf_radio_packetptr_set(NRF_RADIO, rx_buf_ptr);
-    nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_CRCOK); // Clear CRCOK Event
-    //nrf_radio_int_enable(NRF_RADIO, NRF_RADIO_INT_CRCOK_MASK);                                                                                                                                                 // Set Interrupt Thread to wakeup
+    nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_CRCOK); // Clear CRCOK Event                                                                                                                                         // Set Interrupt Thread to wakeup
     nrf_radio_shorts_enable(NRF_RADIO, NRF_RADIO_SHORT_READY_START_MASK | NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK | NRF_RADIO_SHORT_END_DISABLE_MASK | NRF_RADIO_SHORT_PHYEND_DISABLE_MASK); // Start after Ready and Start after END -> wait for CRCOK Event otherwise keep on receiving
     nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_RXEN);
     bm_synctimer_timeout_compare_int = false;
@@ -671,17 +659,10 @@ bool bm_radio_receive(RADIO_PACKET *rx_pkt, uint32_t timeout_ms)
     {
         //__SEV();__WFE();__WFE(); // Wait for Timer Interrupt nRF5SDK Way
         __NOP(); // Since the LLL Driver owns the Interrupt we have to Poll
-        //if ((((PACKET_PDU_ALIGNED *)rx_buf_ptr)->length == 16) && nrf_radio_event_check(NRF_RADIO,NRF_RADIO_EVENT_CRCOK)){
         if (nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_CRCOK) && nrf_radio_state_get(NRF_RADIO) == NRF_RADIO_STATE_DISABLED)
         {
             rx_pkt->PDU = ((PACKET_PDU_ALIGNED *)rx_buf_ptr)->PDU;
             rx_pkt->length = ((PACKET_PDU_ALIGNED *)rx_buf_ptr)->length;
-            //memcpy(rx_pkt->PDU,((PACKET_PDU_ALIGNED *)rx_buf_ptr)->PDU,((PACKET_PDU_ALIGNED *)rx_buf_ptr)->length);
-            //bm_cli_log("hoi\n");
-            //bm_cli_log("%u\n",(uint32_t)((TimesyncPkt *)rx_pkt->PDU)->ST_INIT_MESH_STACK_TS);
-            //bm_cli_log("%u\n",(uint32_t)((TimesyncPkt *)rx_pkt->PDU)->LastTxTimestamp);
-            //bm_cli_log("%u\n",(uint32_t)((TimesyncPkt *)((PACKET_PDU_ALIGNED *)rx_buf_ptr)->PDU)->LastTxTimestamp);
-            //bm_cli_log("%u\n",(uint32_t)((TimesyncPkt *)((PACKET_PDU_ALIGNED *)rx_buf_ptr)->PDU)->ST_INIT_MESH_STACK_TS);
             bm_radio_disable();
             nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_RSSISTOP);
             nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_CRCOK);
@@ -689,9 +670,6 @@ bool bm_radio_receive(RADIO_PACKET *rx_pkt, uint32_t timeout_ms)
             return true;
         }
     }
-    //memcpy(rx_pkt->PDU, ((PACKET_PDU_ALIGNED *)nrf_radio_packetptr_get(NRF_RADIO))->PDU, ((PACKET_PDU_ALIGNED *)nrf_radio_packetptr_get(NRF_RADIO))->length); // Copy the MAC PDU to the RAM PDU
-    //rx_pkt->length = ((PACKET_PDU_ALIGNED *)rx_buf_ptr)->length;
-    //bm_cli_log("%d\n",rx_pkt->length);
     bm_synctimer_timeout_compare_int = false; // Reset Interrupt Flags
     nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_RSSISTOP);
     bm_radio_disable();
@@ -730,15 +708,6 @@ void bm_timesync_Publish(uint32_t timeout_ms, uint64_t ST_INIT_MESH_STACK_TS)
     Radio_Packet_TX.PDU = (u8_t *)&Tsync_pkt_TX;
     Tsync_pkt_TX.MAC_Address_LSB = LSB_MAC_Address;
     Tsync_pkt_TX.seq = 0;
-    //Tsync_pkt_TX.TimeDiff_to_Master = Timestamp_Diff;
-    Tsync_pkt_TX.TimeDiff_to_Master = 0;
-    if (Timestamp_Master > Timestamp_Slave){
-        Tsync_pkt_TX.TimeDiff_to_Master_sign = true;
-    } else if (Timestamp_Master < Timestamp_Slave){
-        Tsync_pkt_TX.TimeDiff_to_Master_sign = false;
-    } else {
-        Tsync_pkt_TX.TimeDiff_to_Master_sign = true; // Stay Positive ;)
-    }
     uint8_t CH_slicer = CHslice;
     while ((start_time + timeout_ms * 1000) > synctimer_getSyncTime())
     { // Do while timeout not exceeded
@@ -746,18 +715,9 @@ void bm_timesync_Publish(uint32_t timeout_ms, uint64_t ST_INIT_MESH_STACK_TS)
         // Timeslot for each Channel should grant at least 2 Subsequent Packets to be Sent...
         while ((start_time + ((timeout_ms / CH_slicer) * 1000)) > synctimer_getSyncTime())
         { // Dividing for Timeslot for each CHannel (must be a Divisor of the Number of Channels)
-            //Tsync_pkt_TX.LastTxTimestamp = synctimer_getTxTimeStamp();
             Tsync_pkt_TX.LastTxTimestamp = synctimer_getSyncedTxTimeStamp();
             Tsync_pkt_TX.ST_INIT_MESH_STACK_TS = ST_INIT_MESH_STACK_TS;
-            //bm_cli_log("TIME Start: %u\n",(uint32_t)synctimer_getSyncTime());
-            //bm_cli_log("Sent TX Timestamp: %u\n",(uint32_t)Tsync_pkt_TX.LastTxTimestamp);
-            //printk(" %u \n",(uint32_t)synctimer_getSyncTime());
-            //printk("res: %u\n",timeout_ms / CH_slicer);
-            //printk("start: %u\n",(uint32_t)start_time);
-            //uint32_t res = timeout_ms / CH_slicer;
-            //printk(" %u \n",(uint32_t)(start_time + (res * 1000)));
             bm_radio_send(Radio_Packet_TX);
-            //bm_cli_log("TIME END: %u\n",(uint32_t)synctimer_getSyncTime());
             Tsync_pkt_TX.seq++; // Increase Sequence Number
         }
         CH_slicer--; // Decrease Channel Slicer
@@ -791,37 +751,22 @@ bool bm_timesync_Subscribe(uint32_t timeout_ms, void (*cc_cb)())
         bm_radio_setCH(ch);
         synctimer_TimeStampCapture_clear();
         synctimer_TimeStampCapture_enable();
-        //bm_cli_log("hoi CH: %d Time Left for Radio: %u\n",ch,(uint32_t)start_time/1000+(timeout_ms / CH_slicer)-(uint32_t)synctimer_getSyncTime()/1000);
         if (bm_radio_receive(&Radio_Packet_RX, timeout_ms / CH_slicer) && ((start_time + timeout_ms * 1000) > synctimer_getSyncTime()))
         { // Dividing for Timeslot for each CHannel (must be a Divisor of the Number of Channels)
-            //if (bm_radio_receive(&Radio_Packet_RX,3000)){ // Dividing for Timeslot for each CHannel (must be a Divisor of the Number of Channels)
             synctimer_TimeStampCapture_disable();
             Tsync_pkt_RX = *(TimesyncPkt *)Radio_Packet_RX.PDU; // Bring the sheep to a dry place
-            //bm_cli_log("hio\n");
             // Keep on Receiving for the last Tx Timestamp
             if (bm_radio_receive(&Radio_Packet_RX, timeout_ms / CH_slicer) && ((start_time + timeout_ms * 1000) > synctimer_getSyncTime()))
             {                                                         // Dividing for Timeslot for each CHannel (must be a Divisor of the Number of Channels)
                 Tsync_pkt_RX_2 = *(TimesyncPkt *)Radio_Packet_RX.PDU; // Bring the sheep to a dry place
-                //bm_cli_log("sali\n");
-                //bm_cli_log("Received 1. SEQ: %d, 2. SEQ: %d\n",Tsync_pkt_RX.seq,Tsync_pkt_RX_2.seq);
-                //bm_cli_log("Next State TS: %u\n",(uint32_t)((TimesyncPkt *)Radio_Packet_RX.PDU)->ST_INIT_MESH_STACK_TS);
-                //bm_cli_log("Last Tx TS: %u\sn",(uint32_t)((TimesyncPkt *)Radio_Packet_RX.PDU)->LastTxTimestamp);
-                //bm_cli_log("Received 1. SEQ: %d, 2. SEQ: %d\n",((TimesyncPkt *)Radio_Packet_RX.PDU)->seq,((TimesyncPkt *)Radio_Packet_RX_2.PDU)->seq);
                 if ((Tsync_pkt_RX.MAC_Address_LSB == Tsync_pkt_RX_2.MAC_Address_LSB) && (Tsync_pkt_RX.seq == (Tsync_pkt_RX_2.seq - 1)))
                 {
-                    //if (Tsync_pkt_RX.MAC_Address_LSB == 0xE4337238 || false) // For Debug (1)
-                    if (Tsync_pkt_RX.MAC_Address_LSB == 0x8ec92859 || false) // For Debug (2)
+                    if (Tsync_pkt_RX.MAC_Address_LSB == 0xE4337238 || false) // For Debug (1)
+                    //if (Tsync_pkt_RX.MAC_Address_LSB == 0x8ec92859 || false) // For Debug (2)
                     {                        
-                        synctimer_setSync(Tsync_pkt_RX_2.LastTxTimestamp,Tsync_pkt_RX_2.TimeDiff_to_Master,Tsync_pkt_RX_2.TimeDiff_to_Master_sign);
+                        synctimer_setSync(Tsync_pkt_RX_2.LastTxTimestamp);
                         bm_cli_log("Synced Time: %u\n",(uint32_t)synctimer_getSyncTime());
                         uint64_t Next_State_TS = Tsync_pkt_RX_2.ST_INIT_MESH_STACK_TS;
-                        /*
-                        if(Tsync_pkt_RX_2.TimeDiff_to_Master_sign){
-                            Next_State_TS = Next_State_TS + Tsync_pkt_RX_2.TimeDiff_to_Master;
-                        } else {
-                            Next_State_TS = Next_State_TS - Tsync_pkt_RX_2.TimeDiff_to_Master;
-                        }
-                        */
                         if (Next_State_TS > synctimer_getSyncTime()){
                             bm_state_synced = true; 
                             synctimer_setSyncTimeCompareInt(Tsync_pkt_RX_2.ST_INIT_MESH_STACK_TS,cc_cb);                           
