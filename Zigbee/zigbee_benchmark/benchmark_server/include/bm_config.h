@@ -1,19 +1,5 @@
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifndef BM_CONFIG_H
 #define BM_CONFIG_H
-
-#include <stdint.h>
-#include <stdbool.h>
-
-#define NRF_SDK_Zigbee
-//#define ZEPHYR
-
-/* Time Sync */
-#define isTimeMaster 0           // Node is the Master (1) or Slave (0)
-extern uint32_t LSB_MAC_Address; // LSB of Randomly Static Assigned MAC Address
 
 #define MAX_CHILDREN 10                          /**< The maximum amount of connected devices. Setting this value to 0 disables association to this device.  */
 #define IEEE_CHANNEL_MASK (1l << ZIGBEE_CHANNEL) /**< Scan only one, predefined channel to find the coordinator. */
@@ -54,7 +40,4 @@ extern uint32_t LSB_MAC_Address; // LSB of Randomly Static Assigned MAC Address
 
 #define BENCHMARK_CUSTOM_CMD_ID 0x00 /* Custom Benchmark Command ID */
 
-#ifdef __cplusplus
-}
-#endif
 #endif //BM_ZIGBEE_H

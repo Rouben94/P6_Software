@@ -117,16 +117,6 @@
       <file file_name="../../../src/bm_zigbee.c" />
       <file file_name="../../../include/bm_config.h" />
       <file file_name="../../../include/bm_zigbee.h" />
-      <file file_name="../../../src/bm_cli.c" />
-      <file file_name="../../../src/bm_rand.c" />
-      <file file_name="../../../src/bm_statemachine.c" />
-      <file file_name="../../../src/bm_timesync.c" />
-      <file file_name="../../../include/bm_cli.h" />
-      <file file_name="../../../include/bm_rand.h" />
-      <file file_name="../../../include/bm_statemachine.h" />
-      <file file_name="../../../include/bm_timesync.h" />
-      <file file_name="../../../src/bm_radio.c" />
-      <file file_name="../../../include/bm_radio.h" />
     </folder>
     <folder Name="None">
       <file file_name="../../../../../../../modules/nrfx/mdk/ses_startup_nrf52840.s" />
