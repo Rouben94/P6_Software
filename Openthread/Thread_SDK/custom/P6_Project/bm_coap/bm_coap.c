@@ -26,10 +26,14 @@
 #include <openthread/platform/alarm-milli.h>
 #include <openthread/random_noncrypto.h>
 #include <openthread/network_time.h>
+#include <openthread/random_noncrypto.h>
 
 #define NUMBER_OF_IP6_GROUPS 25
 #define DATA_SIZE 1024
 #define HOP_LIMIT_DEFAULT 64
+
+uint8_t bm_message_ID = 0;
+uint8_t bm_message_ID_random = 0;
 
 /**@brief Structure holding CoAP status information. */
 typedef struct
@@ -724,7 +728,7 @@ static void bm_probe_message_handler(void                 * p_context,
                                      otMessage            * p_message,
                                      const otMessageInfo  * p_message_info)
 {
-    uint16_t  bm_probe;
+    uint8_t bm_probe[2];
     bm_message_info message;
 
     do
@@ -741,7 +745,6 @@ static void bm_probe_message_handler(void                 * p_context,
         }
 
         message.RSSI = otMessageGetRss(p_message);
-        message.message_id = otCoapMessageGetMessageId(p_message);
         message.number_of_hops = (HOP_LIMIT_DEFAULT - p_message_info->mHopLimit);
         message.source_address = p_message_info->mSockAddr;
         message.dest_address = *otThreadGetMeshLocalEid(thread_ot_instance_get());
@@ -749,18 +752,21 @@ static void bm_probe_message_handler(void                 * p_context,
         message.net_time_ack = 0;
 
 
-        if (otMessageRead(p_message, otMessageGetOffset(p_message), &bm_probe, sizeof(bm_probe)) == 1)
+        if (otMessageRead(p_message, otMessageGetOffset(p_message), &bm_probe, sizeof(bm_probe)) == 2)
         {
             NRF_LOG_INFO("Server: Got 1 bit message");
+            message.message_id = bm_probe[0];
             bsp_board_led_invert(BSP_BOARD_LED_2);
             message.data_size = 0;
         } else
         {
             NRF_LOG_INFO("Server: Got 1024 byte message");
+            message.message_id = (((uint16_t)bm_probe[0] << 8) || (uint16_t)bm_probe[1]);
             bsp_board_led_invert(BSP_BOARD_LED_2);
             message.data_size = 1;
         }
 
+        
         otNetworkTimeGet(thread_ot_instance_get(), &message.net_time);
         bm_save_message_info(message);
 
@@ -781,7 +787,9 @@ void bm_coap_probe_message_send(uint8_t state)
     bm_message_info   message;
 
     uint8_t bm_big_probe[DATA_SIZE];
-    bool bm_small_probe;
+    bm_message_ID_random = otRandomNonCryptoGetUint16InRange(0, 255);
+    uint16_t bm_small_probe = (((uint16_t)bm_message_ID << 8) || (uint16_t)bm_message_ID_random);
+    bm_message_ID++;
     uint64_t time;
 
     otNetworkTimeGet(thread_ot_instance_get(), &message.net_time);
@@ -826,11 +834,13 @@ void bm_coap_probe_message_send(uint8_t state)
 
         if (state == BM_1bit)
         {
-            error = otMessageAppend(p_request, &bm_small_probe, sizeof(bool));
+            error = otMessageAppend(p_request, &bm_small_probe, sizeof(uint16_t));
             message.data_size = 0;
         } else if (state == BM_1024Bytes)
         {
             otRandomNonCryptoFillBuffer(bm_big_probe, DATA_SIZE);
+            bm_big_probe[0] = bm_message_ID;
+            bm_big_probe[1] = bm_message_ID_random;
             error = otMessageAppend(p_request, bm_big_probe, (DATA_SIZE*sizeof(uint8_t)));
             message.data_size = 1;
         }
@@ -848,7 +858,7 @@ void bm_coap_probe_message_send(uint8_t state)
                  
         error = otCoapSendRequest(p_instance, p_request, &messafe_info, NULL, p_instance);
 
-        message.message_id = otCoapMessageGetMessageId(p_request);
+        message.message_id = bm_small_probe;
         bm_save_message_info(message);
     } while (false);
 
