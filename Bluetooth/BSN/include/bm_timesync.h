@@ -58,7 +58,7 @@ extern uint64_t synctimer_getRxTimeStamp();
 *
 * @param TxMasterTimeStamp Latest 
 */
-extern void synctimer_setSync(uint64_t TxMasterTimeStamp);
+extern void synctimer_setSync(uint64_t TxMasterTimeStamp, uint64_t Timestamp_RelayDiff, bool Timestamp_RelayDiff_sign);
 /**
 * Get Synchronised Timestamp
 *
@@ -73,6 +73,9 @@ extern uint64_t synctimer_getSyncTime();
 */
 extern void synctimer_setSyncTimeCompareInt(uint64_t ts ,void (*cc_cb)());
 
+/* Gets a synced Time Compare Interrupt Timestamp (with respect of Synced Time) */
+extern uint64_t synctimer_getSyncTimeCompareIntTS();
+
 /* Sets a Compare Interrupt which occurs after the specified time in us */
 void synctimer_setCompareInt(uint32_t timeout_ms);
 
@@ -85,7 +88,7 @@ void bm_radio_init();
 
 void bm_timesync_Publish(uint32_t timeout_ms, uint64_t ST_INIT_MESH_STACK_TS);
 
-uint64_t bm_timesync_Subscribe(uint32_t timeout_ms);
+bool bm_timesync_Subscribe(uint32_t timeout_ms, void (*cc_cb)());
 
 #endif
 

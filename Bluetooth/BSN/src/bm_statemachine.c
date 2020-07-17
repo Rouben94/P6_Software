@@ -2,6 +2,7 @@
 #include "bm_cli.h"
 #include "bm_config.h"
 #include "bm_timesync.h"
+#include "bm_rand.h"
 
 #include "bm_statemachine.h"
 
@@ -30,7 +31,7 @@
 #define ST_TIMESYNC_BACKOFF_TIME_MS 30 // Backoff time maximal for retransmitt the Timesync Packet
 
 uint8_t currentState = ST_TIMESYNC; // Init the Statemachine in the Timesync State
-bool transition = false; // Signal that a Transition has occured
+bool transition = false;            // Signal that a Transition has occured
 
 static void ST_transition_cb(void)
 {
@@ -57,14 +58,13 @@ void ST_TIMESYNC_fn(void)
     }
     else
     {
-        ST_INIT_MESH_STACK_TS = bm_timesync_Subscribe(ST_TIMESYNC_TIME_MS);
-        if (ST_INIT_MESH_STACK_TS > synctimer_getSyncTime())
+        if (bm_timesync_Subscribe(ST_TIMESYNC_TIME_MS, ST_transition_cb))
         {
-            synctimer_setSyncTimeCompareInt(ST_INIT_MESH_STACK_TS, ST_transition_cb);
-            while (ST_INIT_MESH_STACK_TS > (synctimer_getSyncTime() + ST_MARGIN_TIME_MS * 1000 + ST_TIMESYNC_BACKOFF_TIME_MS * 1000))
+            while (synctimer_getSyncTimeCompareIntTS() > (synctimer_getSyncTime() + ST_MARGIN_TIME_MS * 1000 + ST_TIMESYNC_BACKOFF_TIME_MS * 1000))
             { // Check if there is Time Left for Propagating Timesync further
                 bm_sleep(ST_TIMESYNC_BACKOFF_TIME_MS);
-                bm_timesync_Publish((uint32_t)(ST_INIT_MESH_STACK_TS - (synctimer_getSyncTime() + ST_MARGIN_TIME_MS * 1000))/1000, ST_INIT_MESH_STACK_TS); // Propagate the Timesync further
+                bm_cli_log("Timeout for Publishing: %u\n",(uint32_t)(((synctimer_getSyncTimeCompareIntTS() - synctimer_getSyncTime())/1000) - ST_MARGIN_TIME_MS));
+                bm_timesync_Publish((uint32_t)(((synctimer_getSyncTimeCompareIntTS() - synctimer_getSyncTime())/1000) - ST_MARGIN_TIME_MS), synctimer_getSyncTimeCompareIntTS()); // Propagate the Timesync further
             }
         }
     }
@@ -80,7 +80,8 @@ void ST_INIT_MESH_STACK_fn(void)
     return;
 }
 
-void ST_WAIT_FOR_TRANSITION_fn(){
+void ST_WAIT_FOR_TRANSITION_fn()
+{
     while (!(transition))
     {
         //__SEV();__WFE();__WFE(); // Wait for Timer Interrupt nRF5SDK Way
@@ -92,9 +93,10 @@ void ST_WAIT_FOR_TRANSITION_fn(){
 
 void bm_statemachine()
 {
-    synctimer_init();
+    bm_rand_init();
     bm_radio_init();
-    synctimer_start(); 
+    synctimer_init();
+    synctimer_start();
     while (true)
     {
         transition = false;

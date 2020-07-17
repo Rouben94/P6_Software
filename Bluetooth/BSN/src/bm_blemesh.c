@@ -14,6 +14,7 @@
 #include "bm_blemesh.h"
 
 
+
 /** Defines for Self Provisioning **/
 static const u8_t net_key[16] = {
 	0x66,
