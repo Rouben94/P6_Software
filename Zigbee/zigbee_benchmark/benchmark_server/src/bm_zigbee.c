@@ -126,7 +126,7 @@ void bm_read_message_info(zb_uint16_t timeout);
 void bm_save_message_info(bm_message_info message);
 
 /* Array of structs to save benchmark message info to */
-bm_message_info message_info[NUMBER_OF_NETWORK_TIME_ELEMENTS] = {0};
+bm_message_info message_info[NUMBER_OF_BENCHMARK_REPORT_MESSAGES] = {0};
 
 /************************************ Benchmark Client Cluster Attribute Init ***********************************************/
 

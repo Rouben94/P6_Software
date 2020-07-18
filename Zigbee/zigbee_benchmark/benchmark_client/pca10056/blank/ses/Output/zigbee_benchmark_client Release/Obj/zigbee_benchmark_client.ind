@@ -62,6 +62,7 @@
 "Output/zigbee_benchmark_client Release/Obj/bm_zigbee.o"
 "Output/zigbee_benchmark_client Release/Obj/bm_flash_save.o"
 "Output/zigbee_benchmark_client Release/Obj/fds.o"
+"Output/zigbee_benchmark_client Release/Obj/bm_log.o"
 "Output/zigbee_benchmark_client Release/Obj/ses_startup_nrf52840.o"
 "Output/zigbee_benchmark_client Release/Obj/ses_startup_nrf_common.o"
 "Output/zigbee_benchmark_client Release/Obj/system_nrf52840.o"

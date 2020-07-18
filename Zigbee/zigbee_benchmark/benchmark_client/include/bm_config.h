@@ -1,6 +1,9 @@
 #ifndef BM_CONFIG_H
 #define BM_CONFIG_H
 
+#include "stdbool.h"
+#include "stdint.h"
+#include "stdlib.h"
 
 #define IEEE_CHANNEL_MASK (1l << ZIGBEE_CHANNEL) /**< Scan only one, predefined channel to find the coordinator. */
 //#define IEEE_CHANNEL_MASK                   0x07fff800U
@@ -46,8 +49,8 @@
 #define BENCHMARK_REPORTING_ENDPOINT 12 /* ZCL Endpoint for Benchmark Reporting Message */
 #define GROUP_ID 0xB331                 /* Group ID to send Benchmark message to.*/
 
-#define BENCHMARK_CUSTOM_CMD_ID 0x55    /* Custom Benchmark Command ID */
+#define BENCHMARK_CUSTOM_CMD_ID 0x55 /* Custom Benchmark Command ID */
 
-#define NUMBER_OF_BENCHMARK_REPORT_MESSAGES 1000 /* Size of the Benchmark Reporting Array message_info */
+#define NUMBER_OF_BENCHMARK_REPORT_MESSAGES 3000 /* Size of the Benchmark Reporting Array message_info */
 
 #endif //BM_ZIGBEE_H

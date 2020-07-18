@@ -35,7 +35,7 @@
 #define BENCHMARK_SERVER_ENDPOINT 10         /* ZCL Endpoint of the Benchmark Server */
 #define BENCHMARK_CONTROL_ENDPOINT 11        /* ZCL Endpoint for Benchmark Control */
 #define BENCHMARK_REPORTING_ENDPOINT 12      /* ZCL Endpoint for Benchmark Reporting Message */
-#define NUMBER_OF_NETWORK_TIME_ELEMENTS 1000 /* Size of the Benchmark Reporting Array message_info */
+#define NUMBER_OF_BENCHMARK_REPORT_MESSAGES 3000 /* Size of the Benchmark Reporting Array message_info */
 #define DONGLE_BUTTON_BSP_EVT BSP_EVENT_KEY_0
 
 #define BENCHMARK_CUSTOM_CMD_ID 0x00 /* Custom Benchmark Command ID */

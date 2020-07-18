@@ -17,7 +17,7 @@
 #include "bm_config.h"
 #include "bm_zigbee.h"
 
-#include "bm_flash_save.h"
+#include "bm_log.h"
 
 static light_switch_ctx_t m_device_ctx;
 static bm_client_device_ctx_t dev_ctx;
@@ -103,22 +103,16 @@ void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t on_off);
 void bm_send_control_message_cb(zb_bufid_t bufid, zb_uint16_t level);
 void bm_send_message(zb_uint8_t param);
 void bm_read_message_info(zb_uint16_t timeout);
-void bm_save_message_info(bm_message_info message);
 void bm_reporting_message(zb_bufid_t bufid, zb_uint16_t level);
-
-/* Array of structs to save benchmark message info to */
-bm_message_info message_info[NUMBER_OF_BENCHMARK_REPORT_MESSAGES] = {0};
+void bm_report_data(zb_uint8_t param);
 
 zb_uint32_t bm_msg_cnt;
 zb_uint32_t bm_msg_cnt_sent;
 zb_uint32_t bm_time_interval_msec;
-zb_uint16_t bm_message_info_nr = 0;
-zb_uint16_t bm_message_info_cnt = 0;
+
 zb_uint32_t timeout;
 zb_uint32_t time_random;
 zb_uint32_t timeslot;
-
-uint16_t bm_rep_seq_num;
 
 zb_ieee_addr_t local_node_ieee_addr;
 zb_uint16_t local_node_short_addr;
@@ -298,7 +292,6 @@ zb_void_t bm_button_handler(zb_uint8_t button) {
     break;
 
   case BENCHMARK_BUTTON:
-    //zb_err_code = ZB_SCHEDULE_APP_ALARM(bm_zigbee, 0, 0);
     bm_msg_cnt_sent = 0;
     bm_msg_cnt = 20;
     bm_time_interval_msec = 20000;
@@ -311,7 +304,9 @@ zb_void_t bm_button_handler(zb_uint8_t button) {
 
   case TEST_BUTTON:
     //random_level_value = ZB_RANDOM_VALUE(256);
-    flash_read();
+    NRF_LOG_INFO("Read data from Flash done");
+    zb_err_code = ZB_SCHEDULE_APP_ALARM(bm_report_data, 0, ZB_MILLISECONDS_TO_BEACON_INTERVAL(1000));
+    ZB_ERROR_CHECK(zb_err_code);
 
     break;
 
@@ -432,17 +427,19 @@ void bm_send_message(zb_uint8_t param) {
     time_random = ZB_RANDOM_VALUE(timeslot);
     timeout = time_random;
 
+    bm_read_message_info(timeout);
     zb_err_code = zb_buf_get_out_delayed_ext(bm_send_message_cb, random_level_value, 0);
     ZB_ERROR_CHECK(zb_err_code);
 
     zb_err_code = ZB_SCHEDULE_APP_ALARM(bm_send_message, 0, ZB_MILLISECONDS_TO_BEACON_INTERVAL(timeout));
     ZB_ERROR_CHECK(zb_err_code);
 
-    bm_read_message_info(timeout);
     bm_msg_cnt_sent++;
 
   } else {
     NRF_LOG_INFO("BENCHMARK finished. %d packets sent.", bm_msg_cnt_sent);
+    //bm_write_flash_data();
+    bm_log_save_to_flash();
   }
 }
 
@@ -451,71 +448,53 @@ void bm_read_message_info(zb_uint16_t timeout) {
   bm_message_info message;
   zb_ieee_addr_t ieee_src_addr;
 
-  message.message_id = 0;
+  //  message.message_id = 0;
   message.rssi = 0;
   message.number_of_hops = 0;
   message.data_size = 0;
+
   zb_get_long_address(ieee_src_addr);
   message.src_addr = zb_address_short_by_ieee(ieee_src_addr);
   message.group_addr = GROUP_ID;
-  message.net_time = 0;
+  message.dst_addr = GROUP_ID;
 
   message.net_time = ZB_TIME_BEACON_INTERVAL_TO_MSEC(ZB_TIMER_GET());
+  message.ack_net_time = 0;
+
   message.message_id = ZB_ZCL_GET_SEQ_NUM() + 1;
 
   NRF_LOG_INFO("Benchmark Message send, TimeStamp: %lld, MessageID: %d, TimeOut: %u", message.net_time, message.message_id, timeout);
 
-  bm_save_message_info(message);
+  bm_log_append_ram(message);
 }
-
-/* TODO: Description */
-void bm_save_message_info(bm_message_info message) {
-  message_info[bm_message_info_nr] = message;
-  bm_message_info_nr++;
-
-  flash_write(*((Measurement *)&message));
-}
-
-///* Callback function to send Benchmark Reporting Message */
-//void bm_send_reporting_message_cb(zb_bufid_t bufid, bm_message_info message) {
-//  zb_uint16_t group_id = GROUP_ID;
-//  NRF_LOG_INFO("Benchmark Message Callback send.");
-//}
-
-///* Function to send Benchmark Reporting Message */
-//void bm_send_reporting_message(zb_uint8_t bufid) {
-//  zb_ret_t zb_err_code;
-//  zb_uint16_t t_reporting_interval = 100;
-//
-//  if (bm_message_info_cnt < bm_message_info_nr) {
-//
-//    zb_err_code = zb_buf_get_out_delayed_ext(bm_reporting_message, 0, 0);
-//    ZB_ERROR_CHECK(zb_err_code);
-//
-//    zb_err_code = ZB_SCHEDULE_APP_ALARM(bm_send_reporting_message, 0, ZB_MILLISECONDS_TO_BEACON_INTERVAL(t_reporting_interval));
-//    ZB_ERROR_CHECK(zb_err_code);
-//
-//    NRF_LOG_INFO("Send Benchmark Report: %d of %d", bm_message_info_cnt, bm_message_info_nr);
-//    bm_message_info_cnt++;
-//  }
-//}
 
 /* TODO: Description */
 void bm_receive_config(zb_uint8_t bufid) {
   NRF_LOG_INFO("Received Config-Set command");
 }
 
-/* Callback function to read Benchmark Message Info data from Flash and write to Log. */
-void bm_read_flash_data_cb(Measurement *data) {
+void bm_report_data(zb_uint8_t param) {
+  uint16_t bm_msg_flash_cnt = 0;
+  uint16_t bm_cnt = 0;
+  bm_message_info message;
 
-  NRF_LOG_INFO("<REPORT>, %d, %llu, %llu, %d, %d, %d",
-      data->message_id,
-      data->net_time,
-      data->ack_net_time,
-      data->number_of_hops,
-      data->rssi,
-      data->src_addr);
-  NRF_LOG_INFO("<REPORT>, %d , %d, %d", data->dst_addr, data->group_addr, data->data_size);
+  bm_msg_flash_cnt = bm_log_load_from_flash();
+
+  while (bm_cnt < bm_msg_flash_cnt) {
+    message = message_info[bm_cnt];
+    NRF_LOG_INFO("<REPORT>, %d, %llu, %llu, %d, %d, 0x%x",
+        message.message_id,
+        message.net_time,
+        message.ack_net_time,
+        message.number_of_hops,
+        message.rssi,
+        message.src_addr);
+
+    bm_cnt++;
+  }
+  bm_log_clear_ram();
+  bm_log_clear_flash();
+  NRF_LOG_INFO("<REPORTING FINISHED>");
 }
 
 /************************************ Zigbee event handler ***********************************************/
@@ -627,7 +606,7 @@ void bm_zigbee_init(void) {
   timers_init();
   log_init();
   leds_buttons_init();
-  flash_save_init(bm_read_flash_data_cb);
+  bm_log_init();
 
   /* Set Zigbee stack logging level and traffic dump subsystem. */
   ZB_SET_TRACE_LEVEL(ZIGBEE_TRACE_LEVEL);
