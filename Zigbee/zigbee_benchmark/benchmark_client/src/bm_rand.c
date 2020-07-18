@@ -1,0 +1,72 @@
+#include "bm_rand.h"
+#include "bm_cli.h"
+#include "bm_config.h"
+#include "bm_timesync.h"
+
+#ifdef ZEPHYR_BLE_MESH
+#include <zephyr.h>
+#elif defined NRF_SDK_Zigbee
+#include "nrf52840.h"
+#include "zboss_api_core.h"
+#endif
+
+uint32_t bm_rand_32 = 0;       // Randomly generated 4 bytes
+uint32_t bm_rand_250_byte[1000]; // Randomly generated 250 bytes
+
+void bm_rand_get(void *dst, int len)
+{
+
+  NRF_RNG->TASKS_STOP = false; // Start Random Number Generator
+  NRF_RNG->TASKS_START = true; // Start Random Number Generator
+  NRF_RNG->CONFIG = true;      // Turn on BIAS Correction
+
+  for (uint32_t i = 0; i < len; i++)
+  {
+    uint32_t cnt = 0;
+    while (cnt < 1000)
+    {
+      cnt++;
+      __NOP(); //Wait for Random Data -> ~120us Run time per byte with bias correction. Uniform distribution of 0 and 1 is guaranteed. Time to generate a byte cannot be guaranteed.
+    }
+    ((uint8_t *)dst)[i] = NRF_RNG->VALUE;
+  }
+  NRF_RNG->TASKS_STOP = true; // Stop Random Number Generator
+}
+
+void bm_swap(uint32_t *xp, uint32_t *yp)
+{
+  uint32_t temp = *xp;
+  *xp = *yp;
+  *yp = temp;
+}
+
+// A function to implement bubble sort
+void bm_rand_bubbleSort(uint32_t arr[], uint32_t n)
+{
+  uint32_t i, j;
+  for (i = 0; i < n/4 - 1; i++)
+  {
+    // Last i elements are already in place
+    for (j = 0; j < n/4 - i - 1; j++)
+    {
+      //bm_cli_log("%u\n", j);
+      if (arr[j] > arr[j + 1]){
+        bm_swap(&arr[j], &arr[j + 1]);
+      }
+    }
+  }
+}
+
+void bm_rand_init()
+{
+  bm_rand_get(&bm_rand_32, sizeof(bm_rand_32));
+  bm_cli_log("32bit Random value initalized with: %u\n", bm_rand_32);
+  uint64_t start_ts = synctimer_getSyncTime();
+  bm_rand_get(&bm_rand_250_byte, sizeof(bm_rand_250_byte));
+  bm_cli_log("Rand Generated in %u ms\n", (uint32_t)(synctimer_getSyncTime() - start_ts) / 1000);
+  bm_cli_log("250Byte Random Data initalized\n");
+  start_ts = synctimer_getSyncTime();
+  bm_rand_bubbleSort(bm_rand_250_byte, sizeof(bm_rand_250_byte));
+  bm_cli_log("Sorted in %u ms\n", (uint32_t)(synctimer_getSyncTime() - start_ts) / 1000);
+  return;
+}

@@ -16,22 +16,32 @@
 #include "bm_config.h"
 #include "bm_zigbee.h"
 
+uint32_t LSB_MAC_Address;
+
 /**@brief Function for application main entry.
  */
 int main(void) {
 
-  /* Initialize Zigbee stack. */
-  bm_zigbee_init();
+  // Init MAC Address
+  LSB_MAC_Address = NRF_FICR->DEVICEADDR[1];
+  bm_cli_log("Preprogrammed Randomly Static MAC-Address (LSB): %x\n", LSB_MAC_Address);
 
-  /** Start Zigbee Stack. */
-  bm_zigbee_enable();
+  // Start Benchmark
+  bm_cli_log("Starting Benchmark...\n");
+  bm_statemachine();
 
-  while (1) {
-    zboss_main_loop_iteration();
-    UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
-  }
-}
+  //  /* Initialize Zigbee stack. */
+  //  bm_zigbee_init();
+  //
+  //  /** Start Zigbee Stack. */
+  //  bm_zigbee_enable();
 
-/**
+  //  while (1) {
+  //    zboss_main_loop_iteration();
+  //    UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
+  //  }
+  //}
+
+  /**
  * @}
  */

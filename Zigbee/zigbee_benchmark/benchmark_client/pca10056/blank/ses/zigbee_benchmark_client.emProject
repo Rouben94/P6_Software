@@ -119,6 +119,16 @@
       <file file_name="../../../../../../../components/libraries/fds/fds.h" />
       <file file_name="../../../src/bm_log.c" />
       <file file_name="../../../include/bm_log.h" />
+      <file file_name="../../../include/bm_cli.h" />
+      <file file_name="../../../include/bm_radio.h" />
+      <file file_name="../../../include/bm_rand.h" />
+      <file file_name="../../../include/bm_statemachine.h" />
+      <file file_name="../../../include/bm_timesync.h" />
+      <file file_name="../../../src/bm_cli.c" />
+      <file file_name="../../../src/bm_radio.c" />
+      <file file_name="../../../src/bm_rand.c" />
+      <file file_name="../../../src/bm_statemachine.c" />
+      <file file_name="../../../src/bm_timesync.c" />
     </folder>
     <folder Name="None">
       <file file_name="../../../../../../../modules/nrfx/mdk/ses_startup_nrf52840.s" />
