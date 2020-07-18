@@ -11,11 +11,11 @@
 #endif
 
 uint32_t bm_rand_32 = 0;       // Randomly generated 4 bytes
-uint32_t bm_rand_250_byte[1000]; // Randomly generated 250 bytes
+uint32_t bm_rand_msg_ts[];     // Randomly generated Message Timestamps
 
 void bm_rand_get(void *dst, int len)
 {
-
+  uint64_t start_ts = synctimer_getSyncTime();
   NRF_RNG->TASKS_STOP = false; // Start Random Number Generator
   NRF_RNG->TASKS_START = true; // Start Random Number Generator
   NRF_RNG->CONFIG = true;      // Turn on BIAS Correction
@@ -31,6 +31,7 @@ void bm_rand_get(void *dst, int len)
     ((uint8_t *)dst)[i] = NRF_RNG->VALUE;
   }
   NRF_RNG->TASKS_STOP = true; // Stop Random Number Generator
+  bm_cli_log("Rand Generated in %u ms\n", (uint32_t)(synctimer_getSyncTime() - start_ts) / 1000);
 }
 
 void bm_swap(uint32_t *xp, uint32_t *yp)
@@ -41,8 +42,9 @@ void bm_swap(uint32_t *xp, uint32_t *yp)
 }
 
 // A function to implement bubble sort
-void bm_rand_bubbleSort(uint32_t arr[], uint32_t n)
+void bm_rand32_bubbleSort(uint32_t arr[], uint32_t n)
 {
+  uint64_t start_ts = synctimer_getSyncTime();
   uint32_t i, j;
   for (i = 0; i < n/4 - 1; i++)
   {
@@ -55,18 +57,12 @@ void bm_rand_bubbleSort(uint32_t arr[], uint32_t n)
       }
     }
   }
+  bm_cli_log("Sorted in %u ms\n", (uint32_t)(synctimer_getSyncTime() - start_ts) / 1000);
 }
 
 void bm_rand_init()
 {
   bm_rand_get(&bm_rand_32, sizeof(bm_rand_32));
-  bm_cli_log("32bit Random value initalized with: %u\n", bm_rand_32);
-  uint64_t start_ts = synctimer_getSyncTime();
-  bm_rand_get(&bm_rand_250_byte, sizeof(bm_rand_250_byte));
-  bm_cli_log("Rand Generated in %u ms\n", (uint32_t)(synctimer_getSyncTime() - start_ts) / 1000);
-  bm_cli_log("250Byte Random Data initalized\n");
-  start_ts = synctimer_getSyncTime();
-  bm_rand_bubbleSort(bm_rand_250_byte, sizeof(bm_rand_250_byte));
-  bm_cli_log("Sorted in %u ms\n", (uint32_t)(synctimer_getSyncTime() - start_ts) / 1000);
+  bm_cli_log("32bit Random value initalized with: %u\n", bm_rand_32);  
   return;
 }

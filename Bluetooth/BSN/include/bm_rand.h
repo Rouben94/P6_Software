@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 extern uint32_t bm_rand_32;           // Randomly generated 4 bytes
-extern uint32_t bm_rand_250_byte[1000]; // Randomly generated 250 bytes
+extern uint32_t bm_rand_msg_ts[];     // Randomly generated Message Timestamps
 
 /* Initialize Random Data */
 void bm_rand_init();
