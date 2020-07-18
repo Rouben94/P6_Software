@@ -34,7 +34,7 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 #define BLE_MESH_TTL 7 // Maybee optimize
 
 /* ================= Zigbee Stuff ====================== */
-#define ZBOSS_MAIN_LOOP_ITERATION_TIME_MARGIN_MS = 1000; // Time Margin needed because zboss can block timecheck. note this time will be added to the Stack Init Time
+#define ZBOSS_MAIN_LOOP_ITERATION_TIME_MARGIN_MS 1000 // Time Margin needed because zboss can block timecheck. note this time will be added to the Stack Init Time
 
 #define MAX_CHILDREN 10                          /**< The maximum amount of connected devices. Setting this value to 0 disables association to this device.  */
 #define IEEE_CHANNEL_MASK (1l << ZIGBEE_CHANNEL) /**< Scan only one, predefined channel to find the coordinator. */

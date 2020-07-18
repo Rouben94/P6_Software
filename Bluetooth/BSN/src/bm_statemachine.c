@@ -89,6 +89,10 @@ void ST_INIT_BENCHMARK_fn(void) {
   synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb);
   uint64_t start_time_ts_us = synctimer_getSyncTime(); // Get the current Timestamp
 
+  // init the Random timestamps for Messaging 
+  bm_rand_get(&bm_rand_msg_ts,sizeof(bm_rand_msg_ts));
+  
+
   #ifdef ZEPHYR_BLE_MESH
   bm_blemesh_enable(); // Will return faster than the Stack is realy ready... keep on waiting in the transition.
   #elif defined NRF_SDK_Zigbee
