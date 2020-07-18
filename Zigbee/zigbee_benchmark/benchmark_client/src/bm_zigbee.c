@@ -15,9 +15,9 @@
 #include "nrf_log_default_backends.h"
 
 #include "bm_config.h"
-#include "bm_zigbee.h"
-
 #include "bm_log.h"
+#include "bm_timesync.h"
+#include "bm_zigbee.h"
 
 static light_switch_ctx_t m_device_ctx;
 static bm_client_device_ctx_t dev_ctx;
@@ -458,7 +458,8 @@ void bm_read_message_info(zb_uint16_t timeout) {
   message.group_addr = GROUP_ID;
   message.dst_addr = GROUP_ID;
 
-  message.net_time = ZB_TIME_BEACON_INTERVAL_TO_MSEC(ZB_TIMER_GET());
+  message.net_time = synctimer_getSyncTime();
+  //message.net_time = ZB_TIME_BEACON_INTERVAL_TO_MSEC(ZB_TIMER_GET());
   message.ack_net_time = 0;
 
   message.message_id = ZB_ZCL_GET_SEQ_NUM() + 1;
@@ -604,7 +605,6 @@ void bm_zigbee_init(void) {
 
   /* Initialize timers, loging system and GPIOs. */
   timers_init();
-  log_init();
   leds_buttons_init();
   bm_log_init();
 

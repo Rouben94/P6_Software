@@ -3,6 +3,13 @@
 #ifndef BM_ZIGBEE_H
 #define BM_ZIGBEE_H
 
+#include "zboss_api.h"
+#include "zcl/zb_zcl_basic_addons.h"
+#include "zcl/zb_zcl_groups_addons.h"
+#include "zcl/zb_zcl_level_control_addons.h"
+#include "zcl/zb_zcl_on_off_addons.h"
+#include "zcl/zb_zcl_scenes_addons.h"
+
 typedef struct light_switch_bulb_params_s {
   zb_uint8_t endpoint;
   zb_uint16_t short_addr;

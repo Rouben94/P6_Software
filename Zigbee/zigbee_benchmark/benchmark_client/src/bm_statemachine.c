@@ -1,13 +1,12 @@
-#include "bm_config.h"
 #include "bm_cli.h"
+#include "bm_config.h"
 #include "bm_radio.h"
 #include "bm_rand.h"
 #include "bm_timesync.h"
 
-
 #ifdef ZEPHYR_BLE_MESH
-#include <zephyr.h>
 #include "bm_blemesh.h"
+#include <zephyr.h>
 #elif defined NRF_SDK_Zigbee
 #include "bm_zigbee.h"
 #endif
@@ -32,10 +31,9 @@ V.    if yess -> change to next state*/
 // Save the Logged Data to Flash and Reset Device to shut down the Mesh Stack
 #define ST_SAVE_FLASH 80
 
-
 // Timeslots for the Sates in ms. The Timesync has to be accurate enough.
-#define ST_TIMESYNC_TIME_MS 3000 // -> Optimized for 50 Nodes, 3 Channels and BLE LR125kBit
-#define ST_INIT_BENCHMARK_TIME_MS 10000 // Time required to init the Mesh Stack
+#define ST_TIMESYNC_TIME_MS 3000          // -> Optimized for 50 Nodes, 3 Channels and BLE LR125kBit
+#define ST_INIT_BENCHMARK_TIME_MS 1000000 // Time required to init the Mesh Stack
 // The Benchmark time is obtained by the arameters from Timesync
 #define ST_SAVE_FLASH_TIME_MS 1000 // Time required to Save Log to Flash
 
@@ -45,14 +43,14 @@ V.    if yess -> change to next state*/
 uint8_t currentState = ST_TIMESYNC; // Init the Statemachine in the Timesync State
 bool wait_for_transition = false;   // Signal that a Waiting for a Transition is active
 bool transition = false;            // Signal that a Transition has occured
-uint64_t st_benchmark_msg_window;    // Timewindow for a Benchmarkmessage = BenchmarkTime / BenchmarkPcktCnt
+uint64_t st_benchmark_msg_window;   // Timewindow for a Benchmarkmessage = BenchmarkTime / BenchmarkPcktCnt
 
 static void ST_transition_cb(void) {
   bm_cli_log("%u%u\n", (uint32_t)(synctimer_getSyncTime() >> 32), (uint32_t)synctimer_getSyncTime());                       // For Debug
   if ((currentState == ST_TIMESYNC && (bm_state_synced && !isTimeMaster)) || (currentState == ST_TIMESYNC && isTimeMaster)) // Not Synced Slave Nodes stay in Timesync State.
   {
-    currentState = ST_BENCHMARK;
-  } else if (currentState == ST_BENCHMARK) {
+    currentState = ST_INIT_BENCHMARK;
+  } else if (currentState == ST_INIT_BENCHMARK) {
     currentState = ST_TIMESYNC;
   }
   if (!wait_for_transition) {
@@ -79,57 +77,56 @@ void ST_TIMESYNC_fn(void) {
   return;
 }
 
-
 void ST_INIT_BENCHMARK_fn(void) {
-  #ifdef ZEPHYR_BLE_MESH
+#ifdef ZEPHYR_BLE_MESH
   uint64_t next_state_ts_us = (synctimer_getSyncTime() + ST_INIT_BENCHMARK_TIME_MS * 1000 + ST_MARGIN_TIME_MS * 1000);
-  #elif defined NRF_SDK_Zigbee
-  uint64_t next_state_ts_us = (synctimer_getSyncTime() + ST_INIT_BENCHMARK_TIME_MS * 1000 + ST_MARGIN_TIME_MS * 1000 + ZBOSS_MAIN_LOOP_ITERATION_TIME_MARGIN_MS *1000);
-  #endif
+#elif defined NRF_SDK_Zigbee
+  uint64_t next_state_ts_us = (synctimer_getSyncTime() + ST_INIT_BENCHMARK_TIME_MS * 1000 + ST_MARGIN_TIME_MS * 1000 + ZBOSS_MAIN_LOOP_ITERATION_TIME_MARGIN_MS * 1000);
+#endif
   synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb);
   uint64_t start_time_ts_us = synctimer_getSyncTime(); // Get the current Timestamp
-
-  #ifdef ZEPHYR_BLE_MESH
+  bm_cli_log("HALLO");
+#ifdef ZEPHYR_BLE_MESH
   bm_blemesh_enable(); // Will return faster than the Stack is realy ready... keep on waiting in the transition.
-  #elif defined NRF_SDK_Zigbee
+#elif defined NRF_SDK_Zigbee
   /* Initialize Zigbee stack. */
   bm_zigbee_init();
   /** Start Zigbee Stack. */
   bm_zigbee_enable();
   /* Zigbee or Zboss has its own RTOS Scheduler. He owns all the CPU so we let him work while we wait. 
   Note that the check for time left slows down the Zboss stack a bit. Since we are still init the stack this shouldnt be a big deal. */
-  while ((synctimer_getSyncTime() - start_time_ts_us) < ST_INIT_BENCHMARK_TIME_MS *1000) {
+  while ((synctimer_getSyncTime() - start_time_ts_us) < ST_INIT_BENCHMARK_TIME_MS * 1000) {
     zboss_main_loop_iteration();
+
     UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
   }
-  #endif
+#endif
   return;
 }
 
 void ST_BENCHMARK_fn(void) {
 
-  #ifdef ZEPHYR_BLE_MESH
+#ifdef ZEPHYR_BLE_MESH
   uint64_t next_state_ts_us = (synctimer_getSyncTime() + bm_params.benchmark_time_s * 1e6 + ST_MARGIN_TIME_MS * 1000);
-  #elif defined NRF_SDK_Zigbee
-  uint64_t next_state_ts_us = (synctimer_getSyncTime() + bm_params.benchmark_time_s * 1e6 + ST_MARGIN_TIME_MS * 1000 + ZBOSS_MAIN_LOOP_ITERATION_TIME_MARGIN_MS *1000);
-  #endif
+#elif defined NRF_SDK_Zigbee
+  uint64_t next_state_ts_us = (synctimer_getSyncTime() + bm_params.benchmark_time_s * 1e6 + ST_MARGIN_TIME_MS * 1000 + ZBOSS_MAIN_LOOP_ITERATION_TIME_MARGIN_MS * 1000);
+#endif
   synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb);
   uint64_t start_time_ts_us = synctimer_getSyncTime(); // Get the current Timestamp
   /* ========= LOG the Data ====================*/
 
-  #ifdef ZEPHYR_BLE_MESH
-  // The Benchmark is Timer Interrupt Driven. do Nothing here and wait for transition
-  #elif defined NRF_SDK_Zigbee
+#ifdef ZEPHYR_BLE_MESH
+// The Benchmark is Timer Interrupt Driven. do Nothing here and wait for transition
+#elif defined NRF_SDK_Zigbee
   /* Zigbee or Zboss has its own RTOS Scheduler. He owns all the CPU so we let him work while we wait. 
   Note that the check for time left slows down the Zboss stack a bit. Since we are still init the stack this shouldnt be a big deal. */
-  while ((synctimer_getSyncTime() - start_time) < bm_params.benchmark_time_s * 1e6) {
+  while ((synctimer_getSyncTime() - start_time_ts_us) < bm_params.benchmark_time_s * 1e6) {
     zboss_main_loop_iteration();
     UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
   }
-  #endif
+#endif
   return;
 }
-
 
 void ST_WAIT_FOR_TRANSITION_fn() {
   wait_for_transition = true;

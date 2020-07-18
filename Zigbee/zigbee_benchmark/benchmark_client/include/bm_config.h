@@ -3,7 +3,23 @@
 
 #include "stdbool.h"
 #include "stdint.h"
-#include "stdlib.h"
+
+// Change the following to switch the Protokoll Stack and SDK
+#define NRF_SDK_Zigbee
+//#define ZEPHYR_BLE_MESH
+
+/* =============== Time Sync ===================== */
+#define isTimeMaster 1           // Node is the Master (1) or Slave (0)
+extern uint32_t LSB_MAC_Address; // LSB of Randomly Static Assigned MAC Address
+
+/* =============== Defines for Reporting ===================== */
+#define NUMBER_OF_BENCHMARK_REPORT_MESSAGES 3000 /* Size of the Benchmark Reporting Array message_info */
+
+/* =============== BLE MESH Stuff ===================== */
+#define BLE_MESH_TTL 7 // Maybee optimize
+
+/* ================= Zigbee Stuff ====================== */
+#define ZBOSS_MAIN_LOOP_ITERATION_TIME_MARGIN_MS 1000 // Time Margin needed because zboss can block timecheck. note this time will be added to the Stack Init Time
 
 #define IEEE_CHANNEL_MASK (1l << ZIGBEE_CHANNEL) /**< Scan only one, predefined channel to find the coordinator. */
 //#define IEEE_CHANNEL_MASK                   0x07fff800U
@@ -38,10 +54,6 @@
 #define LIGHT_SWITCH_BUTTON_SHORT_POLL_TMO ZB_MILLISECONDS_TO_BEACON_INTERVAL(50) /**< Delay between button state checks used in order to detect button long press. */
 #define LIGHT_SWITCH_BUTTON_LONG_POLL_TMO ZB_MILLISECONDS_TO_BEACON_INTERVAL(300) /**< Time after which the button state is checked again to detect button hold - the dimm command is sent again. */
 
-#if !defined ZB_ED_ROLE
-#error Define ZB_ED_ROLE to compile light switch (End Device) source code.
-#endif
-
 /* Benchmark specific Definitions*/
 #define BENCHMARK_CLIENT_ENDPOINT 1     /* ZCL Endpoint of the Benchmark Client */
 #define BENCHMARK_SERVER_ENDPOINT 10    /* ZCL Endpoint of the Benchmark Server */
@@ -49,8 +61,21 @@
 #define BENCHMARK_REPORTING_ENDPOINT 12 /* ZCL Endpoint for Benchmark Reporting Message */
 #define GROUP_ID 0xB331                 /* Group ID to send Benchmark message to.*/
 
-#define BENCHMARK_CUSTOM_CMD_ID 0x55 /* Custom Benchmark Command ID */
+#define BENCHMARK_CUSTOM_CMD_ID 0x00 /* Custom Benchmark Command ID */
 
-#define NUMBER_OF_BENCHMARK_REPORT_MESSAGES 3000 /* Size of the Benchmark Reporting Array message_info */
+#if !defined ZB_ED_ROLE
+#error Define ZB_ED_ROLE to compile light switch (End Device) source code.
+#endif
+
+/* =============== Benchmark Parameters ===================== */
+#define BENCHMARK_DEFAULT_TIME_S 10      // Default Benchmark Time (used when no Parameter available)
+#define BENCHMARK_DEFAULT_PACKETS_CNT 10 // Default Benchmark Packet Count (used when no Parameter available)
+
+typedef struct
+{
+  uint16_t benchmark_time_s;
+  uint16_t benchmark_packet_cnt;
+} bm_params_t;
+extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a benchmark is active.
 
 #endif //BM_ZIGBEE_H
