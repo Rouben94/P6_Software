@@ -11,7 +11,6 @@
 #endif
 
 uint32_t bm_rand_32 = 0;       // Randomly generated 4 bytes
-uint32_t bm_rand_msg_ts[];     // Randomly generated Message Timestamps
 
 void bm_rand_get(void *dst, int len)
 {
@@ -42,14 +41,14 @@ void bm_swap(uint32_t *xp, uint32_t *yp)
 }
 
 // A function to implement bubble sort
-void bm_rand32_bubbleSort(uint32_t arr[], uint32_t n)
+void bm_rand32_bubbleSort(uint32_t arr[], int len)
 {
   uint64_t start_ts = synctimer_getSyncTime();
   uint32_t i, j;
-  for (i = 0; i < n/4 - 1; i++)
+  for (i = 0; i < n - 1; i++)
   {
     // Last i elements are already in place
-    for (j = 0; j < n/4 - i - 1; j++)
+    for (j = 0; j < n - i - 1; j++)
     {
       //bm_cli_log("%u\n", j);
       if (arr[j] > arr[j + 1]){

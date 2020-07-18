@@ -69,6 +69,10 @@ static void button0_cb(){
 	printk("Sent Size %u\n",on_off_cli.pub.msg->len);
 }
 
+static void bm_send_message(){
+	button0_cb();
+}
+
 /** ON/OFF Server definition */
 static void led_set(struct bt_mesh_onoff_srv *srv, struct bt_mesh_msg_ctx *ctx,
 		    const struct bt_mesh_onoff_set *set,

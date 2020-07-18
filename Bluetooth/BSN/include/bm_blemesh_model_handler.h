@@ -23,6 +23,9 @@ extern "C" {
 
 const struct bt_mesh_comp *bm_blemesh_model_handler_init(void);
 
+/* Trigger the Sending of a Message */
+static void bm_send_message();
+
 #ifdef __cplusplus
 }
 #endif
