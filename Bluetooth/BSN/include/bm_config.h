@@ -16,13 +16,26 @@ extern "C" {
 #define isTimeMaster 1           // Node is the Master (1) or Slave (0)
 extern uint32_t LSB_MAC_Address; // LSB of Randomly Static Assigned MAC Address
 
+/* =============== Benchmark Parameters ===================== */
+#define BENCHMARK_DEFAULT_TIME_S 10 // Default Benchmark Time (used when no Parameter available)
+#define BENCHMARK_DEFAULT_PACKETS_CNT 10 // Default Benchmark Packet Count (used when no Parameter available)
+
+typedef struct
+{
+  uint16_t benchmark_time_s;
+  uint16_t benchmark_packet_cnt;
+} bm_params_t;
+extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a benchmark is active. 
+
 /* =============== Defines for Reporting ===================== */
-#define NUMBER_OF_BENCHMARK_REPORT_MESSAGES 1000 /* Size of the Benchmark Reporting Array message_info */
+#define NUMBER_OF_BENCHMARK_REPORT_MESSAGES 3000 /* Size of the Benchmark Reporting Array message_info */
 
 /* =============== BLE MESH Stuff ===================== */
 #define BLE_MESH_TTL 7 // Maybee optimize
 
 /* ================= Zigbee Stuff ====================== */
+#define ZBOSS_MAIN_LOOP_ITERATION_TIME_MARGIN_MS = 1000; // Time Margin needed because zboss can block timecheck. note this time will be added to the Stack Init Time
+
 #define MAX_CHILDREN 10                          /**< The maximum amount of connected devices. Setting this value to 0 disables association to this device.  */
 #define IEEE_CHANNEL_MASK (1l << ZIGBEE_CHANNEL) /**< Scan only one, predefined channel to find the coordinator. */
 //#define IEEE_CHANNEL_MASK                 0x07fff800U
