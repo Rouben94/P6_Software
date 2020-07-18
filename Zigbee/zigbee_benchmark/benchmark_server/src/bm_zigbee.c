@@ -1,9 +1,8 @@
 
-
 #include "sdk_config.h"
 #include "zb_error_handler.h"
 #include "zb_ha_dimmable_light.h"
-#include "zb_mem_config_med.h"
+#include "zb_mem_config_max.h"
 #include "zb_nrf52_internal.h"
 #include "zboss_api.h"
 #include "zboss_api_addons.h"
@@ -19,11 +18,15 @@
 #include "nrf_log_default_backends.h"
 
 #include "bm_config.h"
+#include "bm_log.h"
+#include "bm_timesync.h"
 #include "bm_zigbee.h"
 
-#if !defined ZB_ROUTER_ROLE
-#error Define ZB_ROUTER_ROLE to compile light bulb (Router) source code.
-#endif
+static light_switch_ctx_t m_device_ctx;
+
+//#if !defined ZB_ROUTER_ROLE
+//#error Define ZB_ROUTER_ROLE to compile light bulb (Router) source code.
+//#endif
 
 /* Main application customizable context. Stores all settings and static values. */
 
@@ -103,9 +106,7 @@ ZB_HA_DECLARE_CONFIGURATION_TOOL_EP(bm_report_ep, BENCHMARK_REPORTING_ENDPOINT, 
 
 /* Declare application's device context (list of registered endpoints)
  * for Benchmark Server device.*/
-//ZBOSS_DECLARE_DEVICE_CTX_2_EP(bm_server_ctx,
-//    dimmable_light_ep,
-//    bm_control_ep);
+
 ZBOSS_DECLARE_DEVICE_CTX_3_EP(bm_server_ctx,
     dimmable_light_ep,
     bm_control_ep,
@@ -113,20 +114,14 @@ ZBOSS_DECLARE_DEVICE_CTX_3_EP(bm_server_ctx,
 
 /************************************ Forward Declarations ***********************************************/
 
-zb_uint16_t bm_message_info_nr = 0;
 char local_nodel_ieee_addr_buf[17] = {0};
 int local_node_addr_len;
 zb_ieee_addr_t local_node_ieee_addr;
 zb_uint16_t local_node_short_addr;
 
 static void buttons_handler(bsp_event_t evt);
-void bm_save_message_info(bm_message_info message);
 void bm_receive_message(zb_uint8_t param);
 void bm_read_message_info(zb_uint16_t timeout);
-void bm_save_message_info(bm_message_info message);
-
-/* Array of structs to save benchmark message info to */
-bm_message_info message_info[NUMBER_OF_BENCHMARK_REPORT_MESSAGES] = {0};
 
 /************************************ Benchmark Client Cluster Attribute Init ***********************************************/
 
@@ -312,33 +307,63 @@ static void on_off_set_value(zb_bool_t on) {
 
 /************************************ Button Handler Functions ***********************************************/
 
+/**@brief Callback for detecting button press duration.
+ *
+ * @param[in]   button   BSP Button that was pressed.
+ */
+zb_void_t bm_button_handler(zb_uint8_t button) {
+  zb_time_t current_time;
+  zb_bool_t short_expired;
+  zb_bool_t on_off;
+  zb_ret_t zb_err_code;
+  zb_uint8_t random_level_value;
+
+  NRF_LOG_INFO("Button pressed: %d", button);
+
+  current_time = ZB_TIMER_GET();
+
+  switch (button) {
+  case BULB_BUTTON:
+
+    break;
+
+  default:
+    NRF_LOG_INFO("Unhandled BSP Event received: %d", button);
+    return;
+  }
+
+  m_device_ctx.button.in_progress = ZB_FALSE;
+}
+
 /**@brief Callback for button events.
  *
  * @param[in]   evt      Incoming event from the BSP subsystem.
  */
 static void buttons_handler(bsp_event_t evt) {
   zb_ret_t zb_err_code;
+  zb_uint32_t button;
 
+  /* Inform default signal handler about user input at the device. */
   switch (evt) {
-    //    case IDENTIFY_MODE_BSP_EVT:
-    //      /* Check if endpoint is in identifying mode, if not put desired endpoint in identifying mode. */
-    //      if (m_dev_ctx.identify_attr.identify_time == ZB_ZCL_IDENTIFY_IDENTIFY_TIME_DEFAULT_VALUE) {
-    //        NRF_LOG_INFO("Bulb put in identifying mode");
-    //        zb_err_code = zb_bdb_finding_binding_target(HA_DIMMABLE_LIGHT_ENDPOINT);
-    //        ZB_ERROR_CHECK(zb_err_code);
-    //      } else {
-    //        NRF_LOG_INFO("Cancel F&B target procedure");
-    //        zb_bdb_finding_binding_target_cancel();
-    //      }
-    //      break;
-  case DONGLE_BUTTON_BSP_EVT:
-    NRF_LOG_INFO("BUTTON pressed")
-
+  case BSP_EVENT_KEY_0:
+    NRF_LOG_INFO("BUTTON pressed");
     break;
 
   default:
     NRF_LOG_INFO("Unhandled BSP Event received: %d", evt);
     break;
+  }
+  if (!m_device_ctx.button.in_progress) {
+    m_device_ctx.button.in_progress = ZB_TRUE;
+    m_device_ctx.button.timestamp = ZB_TIMER_GET();
+
+    zb_err_code = ZB_SCHEDULE_APP_ALARM(bm_button_handler, button, LIGHT_SWITCH_BUTTON_SHORT_POLL_TMO);
+    if (zb_err_code == RET_OVERFLOW) {
+      NRF_LOG_WARNING("Can not schedule another alarm, queue is full.");
+      m_device_ctx.button.in_progress = ZB_FALSE;
+    } else {
+      ZB_ERROR_CHECK(zb_err_code);
+    }
   }
 }
 
@@ -372,56 +397,66 @@ static zb_void_t add_group_id(zb_bufid_t bufid) {
  * @param[in]   bufid   Reference to Zigbee stack buffer used to pass received data.
  */
 void bm_receive_message(zb_bufid_t bufid) {
-  zb_ieee_addr_t ieee_src_addr;
+  bm_message_info message;
+  zb_uint8_t lqi = ZB_MAC_LQI_UNDEFINED;
+  zb_uint8_t rssi = ZB_MAC_RSSI_UNDEFINED;
+  zb_uint8_t addr_type;
+  zb_ieee_addr_t ieee_dst_addr;
 
   zb_zcl_parsed_hdr_t cmd_info;
   ZB_ZCL_COPY_PARSED_HEADER(bufid, &cmd_info);
 
   NRF_LOG_INFO("Receiving message");
-  bm_message_info message;
-  zb_uint8_t lqi = ZB_MAC_LQI_UNDEFINED;
-  zb_uint8_t rssi = ZB_MAC_RSSI_UNDEFINED;
-  zb_uint8_t addr_type;
+
+  message.net_time = synctimer_getSyncTime();
+  message.ack_net_time = 0;
 
   message.message_id = cmd_info.seq_number;
   memcpy(&message.src_addr, &(cmd_info.addr_data.common_data.source.u.short_addr), sizeof(zb_uint16_t));
-  addr_type = cmd_info.addr_data.common_data.source.addr_type;
 
-  zb_get_long_address(ieee_src_addr);
-  message.dst_addr = zb_address_short_by_ieee(ieee_src_addr);
+  zb_get_long_address(ieee_dst_addr);
+  message.dst_addr = zb_address_short_by_ieee(ieee_dst_addr);
   message.group_addr = GROUP_ID;
+
+  /* TODO: Number of hops is not available yet */
+  message.number_of_hops = 0;
+  message.data_size = 0;
 
   zb_zdo_get_diag_data(message.src_addr, &lqi, &rssi);
   message.rssi = rssi;
-  message.number_of_hops = 0;
-  //message.data_size = ZB_TRUE;
-  message.net_time = ZB_TIME_BEACON_INTERVAL_TO_MSEC(ZB_TIMER_GET());
 
   NRF_LOG_INFO("Benchmark Packet received with ID: %d from Src Address: 0x%x to Destination 0x%x with RSSI: %d, LQI: %d, Time: %llu", message.message_id, message.src_addr, message.dst_addr, rssi, lqi, message.net_time);
 
-  bm_save_message_info(message);
-}
-
-void bm_read_message_info(zb_uint16_t timeout) {
-}
-
-/**@brief Function for handling Benchmark Save Message Info Command.
- *
- * @param[in]   message   Reference to Benchmark Message.
- */
-void bm_save_message_info(bm_message_info message) {
-  message_info[bm_message_info_nr] = message;
-  bm_message_info_nr++;
-}
-
-/* TODO: Description */
-void bm_send_reporting_message(zb_uint8_t bufid) {
-  NRF_LOG_INFO("Receive Benchmark Report");
+  bm_log_append_ram(message);
 }
 
 /* TODO: Description */
 void bm_receive_config(zb_uint8_t bufid) {
   NRF_LOG_INFO("Received Config-Set command");
+}
+
+void bm_report_data(zb_uint8_t param) {
+  uint16_t bm_msg_flash_cnt = 0;
+  uint16_t bm_cnt = 0;
+  bm_message_info message;
+
+  bm_msg_flash_cnt = bm_log_load_from_flash();
+
+  while (bm_cnt < bm_msg_flash_cnt) {
+    message = message_info[bm_cnt];
+    NRF_LOG_INFO("<REPORT>, %d, %llu, %llu, %d, %d, 0x%x",
+        message.message_id,
+        message.net_time,
+        message.ack_net_time,
+        message.number_of_hops,
+        message.rssi,
+        message.src_addr);
+
+    bm_cnt++;
+  }
+  bm_log_clear_ram();
+  bm_log_clear_flash();
+  NRF_LOG_INFO("<REPORTING FINISHED>");
 }
 
 /************************************ Zigbee event handler ***********************************************/
@@ -452,7 +487,7 @@ static zb_uint8_t bm_zcl_handler(zb_bufid_t bufid) {
       break;
 
     case BENCHMARK_REPORTING_ENDPOINT:
-      ZB_SCHEDULE_APP_CALLBACK(bm_send_reporting_message, bufid);
+      //      ZB_SCHEDULE_APP_CALLBACK(bm_send_reporting_message, bufid);
       break;
 
     default:
@@ -475,7 +510,7 @@ static zb_uint8_t bm_zcl_report_ep_handler(zb_bufid_t bufid) {
 
   NRF_LOG_INFO("%s with Endpoint ID: %hd, Cluster ID: %d, Command ID: %d", __func__, cmd_info.addr_data.common_data.dst_endpoint, cmd_info.cluster_id, cmd_info.cmd_id);
 
-  ZB_SCHEDULE_APP_CALLBACK(bm_send_reporting_message, bufid);
+  //  ZB_SCHEDULE_APP_CALLBACK(bm_send_reporting_message, bufid);
 
   return ZB_FALSE;
 }
@@ -560,6 +595,7 @@ void zboss_signal_handler(zb_bufid_t bufid) {
       bufid = 0; // Do not free buffer - it will be reused by find_light_bulb callback.
     }
   case ZB_BDB_SIGNAL_DEVICE_REBOOT:
+    ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
     if (status == RET_OK) {
 
       /* Read local node address */
@@ -582,13 +618,12 @@ void zboss_signal_handler(zb_bufid_t bufid) {
 }
 
 void bm_zigbee_init(void) {
-
   zb_ieee_addr_t ieee_addr;
 
   /* Initialize timer, logging system and GPIOs. */
   timer_init();
-  log_init();
   leds_buttons_init();
+  bm_log_init();
 
   /* Set Zigbee stack logging level and traffic dump subsystem. */
   ZB_SET_TRACE_LEVEL(ZIGBEE_TRACE_LEVEL);

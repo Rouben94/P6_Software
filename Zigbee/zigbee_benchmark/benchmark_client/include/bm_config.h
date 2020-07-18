@@ -20,6 +20,7 @@ extern uint32_t LSB_MAC_Address; // LSB of Randomly Static Assigned MAC Address
 
 /* ================= Zigbee Stuff ====================== */
 #define ZBOSS_MAIN_LOOP_ITERATION_TIME_MARGIN_MS 1000 // Time Margin needed because zboss can block timecheck. note this time will be added to the Stack Init Time
+#define MAX_CHILDREN 10                               /**< The maximum amount of connected devices. Setting this value to 0 disables association to this device.  */
 
 #define IEEE_CHANNEL_MASK (1l << ZIGBEE_CHANNEL) /**< Scan only one, predefined channel to find the coordinator. */
 //#define IEEE_CHANNEL_MASK                   0x07fff800U
@@ -29,13 +30,6 @@ extern uint32_t LSB_MAC_Address; // LSB of Randomly Static Assigned MAC Address
 #define MATCH_DESC_REQ_TIMEOUT (5 * ZB_TIME_ONE_SECOND)      /**< Timeout for finding procedure. */
 #define MATCH_DESC_REQ_ROLE ZB_NWK_BROADCAST_RX_ON_WHEN_IDLE /**< Find only non-sleepy device. */
 #define ERASE_PERSISTENT_CONFIG ZB_FALSE                     /**< Do not erase NVRAM to save the network parameters after device reboot or power-off. NOTE: If this option is set to ZB_TRUE then do full device erase for all network devices before running other samples. */
-#define ZIGBEE_NETWORK_STATE_LED BSP_BOARD_LED_2             /**< LED indicating that light switch successfully joind Zigbee network. */
-#define BULB_FOUND_LED BSP_BOARD_LED_3                       /**< LED indicating that light witch found a light bulb to control. */
-#define LIGHT_SWITCH_BUTTON_ON BSP_BOARD_BUTTON_0            /**< Button ID used to switch on the light bulb. */
-#define LIGHT_SWITCH_BUTTON_OFF BSP_BOARD_BUTTON_1           /**< Button ID used to switch off the light bulb. */
-#define BENCHMARK_BUTTON BSP_BOARD_BUTTON_2                  /**< Button ID used to switch off the light bulb. */
-#define TEST_BUTTON BSP_BOARD_BUTTON_3                       /**< Button ID used to switch off the light bulb. */
-#define SLEEPY_ON_BUTTON BSP_BOARD_BUTTON_2                  /**< Button ID used to determine if we need the sleepy device behaviour (pressed means yes). */
 
 #define BENCHMARK_INIT_BASIC_APP_VERSION 01                                   /* Version of the application software (1 byte). */
 #define BENCHMARK_INIT_BASIC_STACK_VERSION 10                                 /* Version of the implementation of the Zigbee stack (1 byte). */
@@ -54,6 +48,20 @@ extern uint32_t LSB_MAC_Address; // LSB of Randomly Static Assigned MAC Address
 #define LIGHT_SWITCH_BUTTON_SHORT_POLL_TMO ZB_MILLISECONDS_TO_BEACON_INTERVAL(50) /**< Delay between button state checks used in order to detect button long press. */
 #define LIGHT_SWITCH_BUTTON_LONG_POLL_TMO ZB_MILLISECONDS_TO_BEACON_INTERVAL(300) /**< Time after which the button state is checked again to detect button hold - the dimm command is sent again. */
 
+#ifdef BOARD_PCA10059                            /**< If it is Dongle */
+#define IDENTIFY_MODE_BSP_EVT BSP_EVENT_KEY_0    /**< Button event used to enter the Bulb into the Identify mode. */
+#define ZIGBEE_NETWORK_STATE_LED BSP_BOARD_LED_0 /**< LED indicating that light switch successfully joind Zigbee network. */
+#else
+#define IDENTIFY_MODE_BSP_EVT BSP_EVENT_KEY_3    /**< Button event used to enter the Bulb into the Identify mode. */
+#define ZIGBEE_NETWORK_STATE_LED BSP_BOARD_LED_2 /**< LED indicating that light switch successfully joind Zigbee network. */
+
+#define ZIGBEE_NETWORK_STATE_LED BSP_BOARD_LED_2   /**< LED indicating that light switch successfully joind Zigbee network. */
+#define LIGHT_SWITCH_BUTTON_ON BSP_BOARD_BUTTON_0  /**< Button ID used to switch on the light bulb. */
+#define LIGHT_SWITCH_BUTTON_OFF BSP_BOARD_BUTTON_1 /**< Button ID used to switch off the light bulb. */
+#define BENCHMARK_BUTTON BSP_BOARD_BUTTON_2        /**< Button ID used to switch off the light bulb. */
+#define TEST_BUTTON BSP_BOARD_BUTTON_3             /**< Button ID used to switch off the light bulb. */
+#endif
+
 /* Benchmark specific Definitions*/
 #define BENCHMARK_CLIENT_ENDPOINT 1     /* ZCL Endpoint of the Benchmark Client */
 #define BENCHMARK_SERVER_ENDPOINT 10    /* ZCL Endpoint of the Benchmark Server */
@@ -63,9 +71,9 @@ extern uint32_t LSB_MAC_Address; // LSB of Randomly Static Assigned MAC Address
 
 #define BENCHMARK_CUSTOM_CMD_ID 0x00 /* Custom Benchmark Command ID */
 
-#if !defined ZB_ED_ROLE
-#error Define ZB_ED_ROLE to compile light switch (End Device) source code.
-#endif
+//#if !defined ZB_ED_ROLE
+//#error Define ZB_ED_ROLE to compile light switch (End Device) source code.
+//#endif
 
 /* =============== Benchmark Parameters ===================== */
 #define BENCHMARK_DEFAULT_TIME_S 10      // Default Benchmark Time (used when no Parameter available)

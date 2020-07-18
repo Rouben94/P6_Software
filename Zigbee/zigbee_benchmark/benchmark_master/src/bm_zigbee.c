@@ -1,7 +1,9 @@
 
+#include "sdk_config.h"
 #include "zb_error_handler.h"
 #include "zb_mem_config_max.h"
 #include "zboss_api.h"
+#include "zboss_api_addons.h"
 #include "zigbee_helpers.h"
 
 #include "app_timer.h"
@@ -13,7 +15,11 @@
 #include "nrf_log_default_backends.h"
 
 #include "bm_config.h"
+#include "bm_log.h"
+#include "bm_timesync.h"
 #include "bm_zigbee.h"
+
+/************************************ General Init Functions ***********************************************/
 
 /**@brief Function for initializing the nrf log module.
  */
@@ -45,6 +51,8 @@ static zb_void_t steering_finished(zb_uint8_t param) {
   NRF_LOG_INFO("Network steering finished");
   bsp_board_led_off(ZIGBEE_NETWORK_STATE_LED);
 }
+
+/************************************ Button Handler Functions ***********************************************/
 
 /**@brief Callback for button events.
  *
@@ -92,6 +100,34 @@ static void leds_buttons_init(void) {
 
   bsp_board_leds_off();
 }
+
+/************************************ Benchmark Functions ***********************************************/
+
+void bm_report_data(zb_uint8_t param) {
+  uint16_t bm_msg_flash_cnt = 0;
+  uint16_t bm_cnt = 0;
+  bm_message_info message;
+
+  bm_msg_flash_cnt = bm_log_load_from_flash();
+
+  while (bm_cnt < bm_msg_flash_cnt) {
+    message = message_info[bm_cnt];
+    NRF_LOG_INFO("<REPORT>, %d, %llu, %llu, %d, %d, 0x%x",
+        message.message_id,
+        message.net_time,
+        message.ack_net_time,
+        message.number_of_hops,
+        message.rssi,
+        message.src_addr);
+
+    bm_cnt++;
+  }
+  bm_log_clear_ram();
+  bm_log_clear_flash();
+  NRF_LOG_INFO("<REPORTING FINISHED>");
+}
+
+/**************************************** Zigbee event handler ***********************************************/
 
 /**@brief Zigbee stack event handler.
  *
@@ -175,8 +211,8 @@ void bm_zigbee_init(void) {
   zb_ieee_addr_t ieee_addr;
   // Initialize.
   timers_init();
-  log_init();
   leds_buttons_init();
+  bm_log_init();
 
   /* Set Zigbee stack logging level and traffic dump subsystem. */
   ZB_SET_TRACE_LEVEL(ZIGBEE_TRACE_LEVEL);

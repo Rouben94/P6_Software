@@ -36,6 +36,20 @@ typedef struct
   zb_zcl_level_control_attrs_t level_control_attr;
 } bm_client_device_ctx_t;
 
+///* Struct for benchmark message information */
+//typedef struct
+//{
+//  zb_uint16_t message_id;
+//  zb_uint64_t net_time;
+//  zb_uint64_t ack_net_time;
+//  zb_uint8_t number_of_hops;
+//  zb_uint8_t rssi;
+//  zb_uint16_t src_addr;
+//  zb_uint16_t dst_addr;
+//  zb_uint16_t group_addr;
+//  zb_uint16_t data_size;
+//} bm_message_info;
+
 void bm_send_control_message_cb(zb_bufid_t bufid, zb_uint16_t level);
 
 void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t level);

@@ -14,8 +14,11 @@
   <ProjectSessionItem path="zigbee_benchmark_master"/>
   <ProjectSessionItem path="zigbee_benchmark_master;zigbee_benchmark_master"/>
   <ProjectSessionItem path="zigbee_benchmark_master;zigbee_benchmark_master;Application"/>
-  <ProjectSessionItem path="zigbee_benchmark_master;zigbee_benchmark_master;nRF_Libraries"/>
+  <ProjectSessionItem path="zigbee_benchmark_master;zigbee_benchmark_master;Benchmark Common"/>
   <ProjectSessionItem path="zigbee_benchmark_master;zigbee_benchmark_master;nRF_Log"/>
+  <ProjectSessionItem path="zigbee_benchmark_master;zigbee_benchmark_master;nRF_Zigbee"/>
+  <ProjectSessionItem path="zigbee_benchmark_master;zigbee_benchmark_master;Segger Startup Files"/>
+  <ProjectSessionItem path="zigbee_benchmark_master;zigbee_benchmark_master;Zigbee"/>
  </Project>
  <Register1/>
  <Register2/>
@@ -40,12 +43,16 @@
   <Watches active="0" update="Never"/>
  </Watch4>
  <Files>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="24" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../main.c" selected="0" top="3" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="9" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../src/bm_zigbee.c" selected="1" top="118" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="26" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../include/bm_config.h" selected="0" top="0" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="17" y="10" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../include/bm_zigbee.h" selected="0" top="3" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="553" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/timer/app_timer2.c" selected="0" top="538" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="89" useTextEdit="1" useBinaryEdit="0" left="0" path="../config/sdk_config.h" selected="0" top="74" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="19" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../main.c" selected="0" top="3" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="215" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../src/bm_zigbee.c" selected="0" top="201" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="35" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../include/bm_config.h" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="8" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../include/bm_zigbee.h" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="89" useTextEdit="1" useBinaryEdit="0" left="0" path="../config/sdk_config.h" selected="0" top="70" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="9" y="999" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/log/src/nrf_log_frontend.c" selected="1" top="889" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="23" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../app_utils/benchmark_common/src/bm_flash_save.c" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/fds/fds.h" selected="0" top="33" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="11" y="2114" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/fds/fds.c" selected="0" top="2102" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="62" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../app_utils/benchmark_common/src/bm_log.c" selected="0" top="50" codecName="Default"/>
  </Files>
- <ARMCrossStudioWindow activeProject="zigbee_benchmark_master" fileDialogDefaultFilter="*.c" autoConnectTarget="J-Link" buildConfiguration="Release" sessionSettings="" debugSearchFileMap="" fileDialogInitialDirectory="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/custom/P6_Benchmark_Mesh/zigbee_benchmark/benchmark_master/include" debugSearchPath="" autoConnectCapabilities="3199"/>
+ <ARMCrossStudioWindow activeProject="zigbee_benchmark_master" fileDialogDefaultFilter="*.c" autoConnectTarget="J-Link" buildConfiguration="Release" sessionSettings="" debugSearchFileMap="" fileDialogInitialDirectory="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/components/libraries/fds" debugSearchPath="" autoConnectCapabilities="3199"/>
 </session>

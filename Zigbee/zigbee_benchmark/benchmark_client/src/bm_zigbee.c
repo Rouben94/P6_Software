@@ -1,7 +1,7 @@
 
 #include "sdk_config.h"
 #include "zb_error_handler.h"
-#include "zb_mem_config_custom.h"
+#include "zb_mem_config_max.h"
 #include "zboss_api.h"
 #include "zboss_api_addons.h"
 #include "zigbee_helpers.h"
@@ -327,7 +327,7 @@ void buttons_handler(bsp_event_t evt) {
   zb_uint32_t button;
 
   /* Inform default signal handler about user input at the device. */
-  user_input_indicate();
+//  user_input_indicate();
 
   switch (evt) {
   case BSP_EVENT_KEY_0:
@@ -369,23 +369,34 @@ void buttons_handler(bsp_event_t evt) {
 
 /************************************ Benchmark Functions ***********************************************/
 
+/**@brief Function for sending add group request to the local node.
+ *
+ * @param[in]   bufid   Reference to Zigbee stack buffer used to pass received data.
+ */
+static zb_void_t add_group_id(zb_bufid_t bufid) {
+
+  zb_get_long_address(local_node_ieee_addr);
+  local_node_short_addr = zb_address_short_by_ieee(local_node_ieee_addr);
+  local_node_addr_len = ieee_addr_to_str(local_nodel_ieee_addr_buf, sizeof(local_nodel_ieee_addr_buf), local_node_ieee_addr);
+
+  NRF_LOG_INFO("Include device 0x%x, ep %d to the group 0x%x", local_node_short_addr, BENCHMARK_SERVER_ENDPOINT, GROUP_ID);
+
+  ZB_ZCL_GROUPS_SEND_ADD_GROUP_REQ(bufid,
+      local_node_short_addr,
+      ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
+      BENCHMARK_SERVER_ENDPOINT,
+      BENCHMARK_CLIENT_ENDPOINT,
+      ZB_AF_HA_PROFILE_ID,
+      ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
+      NULL,
+      GROUP_ID);
+}
+
 /* Function to send Benchmark Control Message */
 void bm_send_control_message_cb(zb_bufid_t bufid, zb_uint16_t level) {
   zb_uint16_t group_id = GROUP_ID;
   zb_nwk_broadcast_address_t broadcast_addr = ZB_NWK_BROADCAST_ALL_DEVICES;
   NRF_LOG_INFO("Benchmark Control Message send.");
-
-  //  /* Send Move to level request. Level value is uint8. */
-  //  ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
-  //      local_node_short_addr,
-  //      ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
-  //      BENCHMARK_CONTROL_ENDPOINT,
-  //      BENCHMARK_CLIENT_ENDPOINT,
-  //      ZB_AF_HA_PROFILE_ID,
-  //      ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
-  //      NULL,
-  //      level,
-  //      0);
 
   ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
       broadcast_addr,
@@ -459,7 +470,6 @@ void bm_read_message_info(zb_uint16_t timeout) {
   message.dst_addr = GROUP_ID;
 
   message.net_time = synctimer_getSyncTime();
-  //message.net_time = ZB_TIME_BEACON_INTERVAL_TO_MSEC(ZB_TIMER_GET());
   message.ack_net_time = 0;
 
   message.message_id = ZB_ZCL_GET_SEQ_NUM() + 1;
@@ -620,10 +630,12 @@ void bm_zigbee_init(void) {
   zb_osif_get_ieee_eui64(ieee_addr);
   zb_set_long_address(ieee_addr);
 
-  zb_set_network_ed_role(IEEE_CHANNEL_MASK);
+  zb_set_network_router_role(IEEE_CHANNEL_MASK);
+  //  zb_set_network_ed_role(IEEE_CHANNEL_MASK);
+  zb_set_max_children(MAX_CHILDREN);
   zigbee_erase_persistent_storage(ERASE_PERSISTENT_CONFIG);
 
-  zb_set_ed_timeout(ED_AGING_TIMEOUT_64MIN);
+  //  zb_set_ed_timeout(ED_AGING_TIMEOUT_64MIN);
   zb_set_keepalive_timeout(ZB_MILLISECONDS_TO_BEACON_INTERVAL(3000));
 
   /* Initialize application context structure. */

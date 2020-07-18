@@ -1,23 +1,17 @@
 #ifndef BM_ZIGBEE_H
 #define BM_ZIGBEE_H
 
-/* Struct for benchmark message information */
-typedef struct
-{
-  zb_uint16_t message_id;
-  zb_uint64_t net_time;
-  zb_uint64_t ack_net_time;
-  zb_uint8_t number_of_hops;
-  zb_uint8_t rssi;
-  zb_uint16_t src_addr;
-  zb_uint16_t dst_addr;
-  zb_uint16_t group_addr;
-  zb_uint16_t data_size;
-} bm_message_info;
+#include "zboss_api.h"
+#include "zcl/zb_zcl_basic_addons.h"
+#include "zcl/zb_zcl_groups_addons.h"
+#include "zcl/zb_zcl_level_control_addons.h"
+#include "zcl/zb_zcl_on_off_addons.h"
+#include "zcl/zb_zcl_scenes_addons.h"
 
 void bm_zigbee_init(void);
 
 void bm_zigbee_enable(void);
 
-#endif //BM_ZIGBEE_H
+void bm_report_data(zb_uint8_t param);
 
+#endif //BM_ZIGBEE_H
