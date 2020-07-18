@@ -16,9 +16,18 @@
 
 // Wait for Requests to Report or Start the Timesync after Reporting Done
 #define ST_IDLE 10
-// Master: Broadcast Timesync Packets ---- Slave: Listen for Broadcasts. If synced retransmit Timesync Packets with random Backof Delay for other Slaves
+// Master: Broadcast Timesync Packets with Parameters for the Benchmark ---- Slave: Listen for Timesync Broadcast. Relay with random Backof Delay for other Slaves
 #define ST_TIMESYNC 50
-// Benchmark the Mesh Stack and Log the Data
+// Init the Mesh Stack till all Nodes are "comissioned" / "provisioned" or whatever it is called in the current stack... -> Stack should be ready for Benchmark
+#define ST_INIT_BENCHMARK 55
+/* Benchmark the Mesh Stack: Since the Zigbee stack owns the CPU all the Time, do all the work in the Timer callback.
+The Benchmark does simulate a button press, which triggers the sending of a benchmark message. This is done over a Timer interrupt callback (State Transition).
+The callback structure should be the same over all Mesh Stacks. The Procedure is: 
+I.    Log the button press event 
+II.   call the stack specific button pressed callback (bm_simulate_button_press_cb) -> this should send the benchmark message (or schedule in Zigbee)
+III.  check if end of benchmark is reached (increment counter)
+IV.   if no -> schedule next Timer interrupt callback (aka "button press")
+V.    if yess -> change to next state*/
 #define ST_BENCHMARK 60
 // Save the Logged Data to Flash and Reset Device to shut down the Mesh Stack
 #define ST_SAVE_FLASH 70
