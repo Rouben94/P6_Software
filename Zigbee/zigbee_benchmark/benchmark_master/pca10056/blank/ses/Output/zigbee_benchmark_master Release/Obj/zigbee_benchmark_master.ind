@@ -39,6 +39,7 @@
 "Output/zigbee_benchmark_master Release/Obj/nrf_section_iter.o"
 "Output/zigbee_benchmark_master Release/Obj/nrf_sortlist.o"
 "Output/zigbee_benchmark_master Release/Obj/nrf_strerror.o"
+"Output/zigbee_benchmark_master Release/Obj/crc16.o"
 "Output/zigbee_benchmark_master Release/Obj/nrf_drv_clock.o"
 "Output/zigbee_benchmark_master Release/Obj/nrf_drv_rng.o"
 "Output/zigbee_benchmark_master Release/Obj/nrf_drv_uart.o"
