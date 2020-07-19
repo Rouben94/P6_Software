@@ -164,6 +164,7 @@ void ST_BENCHMARK_fn(void) {
   while (currentState == ST_BENCHMARK) {
     zboss_main_loop_iteration();
     UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
+    bm_cli_process();
   }
 #endif
   return;

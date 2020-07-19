@@ -14,6 +14,7 @@
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
 
+#include "bm_cli.h"
 #include "bm_config.h"
 #include "bm_log.h"
 #include "bm_timesync.h"
@@ -21,26 +22,17 @@
 
 /************************************ General Init Functions ***********************************************/
 
-/**@brief Function for initializing the nrf log module.
- */
-static void log_init(void) {
-  ret_code_t err_code = NRF_LOG_INIT(NULL);
-  APP_ERROR_CHECK(err_code);
-
-  NRF_LOG_DEFAULT_BACKENDS_INIT();
-}
-
-/**@brief Function for the Timer initialization.
- *
- * @details Initializes the timer module. This creates and starts application timers.
- */
-static void timers_init(void) {
-  ret_code_t err_code;
-
-  // Initialize timer module.
-  err_code = app_timer_init();
-  APP_ERROR_CHECK(err_code);
-}
+///**@brief Function for the Timer initialization.
+// *
+// * @details Initializes the timer module. This creates and starts application timers.
+// */
+//static void timers_init(void) {
+//  ret_code_t err_code;
+//
+//  // Initialize timer module.
+//  err_code = app_timer_init();
+//  APP_ERROR_CHECK(err_code);
+//}
 
 /**@brief Callback used in order to visualise network steering period.
  *
@@ -77,12 +69,7 @@ static void buttons_handler(bsp_event_t evt) {
   case BSP_EVENT_KEY_3:
     button = BENCHMARK_BUTTON;
     NRF_LOG_INFO("BENCHMARK Button pressed");
-    //     zb_err_code = ZB_SCHEDULE_APP_ALARM(coordinator_button_handler, button, 0);
-    //     if (zb_err_code == RET_OVERFLOW) {
-    //      NRF_LOG_WARNING("Can not schedule another alarm, queue is full.");
-    //    } else {
-    //      ZB_ERROR_CHECK(zb_err_code);
-    //    }
+
     break;
 
   default:
@@ -208,14 +195,16 @@ void zboss_signal_handler(zb_bufid_t bufid) {
 
 /**************************************** Zigbee Stack Init and Enable ***********************************************/
 
-
 void bm_zigbee_init(void) {
   zb_ret_t zb_err_code;
   zb_ieee_addr_t ieee_addr;
-  // Initialize.
-  timers_init();
+
+  //  timers_init();
   leds_buttons_init();
   bm_log_init();
+
+  /* Initialize the Zigbee CLI subsystem */
+  bm_cli_init();
 
   /* Set Zigbee stack logging level and traffic dump subsystem. */
   ZB_SET_TRACE_LEVEL(ZIGBEE_TRACE_LEVEL);
@@ -240,6 +229,9 @@ void bm_zigbee_init(void) {
 void bm_zigbee_enable(void) {
   zb_ret_t zb_err_code;
   zb_ieee_addr_t ieee_addr;
+
+  /* Start Zigbee CLI subsystem. */
+  bm_cli_start();
 
   /** Start Zigbee Stack. */
   zb_err_code = zboss_start_no_autostart();

@@ -14,10 +14,10 @@
   <ProjectSessionItem path="zigbee_benchmark_master"/>
   <ProjectSessionItem path="zigbee_benchmark_master;zigbee_benchmark_master"/>
   <ProjectSessionItem path="zigbee_benchmark_master;zigbee_benchmark_master;Application"/>
-  <ProjectSessionItem path="zigbee_benchmark_master;zigbee_benchmark_master;Benchmark Common"/>
-  <ProjectSessionItem path="zigbee_benchmark_master;zigbee_benchmark_master;nRF_Log"/>
+  <ProjectSessionItem path="zigbee_benchmark_master;zigbee_benchmark_master;nRF_Libraries"/>
   <ProjectSessionItem path="zigbee_benchmark_master;zigbee_benchmark_master;nRF_Zigbee"/>
   <ProjectSessionItem path="zigbee_benchmark_master;zigbee_benchmark_master;Segger Startup Files"/>
+  <ProjectSessionItem path="zigbee_benchmark_master;zigbee_benchmark_master;UTF8/UTF16 converter"/>
   <ProjectSessionItem path="zigbee_benchmark_master;zigbee_benchmark_master;Zigbee"/>
  </Project>
  <Register1/>
@@ -43,20 +43,37 @@
   <Watches active="0" update="Never"/>
  </Watch4>
  <Files>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="5" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../main.c" selected="0" top="6" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="1" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../src/bm_zigbee.c" selected="0" top="30" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="6" y="29" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../main.c" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="12" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../src/bm_zigbee.c" selected="0" top="0" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="8" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../include/bm_zigbee.h" selected="0" top="0" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="2" y="17" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../include/bm_config.h" selected="0" top="10" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="318" useTextEdit="1" useBinaryEdit="0" left="0" path="../config/sdk_config.h" selected="0" top="318" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="59" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../include/bm_config.h" selected="0" top="22" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="34" y="419" useTextEdit="1" useBinaryEdit="0" left="0" path="../config/sdk_config.h" selected="0" top="399" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="999" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/log/src/nrf_log_frontend.c" selected="0" top="976" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="23" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../app_utils/benchmark_common/src/bm_flash_save.c" selected="0" top="0" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/fds/fds.h" selected="0" top="33" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="918" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/fds/fds.c" selected="0" top="918" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="1604" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/fds/fds.c" selected="0" top="1579" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="62" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../app_utils/benchmark_common/src/bm_log.c" selected="0" top="50" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="16" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../app_utils/benchmark_common/include/bm_cli.h" selected="0" top="0" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../app_utils/benchmark_common/src/bm_cli.c" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="17" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../app_utils/benchmark_common/include/bm_cli.h" selected="0" top="3" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="30" y="27" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../app_utils/benchmark_common/src/bm_cli.c" selected="0" top="3" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="62" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/log/src/nrf_log_default_backends.c" selected="0" top="36" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="70" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../app_utils/benchmark_common/src/bm_statemachine.c" selected="1" top="57" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="15" y="140" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../app_utils/benchmark_common/src/bm_statemachine.c" selected="0" top="120" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="523" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/timer/app_timer2.c" selected="0" top="510" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="32" y="470" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/cli/nrf_cli.h" selected="1" top="417" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="15" y="153" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/cli/nrf_cli.c" selected="0" top="123" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="34" y="730" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/usbd/app_usbd.c" selected="0" top="724" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="55" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/usbd/class/cdc/acm/app_usbd_cdc_acm.h" selected="0" top="38" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="29" y="147" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/experimental_section_vars/nrf_section.h" selected="0" top="130" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="31" y="117" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/util/nordic_common.h" selected="0" top="98" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="9" y="45" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/usbd/app_usbd_string_desc.c" selected="0" top="13" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="96" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/cli/cdc_acm/nrf_cli_cdc_acm.c" selected="0" top="84" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="78" y="33" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/usbd/class/cdc/acm/app_usbd_cdc_acm.c" selected="0" top="11" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="81" y="84" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../external/segger_rtt/SEGGER_RTT_Conf.h" selected="0" top="60" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../external/segger_rtt/SEGGER_RTT.c" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="29" y="535" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/usbd/app_usbd_core.c" selected="0" top="535" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="67" y="207" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../integration/nrfx/legacy/nrf_drv_usbd.h" selected="0" top="190" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="63" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/delay/nrf_delay.h" selected="0" top="46" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="54" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../integration/nrfx/legacy/nrf_drv_power.c" selected="0" top="33" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="32" y="42" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../modules/nrfx/drivers/src/nrfx_usbd.c" selected="0" top="24" codecName="Default"/>
  </Files>
- <ARMCrossStudioWindow activeProject="zigbee_benchmark_master" fileDialogDefaultFilter="*.c" autoConnectTarget="J-Link" buildConfiguration="Release" sessionSettings="" debugSearchFileMap="" fileDialogInitialDirectory="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/components/libraries/fds" debugSearchPath="" autoConnectCapabilities="3199"/>
+ <ARMCrossStudioWindow activeProject="zigbee_benchmark_master" fileDialogDefaultFilter="" autoConnectTarget="J-Link" buildConfiguration="Release" sessionSettings="" debugSearchFileMap="" fileDialogInitialDirectory="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/integration/nrfx/legacy" debugSearchPath="" autoConnectCapabilities="3711"/>
 </session>

@@ -56,9 +56,10 @@ extern uint32_t LSB_MAC_Address; // LSB of Randomly Static Assigned MAC Address
 
 #define BENCHMARK_CUSTOM_CMD_ID 0x00 /* Custom Benchmark Command ID */
 
-/* =============== Benchmark Parameters ===================== */
-#define BENCHMARK_DEFAULT_TIME_S 10      // Default Benchmark Time (used when no Parameter available)
-#define BENCHMARK_DEFAULT_PACKETS_CNT 10 // Default Benchmark Packet Count (used when no Parameter available)
+/* =============== CLI Parameters ===================== */
+#define CLI_EXAMPLE_LOG_QUEUE_SIZE (4) /* Command line interface instance */
+#define USBD_POWER_DETECTION true      /*Enable power USB detection. Configure if example supports USB port connection*/
+#define NRF_LOG_SUBMODULE_NAME cli     /* Name of the submodule used for logger messaging.*/
 
 typedef struct
 {

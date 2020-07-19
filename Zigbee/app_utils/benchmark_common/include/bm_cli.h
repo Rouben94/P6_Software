@@ -14,12 +14,19 @@ void bm_cli_log(const char *fmt, ...);
 #elif defined NRF_SDK_Zigbee
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
-#define bm_cli_log(...)                      NRF_LOG_INFO( __VA_ARGS__)
+#define bm_cli_log(...) NRF_LOG_INFO(__VA_ARGS__)
+
+static void bm_usbd_init(void);
+
+static void bm_usbd_enable(void);
+
+void bm_cli_start(void);
+
+void bm_cli_init(void);
+
+void bm_cli_process(void);
+
 #endif
-
-
-
-
 
 #ifdef __cplusplus
 }

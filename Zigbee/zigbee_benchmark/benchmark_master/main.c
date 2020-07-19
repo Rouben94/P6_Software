@@ -19,11 +19,12 @@ uint32_t LSB_MAC_Address;
 int main(void) {
 
 #ifdef NRF_SDK_Zigbee
-  // Init the LOG Modul
+  // Function for initializing the nrf log module.
   // To Enable Loging before the Mesh stack is run change in sdk_config -> NRF_LOG_DEFERRED = 0 (Performance is worse but logging is possibel)
   ret_code_t err_code = NRF_LOG_INIT(NULL);
   APP_ERROR_CHECK(err_code);
   NRF_LOG_DEFAULT_BACKENDS_INIT();
+
 #endif
 
   // Init MAC Address
