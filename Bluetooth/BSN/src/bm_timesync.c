@@ -457,13 +457,13 @@ bool bm_timesync_Subscribe(uint32_t timeout_ms, void (*cc_cb)()) {
             synctimer_setSync(Tsync_pkt_RX_2.LastTxTimestamp);
             bm_cli_log("Synced Time: %u\n", (uint32_t)synctimer_getSyncTime());
             uint64_t Next_State_TS = Tsync_pkt_RX_2.ST_INIT_MESH_STACK_TS;
-            if (Next_State_TS > synctimer_getSyncTime() + 5 * 1000) { // Add a minimal gap time of 5ms
+            if (Next_State_TS > synctimer_getSyncTime() - 5 * 1000) { // Add a minimal gap time of 5ms
               bm_state_synced = true;
               synctimer_setSyncTimeCompareInt(Tsync_pkt_RX_2.ST_INIT_MESH_STACK_TS, cc_cb);
               bm_cli_log("Synced with Time Master: %x\n", Tsync_pkt_RX_2.MAC_Address_LSB);
               return true;
             } else {
-              bm_cli_log("TS of next state is in the past (%u < %u)\n", (uint32_t)Next_State_TS, (uint32_t)synctimer_getSyncTime()+ 5 * 1000);
+              bm_cli_log("TS of next state is in the past (%u < %u)\n", (uint32_t)Next_State_TS, (uint32_t)synctimer_getSyncTime()- 5 * 1000);
             }
           }
         }
