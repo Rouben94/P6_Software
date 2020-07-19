@@ -106,7 +106,7 @@ void ST_IDLE_fn(void)
   /* Test read FLASH Data */
   uint32_t restored_cnt = bm_log_load_from_flash();
   bm_cli_log("Restored %u Bytes from Flash\n", restored_cnt);
-  bm_cli_log("First Log Entry: %u %u ...", message_info[0].message_id, (uint32_t)message_info[0].net_time);
+  bm_cli_log("First Log Entry: %u %u ...\n", message_info[0].message_id, (uint32_t)message_info[0].net_time);
   wait_for_transition = true;
   ST_transition_cb();
   return;
