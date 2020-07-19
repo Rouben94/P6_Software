@@ -94,3 +94,10 @@ extern bool button0_toggle_state_get()
 	//gpio_pin_get(dev_led0, PIN_LED0, (int)state);
 	return button0_toggel_state;
 }
+
+/* Set BUTTON0 Toggled State*/
+void button0_toggle_state_set(bool newstate)
+{
+	//gpio_pin_get(dev_led0, PIN_LED0, (int)state);
+	button0_toggel_state = newstate;
+}

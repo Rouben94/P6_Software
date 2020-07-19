@@ -69,7 +69,8 @@ static void button0_cb(){
 	printk("Sent Size %u\n",on_off_cli.pub.msg->len);
 }
 
-static void bm_send_message(){
+void bm_send_message(){
+	button0_toggle_state_set(!button0_toggle_state_get()); // Simulate toggle of button
 	button0_cb();
 }
 

@@ -94,6 +94,8 @@ extern bool led0_get();
 */
 extern bool button0_toggle_state_get();
 
+void button0_toggle_state_set(bool newstate);
+
 
 #endif
 
