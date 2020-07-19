@@ -206,6 +206,9 @@ void zboss_signal_handler(zb_bufid_t bufid) {
   }
 }
 
+/**************************************** Zigbee Stack Init and Enable ***********************************************/
+
+
 void bm_zigbee_init(void) {
   zb_ret_t zb_err_code;
   zb_ieee_addr_t ieee_addr;

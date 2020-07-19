@@ -9,7 +9,7 @@
 //#define ZEPHYR_BLE_MESH
 
 /* =============== Time Sync ===================== */
-#define isTimeMaster 1           // Node is the Master (1) or Slave (0)
+#define isTimeMaster 0           // Node is the Master (1) or Slave (0)
 extern uint32_t LSB_MAC_Address; // LSB of Randomly Static Assigned MAC Address
 
 /* =============== Defines for Reporting ===================== */

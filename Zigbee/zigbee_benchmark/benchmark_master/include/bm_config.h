@@ -26,6 +26,7 @@ extern uint32_t LSB_MAC_Address; // LSB of Randomly Static Assigned MAC Address
 #define MAX_CHILDREN 10                          /**< The maximum amount of connected devices. Setting this value to 0 disables association to this device.  */
 #define IEEE_CHANNEL_MASK (1l << ZIGBEE_CHANNEL) /**< Scan only one, predefined channel to find the coordinator. */
 //#define IEEE_CHANNEL_MASK                   0x07fff800U
+#define ZB_COORDINATOR_ROLE
 
 #define ZIGBEE_NETWORK_STATE_LED BSP_BOARD_LED_2        /**< LED indicating that network is opened for new nodes. */
 #define ZIGBEE_NETWORK_REOPEN_BUTTON BSP_BOARD_BUTTON_0 /**< Button which reopens the Zigbee Network. */

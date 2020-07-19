@@ -631,11 +631,9 @@ void bm_zigbee_init(void) {
   zb_set_long_address(ieee_addr);
 
   zb_set_network_router_role(IEEE_CHANNEL_MASK);
-  //  zb_set_network_ed_role(IEEE_CHANNEL_MASK);
   zb_set_max_children(MAX_CHILDREN);
   zigbee_erase_persistent_storage(ERASE_PERSISTENT_CONFIG);
 
-  //  zb_set_ed_timeout(ED_AGING_TIMEOUT_64MIN);
   zb_set_keepalive_timeout(ZB_MILLISECONDS_TO_BEACON_INTERVAL(3000));
 
   /* Initialize application context structure. */
