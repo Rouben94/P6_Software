@@ -101,9 +101,8 @@ void buttons_handler(bsp_event_t evt);
 static void light_switch_send_on_off(zb_bufid_t bufid, zb_uint16_t on_off);
 void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t on_off);
 void bm_send_control_message_cb(zb_bufid_t bufid, zb_uint16_t level);
-void bm_send_message(zb_uint8_t param);
+void bm_send_message(void);
 void bm_read_message_info(zb_uint16_t timeout);
-void bm_reporting_message(zb_bufid_t bufid, zb_uint16_t level);
 void bm_report_data(zb_uint8_t param);
 
 zb_uint32_t bm_msg_cnt;
@@ -327,7 +326,7 @@ void buttons_handler(bsp_event_t evt) {
   zb_uint32_t button;
 
   /* Inform default signal handler about user input at the device. */
-//  user_input_indicate();
+  //  user_input_indicate();
 
   switch (evt) {
   case BSP_EVENT_KEY_0:
@@ -428,30 +427,36 @@ void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t level) {
       0);
 }
 
-void bm_send_message(zb_uint8_t param) {
+void bm_send_message(void) {
   zb_ret_t zb_err_code;
   zb_uint8_t random_level_value;
 
-  if (bm_msg_cnt_sent < bm_msg_cnt) {
-    random_level_value = ZB_RANDOM_VALUE(256);
+  random_level_value = ZB_RANDOM_VALUE(255);
 
-    time_random = ZB_RANDOM_VALUE(timeslot);
-    timeout = time_random;
+  bm_read_message_info(timeout);
+  zb_err_code = zb_buf_get_out_delayed_ext(bm_send_message_cb, random_level_value, 0);
+  ZB_ERROR_CHECK(zb_err_code);
 
-    bm_read_message_info(timeout);
-    zb_err_code = zb_buf_get_out_delayed_ext(bm_send_message_cb, random_level_value, 0);
-    ZB_ERROR_CHECK(zb_err_code);
-
-    zb_err_code = ZB_SCHEDULE_APP_ALARM(bm_send_message, 0, ZB_MILLISECONDS_TO_BEACON_INTERVAL(timeout));
-    ZB_ERROR_CHECK(zb_err_code);
-
-    bm_msg_cnt_sent++;
-
-  } else {
-    NRF_LOG_INFO("BENCHMARK finished. %d packets sent.", bm_msg_cnt_sent);
-    //bm_write_flash_data();
-    bm_log_save_to_flash();
-  }
+  //  if (bm_msg_cnt_sent < bm_msg_cnt) {
+  //    random_level_value = ZB_RANDOM_VALUE(256);
+  //
+  //    time_random = ZB_RANDOM_VALUE(timeslot);
+  //    timeout = time_random;
+  //
+  //    bm_read_message_info(timeout);
+  //    zb_err_code = zb_buf_get_out_delayed_ext(bm_send_message_cb, random_level_value, 0);
+  //    ZB_ERROR_CHECK(zb_err_code);
+  //
+  //    zb_err_code = ZB_SCHEDULE_APP_ALARM(bm_send_message, 0, ZB_MILLISECONDS_TO_BEACON_INTERVAL(timeout));
+  //    ZB_ERROR_CHECK(zb_err_code);
+  //
+  //    bm_msg_cnt_sent++;
+  //
+  //  } else {
+  //    NRF_LOG_INFO("BENCHMARK finished. %d packets sent.", bm_msg_cnt_sent);
+  //    //bm_write_flash_data();
+  //    bm_log_save_to_flash();
+  //  }
 }
 
 /* TODO: Description */
@@ -459,7 +464,6 @@ void bm_read_message_info(zb_uint16_t timeout) {
   bm_message_info message;
   zb_ieee_addr_t ieee_src_addr;
 
-  //  message.message_id = 0;
   message.rssi = 0;
   message.number_of_hops = 0;
   message.data_size = 0;

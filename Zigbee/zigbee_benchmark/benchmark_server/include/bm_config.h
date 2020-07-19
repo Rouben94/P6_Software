@@ -12,6 +12,15 @@
 #define isTimeMaster 0           // Node is the Master (1) or Slave (0)
 extern uint32_t LSB_MAC_Address; // LSB of Randomly Static Assigned MAC Address
 
+/* =============== Benchmark Parameters ===================== */
+
+// Change the following to switch the Protokoll Stack and SDK
+#define BENCHMARK_SERVER                 /* Node is Benchmark Server */
+//#define BENCHMARK_CLIENT                 /* Node is Benchmark Client */
+//#define BENCHMARK_MASTER                 /* Node is Benchmark Master */
+#define BENCHMARK_DEFAULT_TIME_S 10      // Default Benchmark Time (used when no Parameter available)
+#define BENCHMARK_DEFAULT_PACKETS_CNT 10 // Default Benchmark Packet Count (used when no Parameter available)
+
 /* =============== Defines for Reporting ===================== */
 #define NUMBER_OF_BENCHMARK_REPORT_MESSAGES 3000 /* Size of the Benchmark Reporting Array message_info */
 
@@ -47,8 +56,8 @@ extern uint32_t LSB_MAC_Address; // LSB of Randomly Static Assigned MAC Address
 #ifdef BOARD_PCA10059                            /**< If it is Dongle */
 #define IDENTIFY_MODE_BSP_EVT BSP_EVENT_KEY_0    /**< Button event used to enter the Bulb into the Identify mode. */
 #define ZIGBEE_NETWORK_STATE_LED BSP_BOARD_LED_0 /**< LED indicating that light switch successfully joind Zigbee network. */
-#define BULB_LED BSP_BOARD_LED_3                   /**< LED immitaing dimmable light bulb. */
-#define BULB_BUTTON BSP_BOARD_BUTTON_0             /**< Button ID used to switch off the light bulb. */
+#define BULB_LED BSP_BOARD_LED_3                 /**< LED immitaing dimmable light bulb. */
+#define BULB_BUTTON BSP_BOARD_BUTTON_0           /**< Button ID used to switch off the light bulb. */
 #else
 #define IDENTIFY_MODE_BSP_EVT BSP_EVENT_KEY_3    /**< Button event used to enter the Bulb into the Identify mode. */
 #define ZIGBEE_NETWORK_STATE_LED BSP_BOARD_LED_2 /**< LED indicating that light switch successfully joind Zigbee network. */
@@ -69,10 +78,6 @@ extern uint32_t LSB_MAC_Address; // LSB of Randomly Static Assigned MAC Address
 #define GROUP_ID 0xB331                 /* Group ID which will be used to address a specific group of Benchmark Servers */
 
 #define BENCHMARK_CUSTOM_CMD_ID 0x00 /* Custom Benchmark Command ID */
-
-/* =============== Benchmark Parameters ===================== */
-#define BENCHMARK_DEFAULT_TIME_S 10      // Default Benchmark Time (used when no Parameter available)
-#define BENCHMARK_DEFAULT_PACKETS_CNT 10 // Default Benchmark Packet Count (used when no Parameter available)
 
 typedef struct
 {

@@ -12,6 +12,15 @@
 #define isTimeMaster 1           // Node is the Master (1) or Slave (0)
 extern uint32_t LSB_MAC_Address; // LSB of Randomly Static Assigned MAC Address
 
+/* =============== Benchmark Parameters ===================== */
+
+// Change the following to switch the Protokoll Stack and SDK
+//#define BENCHMARK_SERVER                 /* Node is Benchmark Server */
+//#define BENCHMARK_CLIENT                 /* Node is Benchmark Client */
+#define BENCHMARK_MASTER                 /* Node is Benchmark Master */
+#define BENCHMARK_DEFAULT_TIME_S 10      // Default Benchmark Time (used when no Parameter available)
+#define BENCHMARK_DEFAULT_PACKETS_CNT 10 // Default Benchmark Packet Count (used when no Parameter available)
+
 /* =============== Defines for Reporting ===================== */
 #define NUMBER_OF_BENCHMARK_REPORT_MESSAGES 3000 /* Size of the Benchmark Reporting Array message_info */
 
