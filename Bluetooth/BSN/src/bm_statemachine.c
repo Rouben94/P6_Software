@@ -172,7 +172,7 @@ void ST_CONTROL_fn(void)
         bm_params.benchmark_time_s = bm_control_msg.benchmark_time_s;
         bm_params.benchmark_packet_cnt = bm_control_msg.benchmark_packet_cnt;
         transition_to_timesync = true;
-        bm_cli_log("Benchmark Start initiatet\n");
+        bm_cli_log("Benchmark Start initiated\n");
         break;
       }
       else if (bm_control_msg.MACAddressDst == LSB_MAC_Address && bm_control_msg.GroupAddress > 0)
