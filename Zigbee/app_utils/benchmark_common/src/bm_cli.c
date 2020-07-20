@@ -2,15 +2,19 @@
 #include "bm_cli.h"
 #include "bm_config.h"
 
-#ifdef BENCHMARK_MASTER
 #ifdef ZEPHYR_BLE_MESH
 
 #elif defined NRF_SDK_Zigbee
-// function is Define in header file
+#include "boards.h"
+#include "nrf_log_default_backends.h"
 
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
+
+#ifdef BENCHMARK_MASTER
+
+// function is Define in header file
 
 #include "nrf.h"
 #include "nrf_delay.h"
@@ -26,13 +30,10 @@
 #include "nrf_cli_rtt.h"
 #include "nrf_cli_types.h"
 
-#include "boards.h"
-
 #include "nrf_fstorage_nvmc.h"
 #include "nrf_log.h"
 #include "nrf_log_backend_flash.h"
 #include "nrf_log_ctrl.h"
-#include "nrf_log_default_backends.h"
 
 #include "nrf_mpu_lib.h"
 #include "nrf_stack_guard.h"
@@ -188,5 +189,10 @@ void bm_cli_init(void) {
 
 void bm_cli_log_init(void) {
 
-  APP_ERROR_CHECK(NRF_LOG_INIT(app_timer_cnt_get));
+  ret_code_t err_code = NRF_LOG_INIT(NULL);
+  APP_ERROR_CHECK(err_code);
+
+  NRF_LOG_DEFAULT_BACKENDS_INIT();
+
+  //  APP_ERROR_CHECK(NRF_LOG_INIT(app_timer_cnt_get));
 }

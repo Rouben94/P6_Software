@@ -44,8 +44,6 @@ void bm_receive_message(zb_bufid_t bufid);
 
 void bm_read_message_info(zb_uint16_t timeout);
 
-void bm_report_data(zb_uint8_t param);
-
-void bm_receive_config(zb_uint8_t bufid);
+//void bm_report_data(zb_uint8_t param);
 
 #endif //BM_ZIGBEE_H

@@ -17,6 +17,7 @@
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
 
+#include "bm_cli.h"
 #include "bm_config.h"
 #include "bm_log.h"
 #include "bm_timesync.h"
@@ -430,34 +431,30 @@ void bm_receive_message(zb_bufid_t bufid) {
   bm_log_append_ram(message);
 }
 
-/* TODO: Description */
-void bm_receive_config(zb_uint8_t bufid) {
-  NRF_LOG_INFO("Received Config-Set command");
-}
 
-void bm_report_data(zb_uint8_t param) {
-  uint16_t bm_msg_flash_cnt = 0;
-  uint16_t bm_cnt = 0;
-  bm_message_info message;
-
-  bm_msg_flash_cnt = bm_log_load_from_flash();
-
-  while (bm_cnt < bm_msg_flash_cnt) {
-    message = message_info[bm_cnt];
-    NRF_LOG_INFO("<REPORT>, %d, %llu, %llu, %d, %d, 0x%x",
-        message.message_id,
-        message.net_time,
-        message.ack_net_time,
-        message.number_of_hops,
-        message.rssi,
-        message.src_addr);
-
-    bm_cnt++;
-  }
-  bm_log_clear_ram();
-  bm_log_clear_flash();
-  NRF_LOG_INFO("<REPORTING FINISHED>");
-}
+//void bm_report_data(zb_uint8_t param) {
+//  uint16_t bm_msg_flash_cnt = 0;
+//  uint16_t bm_cnt = 0;
+//  bm_message_info message;
+//
+//  bm_msg_flash_cnt = bm_log_load_from_flash();
+//
+//  while (bm_cnt < bm_msg_flash_cnt) {
+//    message = message_info[bm_cnt];
+//    NRF_LOG_INFO("<REPORT>, %d, %llu, %llu, %d, %d, 0x%x",
+//        message.message_id,
+//        message.net_time,
+//        message.ack_net_time,
+//        message.number_of_hops,
+//        message.rssi,
+//        message.src_addr);
+//
+//    bm_cnt++;
+//  }
+//  bm_log_clear_ram();
+//  bm_log_clear_flash();
+//  NRF_LOG_INFO("<REPORTING FINISHED>");
+//}
 
 /************************************ Zigbee event handler ***********************************************/
 
@@ -482,9 +479,9 @@ static zb_uint8_t bm_zcl_handler(zb_bufid_t bufid) {
       ZB_SCHEDULE_APP_CALLBACK(bm_receive_message, bufid);
       break;
 
-    case BENCHMARK_CONTROL_ENDPOINT:
-      ZB_SCHEDULE_APP_CALLBACK(bm_receive_config, bufid);
-      break;
+//    case BENCHMARK_CONTROL_ENDPOINT:
+//      ZB_SCHEDULE_APP_CALLBACK(bm_receive_config, bufid);
+//      break;
 
     case BENCHMARK_REPORTING_ENDPOINT:
       //      ZB_SCHEDULE_APP_CALLBACK(bm_send_reporting_message, bufid);
