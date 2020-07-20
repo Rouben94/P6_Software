@@ -72,9 +72,9 @@ static void cmd_getNodeReport(nrf_cli_t const *p_cli, size_t argc, char **argv) 
   if (argc == 2) {
     bm_cli_cmd_getNodeReport.MAC = atoi(argv[1]); // MAC Adress in integer value format
     bm_cli_cmd_getNodeReport.req = true;
-    NRF_LOG_INFO("Report Request Sheduled for MAC: %x", bm_cli_cmd_getNodeReport.MAC);
+    nrf_cli_print(p_cli, "Report Request Sheduled for MAC: %x", bm_cli_cmd_getNodeReport.MAC);
   } else {
-    NRF_LOG_ERROR("Number of Arguments incorrect! expected:\n getNodeReport <MAC in Integer format>\n");
+    nrf_cli_error(p_cli, "Number of Arguments incorrect! expected:\n getNodeReport <MAC in Integer format>\n");
   }
 }
 NRF_CLI_CMD_REGISTER(getNodeReport, NULL, "Get the Node Report", cmd_getNodeReport);
@@ -84,9 +84,9 @@ static void cmd_setNodeSettings(nrf_cli_t const *p_cli, size_t argc, char **argv
     bm_cli_cmd_setNodeSettings.MAC = atoi(argv[1]);          // MAC Adress in integer value format
     bm_cli_cmd_setNodeSettings.GroupAddress = atoi(argv[2]); // Group Address Number (0-25)
     bm_cli_cmd_setNodeSettings.req = true;
-    NRF_LOG_INFO("Request Sheduled for MAC: %x", bm_cli_cmd_getNodeReport.MAC);
+    nrf_cli_print(p_cli, "Request Sheduled for MAC: %x", bm_cli_cmd_getNodeReport.MAC);
   } else {
-    NRF_LOG_ERROR("Number of Arguments incorrect! expected:\n setNodeSettings <MAC in Integer format> <GroupNumber>\n");
+    nrf_cli_error(p_cli, "Number of Arguments incorrect! expected:\n setNodeSettings <MAC in Integer format> <GroupNumber>\n");
   }
 }
 NRF_CLI_CMD_REGISTER(setNodeSettings, NULL, "Set the Node Settings", cmd_setNodeSettings);
@@ -96,9 +96,9 @@ static void cmd_startBM(nrf_cli_t const *p_cli, size_t argc, char **argv) { // T
     bm_cli_cmd_startBM.benchmark_time_s = atoi(argv[1]);
     bm_cli_cmd_startBM.benchmark_packet_cnt = atoi(argv[2]);
     bm_cli_cmd_startBM.req = true;
-    NRF_LOG_INFO("Benchmark Start scheduled");
+    nrf_cli_print(p_cli, "Benchmark Start scheduled");
   } else {
-    NRF_LOG_ERROR("Number of Arguments incorrect! expected:\n startBM <BenchmarkTime (seconds)> <BenchmarkPacketsCount>\n");
+    nrf_cli_error(p_cli, "Number of Arguments incorrect! expected:\n startBM <BenchmarkTime (seconds)> <BenchmarkPacketsCount>\n");
   }
 }
 NRF_CLI_CMD_REGISTER(startBM, NULL, "Start the Benchmark", cmd_startBM);

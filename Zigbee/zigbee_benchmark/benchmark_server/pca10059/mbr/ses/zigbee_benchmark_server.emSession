@@ -44,11 +44,11 @@
   <Watches active="0" update="Never"/>
  </Watch4>
  <Files>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="29" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../main.c" selected="0" top="15" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="37" y="76" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../include/bm_config.h" selected="0" top="60" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="142" y="17" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../main.c" selected="1" top="3" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="76" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../include/bm_config.h" selected="0" top="60" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="484" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../src/bm_zigbee.c" selected="0" top="464" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="21" y="46" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../include/bm_zigbee.h" selected="0" top="27" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="2199" useTextEdit="1" useBinaryEdit="0" left="0" path="../config/sdk_config.h" selected="0" top="2186" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="46" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../include/bm_zigbee.h" selected="0" top="27" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="2370" useTextEdit="1" useBinaryEdit="0" left="0" path="../config/sdk_config.h" selected="0" top="2345" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="62" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../app_utils/benchmark_common/src/bm_log.c" selected="0" top="34" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="21" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../app_utils/benchmark_common/include/bm_log.h" selected="0" top="0" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="58" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../app_utils/benchmark_common/include/bm_cli.h" selected="0" top="42" codecName="Default"/>
@@ -56,7 +56,7 @@
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="2114" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/fds/fds.c" selected="0" top="2095" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/fds/fds.h" selected="0" top="0" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="85" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../app_utils/benchmark_common/src/bm_rand.c" selected="0" top="63" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="23" y="171" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../app_utils/benchmark_common/src/bm_cli.c" selected="1" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="171" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../app_utils/benchmark_common/src/bm_cli.c" selected="0" top="145" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="203" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../app_utils/benchmark_common/src/bm_statemachine.c" selected="0" top="189" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="80" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/log/nrf_log_ctrl.h" selected="0" top="66" codecName="Default"/>
  </Files>

@@ -16,9 +16,9 @@ int main(void) {
 #ifdef NRF_SDK_Zigbee
   // Init the LOG Modul
   // To Enable Loging before the Mesh stack is run change in sdk_config -> NRF_LOG_DEFERRED = 0 (Performance is worse but logging is possibel)
-//  ret_code_t err_code = NRF_LOG_INIT(NULL);
-//  APP_ERROR_CHECK(err_code);
-//  NRF_LOG_DEFAULT_BACKENDS_INIT();
+
+  bm_cli_log_init(); /* Initialize the Zigbee LOG subsystem */
+
 #endif
 
   // Init MAC Address

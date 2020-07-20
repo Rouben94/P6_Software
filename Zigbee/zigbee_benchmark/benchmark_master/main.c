@@ -20,13 +20,13 @@ int main(void) {
   //    NRF_LOG_DEFAULT_BACKENDS_INIT();
 
   bm_cli_log_init(); /* Initialize the Zigbee LOG subsystem */
-#ifdef BENCHMARK_MASTER
+
   bm_cli_init(); /* Initialize the Zigbee CLI subsystem */
-#endif
 
   while (true) {
 #ifdef BENCHMARK_MASTER
     bm_cli_process();
+    UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
 #endif
   }
 
