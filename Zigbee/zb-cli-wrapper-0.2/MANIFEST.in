@@ -1,5 +1,0 @@
-include LICENSE
-include readme.md
-include CHANGES.md
-include example/*
-include hex/*.hex
