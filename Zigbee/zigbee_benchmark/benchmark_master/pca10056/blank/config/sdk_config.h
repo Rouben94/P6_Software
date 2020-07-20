@@ -121,7 +121,11 @@
 // </e>
 
 // <q> NRF_CLI_UART_ENABLED  - nrf_cli_uart - UART command line interface transport
+ 
 
+#ifndef NRF_CLI_UART_ENABLED
+#define NRF_CLI_UART_ENABLED 1
+#endif
 //==========================================================
 
 /*************************************** APP USBD ***************************************************/
@@ -423,7 +427,7 @@
 // <q> NRF_CLI_METAKEYS_ENABLED  - Enable additional control keys for CLI commands like ctrl+a, ctrl+e, ctrl+w, ctrl+u
 
 #ifndef NRF_CLI_METAKEYS_ENABLED
-#define NRF_CLI_METAKEYS_ENABLED 0
+#define NRF_CLI_METAKEYS_ENABLED 1
 #endif
 
 // <o> NRF_CLI_PRINTF_BUFF_SIZE - Maximum print buffer size.
@@ -1071,6 +1075,47 @@
 
 // </h>
 //==========================================================
+
+//==========================================================
+// <e> NRF_MPU_LIB_ENABLED - nrf_mpu_lib - Module for MPU
+//==========================================================
+#ifndef NRF_MPU_LIB_ENABLED
+#define NRF_MPU_LIB_ENABLED 1
+#endif
+// <q> NRF_MPU_LIB_CLI_CMDS  - Enable CLI commands specific to the module.
+ 
+
+#ifndef NRF_MPU_LIB_CLI_CMDS
+#define NRF_MPU_LIB_CLI_CMDS 0
+#endif
+
+// </e>
+
+// <e> NRF_STACK_GUARD_ENABLED - nrf_stack_guard - Stack guard
+//==========================================================
+#ifndef NRF_STACK_GUARD_ENABLED
+#define NRF_STACK_GUARD_ENABLED 1
+#endif
+// <o> NRF_STACK_GUARD_CONFIG_SIZE  - Size of the stack guard.
+ 
+// <5=> 32 bytes 
+// <6=> 64 bytes 
+// <7=> 128 bytes 
+// <8=> 256 bytes 
+// <9=> 512 bytes 
+// <10=> 1024 bytes 
+// <11=> 2048 bytes 
+// <12=> 4096 bytes 
+
+#ifndef NRF_STACK_GUARD_CONFIG_SIZE
+#define NRF_STACK_GUARD_CONFIG_SIZE 7
+#endif
+
+// </e>
+
+// </h> 
+//==========================================================
+
 
 // <h> nRF_Drivers
 
@@ -2567,6 +2612,119 @@
 // </h>
 //==========================================================
 
+// </h> 
+//==========================================================
+
+// <h> nRF_Log 
+
+//==========================================================
+// <e> NRF_LOG_BACKEND_FLASH_ENABLED - nrf_log_backend_flash - Log flash backend
+//==========================================================
+#ifndef NRF_LOG_BACKEND_FLASH_ENABLED
+#define NRF_LOG_BACKEND_FLASH_ENABLED 1
+#endif
+// <q> NRF_LOG_BACKEND_FLASH_CLI_CMDS  - Enable CLI commands for this module.
+ 
+
+#ifndef NRF_LOG_BACKEND_FLASH_CLI_CMDS
+#define NRF_LOG_BACKEND_FLASH_CLI_CMDS 1
+#endif
+
+// <e> NRF_LOG_BACKEND_FLASHLOG_ENABLED - Enable flashlog backend.
+//==========================================================
+#ifndef NRF_LOG_BACKEND_FLASHLOG_ENABLED
+#define NRF_LOG_BACKEND_FLASHLOG_ENABLED 1
+#endif
+// <o> NRF_LOG_BACKEND_FLASHLOG_QUEUE_SIZE - Logger messages queue size. 
+// <i> Queue holds log messages pending to be written to flash.
+// <i> Note that the queue holds logger messages and thus the queue size determines
+// <i> increasing the pool of logger messages (see log message pool configuration).
+
+#ifndef NRF_LOG_BACKEND_FLASHLOG_QUEUE_SIZE
+#define NRF_LOG_BACKEND_FLASHLOG_QUEUE_SIZE 8
+#endif
+
+// </e>
+
+// <e> NRF_LOG_BACKEND_CRASHLOG_ENABLED - Enable crashlog backend.
+//==========================================================
+#ifndef NRF_LOG_BACKEND_CRASHLOG_ENABLED
+#define NRF_LOG_BACKEND_CRASHLOG_ENABLED 1
+#endif
+// <o> NRF_LOG_BACKEND_CRASHLOG_FIFO_SIZE - Number of log messages held to be flushed in panic. 
+// <i> Crashlog FIFO always keeps a defined number of the most
+// <i> recent logs (severity level is set on runtime).
+// <i> Note that the FIFO holds logger messages and thus the FIFO size determines
+// <i> increasing the pool of logger messages (see log message pool configuration).
+
+#ifndef NRF_LOG_BACKEND_CRASHLOG_FIFO_SIZE
+#define NRF_LOG_BACKEND_CRASHLOG_FIFO_SIZE 8
+#endif
+
+// </e>
+
+// <o> NRF_LOG_BACKEND_FLASH_SER_BUFFER_SIZE - Size of the buffer used for serialize log message. 
+// <i> Message is trimmed if it is longer. It may happen in case of 
+// <i> hexdump message. Buffer size must be multiple of 4.
+
+#ifndef NRF_LOG_BACKEND_FLASH_SER_BUFFER_SIZE
+#define NRF_LOG_BACKEND_FLASH_SER_BUFFER_SIZE 64
+#endif
+
+// <h> Flash log location - Configuration of flash area used for storing the logs.
+
+//==========================================================
+// <o> NRF_LOG_BACKEND_FLASH_START_PAGE - Starting page.  
+// <i> If 0, then pages directly after the application are used.
+
+#ifndef NRF_LOG_BACKEND_FLASH_START_PAGE
+#define NRF_LOG_BACKEND_FLASH_START_PAGE 0
+#endif
+
+// <o> NRF_LOG_BACKEND_PAGES - Number of pages. 
+#ifndef NRF_LOG_BACKEND_PAGES
+#define NRF_LOG_BACKEND_PAGES 1
+#endif
+
+// </h> 
+//==========================================================
+
+// </e>
+
+// <e> NRF_LOG_BACKEND_RTT_ENABLED - nrf_log_backend_rtt - Log RTT backend
+//==========================================================
+#ifndef NRF_LOG_BACKEND_RTT_ENABLED
+#define NRF_LOG_BACKEND_RTT_ENABLED 0
+#endif
+// <o> NRF_LOG_BACKEND_RTT_TEMP_BUFFER_SIZE - Size of buffer for partially processed strings. 
+// <i> Size of the buffer is a trade-off between RAM usage and processing.
+// <i> if buffer is smaller then strings will often be fragmented.
+// <i> It is recommended to use size which will fit typical log and only the
+// <i> longer one will be fragmented.
+
+#ifndef NRF_LOG_BACKEND_RTT_TEMP_BUFFER_SIZE
+#define NRF_LOG_BACKEND_RTT_TEMP_BUFFER_SIZE 64
+#endif
+
+// <o> NRF_LOG_BACKEND_RTT_TX_RETRY_DELAY_MS - Period before retrying writing to RTT 
+#ifndef NRF_LOG_BACKEND_RTT_TX_RETRY_DELAY_MS
+#define NRF_LOG_BACKEND_RTT_TX_RETRY_DELAY_MS 1
+#endif
+
+// <o> NRF_LOG_BACKEND_RTT_TX_RETRY_CNT - Writing to RTT retries. 
+// <i> If RTT fails to accept any new data after retries
+// <i> module assumes that host is not active and on next
+// <i> request it will perform only one write attempt.
+// <i> On successful writing, module assumes that host is active
+// <i> and scheme with retry is applied again.
+
+#ifndef NRF_LOG_BACKEND_RTT_TX_RETRY_CNT
+#define NRF_LOG_BACKEND_RTT_TX_RETRY_CNT 3
+#endif
+
+// </e>
+
+
 // <h> nRF_Log
 
 //==========================================================
@@ -2600,7 +2758,7 @@
 // <268435456=> 1000000 baud
 
 #ifndef NRF_LOG_BACKEND_UART_BAUDRATE
-#define NRF_LOG_BACKEND_UART_BAUDRATE 268435456
+#define NRF_LOG_BACKEND_UART_BAUDRATE 30801920
 #endif
 
 // <o> NRF_LOG_BACKEND_UART_TEMP_BUFFER_SIZE - Size of buffer for partially processed strings.
@@ -2675,7 +2833,7 @@
 // <q> NRF_LOG_CLI_CMDS  - Enable CLI commands for the module.
 
 #ifndef NRF_LOG_CLI_CMDS
-#define NRF_LOG_CLI_CMDS 0
+#define NRF_LOG_CLI_CMDS 1
 #endif
 
 // <o> NRF_LOG_DEFAULT_LEVEL  - Default Severity level

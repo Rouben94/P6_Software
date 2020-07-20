@@ -164,7 +164,9 @@ void ST_BENCHMARK_fn(void) {
   while (currentState == ST_BENCHMARK) {
     zboss_main_loop_iteration();
     UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
+#ifdef BENCHMARK_MASTER
     bm_cli_process();
+#endif
   }
 #endif
   return;
@@ -202,6 +204,11 @@ void bm_statemachine() {
   bm_rand_init();
   bm_radio_init();
   bm_log_init();
+
+#ifdef BENCHMARK_MASTER
+  bm_cli_init(); /* Initialize the Zigbee CLI subsystem */
+#endif
+
   while (true) {
     transition = false;
     switch (currentState) {
@@ -221,6 +228,7 @@ void bm_statemachine() {
       ST_SAVE_FLASH_fn();
       break;
     }
+
     ST_WAIT_FOR_TRANSITION_fn();
   }
 }

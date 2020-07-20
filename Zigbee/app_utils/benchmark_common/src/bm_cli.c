@@ -1,183 +1,192 @@
+
 #include "bm_cli.h"
 #include "bm_config.h"
 
+#ifdef BENCHMARK_MASTER
 #ifdef ZEPHYR_BLE_MESH
 
 #elif defined NRF_SDK_Zigbee
 // function is Define in header file
-#include "nrf.h"
-#include "nrf_cli.h"
-#include "nrf_cli_types.h"
-#include "nrf_drv_clock.h"
 
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdio.h>
+
+#include "nrf.h"
 #include "nrf_delay.h"
+#include "nrf_drv_clock.h"
+#include "nrf_gpio.h"
+
+#include "app_error.h"
+#include "app_timer.h"
+#include "app_util.h"
+#include "fds.h"
+
+#include "nrf_cli.h"
+#include "nrf_cli_rtt.h"
+#include "nrf_cli_types.h"
+
+#include "boards.h"
+
+#include "nrf_fstorage_nvmc.h"
 #include "nrf_log.h"
 #include "nrf_log_backend_flash.h"
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
-#include "nrf_log_instance.h"
 
-#include "app_usbd.h"
-#include "app_usbd_cdc_acm.h"
-#include "app_usbd_core.h"
-#include "app_usbd_serial_num.h"
-#include "app_usbd_string_desc.h"
-#include "nrf_cli_cdc_acm.h"
-#include "nrf_drv_usbd.h"
+#include "nrf_mpu_lib.h"
+#include "nrf_stack_guard.h"
 
-#define CLI_OVER_USB_CDC_ACM 1
-
+#include "nrf_cli_uart.h"
+#endif
 #endif
 
 /* Init the Parameters */
 bm_params_t bm_params = {BENCHMARK_DEFAULT_TIME_S, BENCHMARK_DEFAULT_PACKETS_CNT};
 bm_params_t bm_params_buf = {BENCHMARK_DEFAULT_TIME_S, BENCHMARK_DEFAULT_PACKETS_CNT};
 
+#ifdef BENCHMARK_MASTER
 #ifdef ZEPHYR_BLE_MESH
-#include <zephyr.h>
-void bm_cli_log(const char *fmt, ...) {
-  // Zephyr way to Log info
-  printk(fmt);
-}
+
 #elif defined NRF_SDK_Zigbee
 
-// function is Define in header file
-NRF_LOG_INSTANCE_REGISTER(ZIGBEE_CLI_LOG_NAME, NRF_LOG_SUBMODULE_NAME,
-    ZIGBEE_CLI_CONFIG_INFO_COLOR,
-    ZIGBEE_CLI_CONFIG_DEBUG_COLOR,
-    ZIGBEE_CLI_CONFIG_LOG_INIT_FILTER_LEVEL,
-    ZIGBEE_CLI_CONFIG_LOG_ENABLED ? ZIGBEE_CLI_CONFIG_LOG_LEVEL : NRF_LOG_SEVERITY_NONE);
+#if NRF_LOG_BACKEND_FLASHLOG_ENABLED
+NRF_LOG_BACKEND_FLASHLOG_DEF(m_flash_log_backend);
+#endif
 
-// This structure keeps reference to the logger instance used by this module.
-typedef struct {
-  NRF_LOG_INSTANCE_PTR_DECLARE(p_log)
-} log_ctx_t;
+#if NRF_LOG_BACKEND_CRASHLOG_ENABLED
+NRF_LOG_BACKEND_CRASHLOG_DEF(m_crash_log_backend);
+#endif
 
-// Logger instance used by this module.
-static log_ctx_t m_log = {
-    NRF_LOG_INSTANCE_PTR_INIT(p_log, ZIGBEE_CLI_LOG_NAME, NRF_LOG_SUBMODULE_NAME)};
+/* Counter timer. */
+APP_TIMER_DEF(m_timer_0);
 
-NRF_CLI_CDC_ACM_DEF(m_cli_cdc_acm_transport);
-NRF_CLI_DEF(m_cli_cdc_acm,
-    "> ",
-    &m_cli_cdc_acm_transport.transport,
+/* Declared in demo_cli.c */
+extern uint32_t m_counter;
+extern bool m_counter_active;
+
+/**
+ * @brief Command line interface instance
+ * */
+#define CLI_EXAMPLE_LOG_QUEUE_SIZE (4)
+
+NRF_CLI_UART_DEF(m_cli_uart_transport, 0, 64, 16);
+NRF_CLI_DEF(m_cli_uart,
+    "uart_cli:~$ ",
+    &m_cli_uart_transport.transport,
     '\r',
     CLI_EXAMPLE_LOG_QUEUE_SIZE);
 
-static void usbd_user_ev_handler(app_usbd_event_type_t event) {
-  switch (event) {
-  case APP_USBD_EVT_STOPPED:
-    app_usbd_disable();
-    break;
-  case APP_USBD_EVT_POWER_DETECTED:
-    if (!nrf_drv_usbd_is_enabled()) {
-      app_usbd_enable();
-    }
-    break;
-  case APP_USBD_EVT_POWER_REMOVED:
-    app_usbd_stop();
-    break;
-  case APP_USBD_EVT_POWER_READY:
-    app_usbd_start();
-    break;
-  default:
-    break;
-  }
+NRF_CLI_RTT_DEF(m_cli_rtt_transport);
+NRF_CLI_DEF(m_cli_rtt,
+    "rtt_cli:~$ ",
+    &m_cli_rtt_transport.transport,
+    '\n',
+    CLI_EXAMPLE_LOG_QUEUE_SIZE);
+
+static void timer_handle(void *p_context) {
+  UNUSED_PARAMETER(p_context);
 }
 
-static void bm_usbd_init(void) {
+static void cli_start(void) {
   ret_code_t ret;
-  static const app_usbd_config_t usbd_config = {
-      .ev_handler = app_usbd_event_execute,
-      .ev_state_proc = usbd_user_ev_handler};
 
-  app_usbd_serial_num_generate();
-
-  ret = app_usbd_init(&usbd_config);
+  ret = nrf_cli_start(&m_cli_uart);
   APP_ERROR_CHECK(ret);
 
-  app_usbd_class_inst_t const *class_cdc_acm =
-      app_usbd_cdc_acm_class_inst_get(&nrf_cli_cdc_acm);
-  ret = app_usbd_class_append(class_cdc_acm);
+  ret = nrf_cli_start(&m_cli_rtt);
   APP_ERROR_CHECK(ret);
 }
-static void bm_usbd_enable(void) {
+
+static void cli_init(void) {
   ret_code_t ret;
 
-  if (USBD_POWER_DETECTION) {
-    ret = app_usbd_power_events_enable();
-    APP_ERROR_CHECK(ret);
-  } else {
-    NRF_LOG_INST_INFO(m_log.p_log, "No USB power detection enabled\r\nStarting USB now");
+  nrf_drv_uart_config_t uart_config = NRF_DRV_UART_DEFAULT_CONFIG;
+  uart_config.pseltxd = TX_PIN_NUMBER;
+  uart_config.pselrxd = RX_PIN_NUMBER;
+  uart_config.hwfc = NRF_UART_HWFC_DISABLED;
+  ret = nrf_cli_init(&m_cli_uart, &uart_config, true, true, NRF_LOG_SEVERITY_INFO);
+  APP_ERROR_CHECK(ret);
 
-    app_usbd_enable();
-    app_usbd_start();
-  }
-
-  /* Give some time for the host to enumerate and connect to the USB CDC port */
-  nrf_delay_ms(1000);
+  ret = nrf_cli_init(&m_cli_rtt, NULL, true, true, NRF_LOG_SEVERITY_INFO);
+  APP_ERROR_CHECK(ret);
 }
 
-void bm_cli_start(void) {
+void bm_cli_process(void) {
+
+  nrf_cli_process(&m_cli_uart);
+
+  nrf_cli_process(&m_cli_rtt);
+}
+
+static void flashlog_init(void) {
   ret_code_t ret;
+  int32_t backend_id;
 
-  bm_usbd_enable();
-
-  ret = nrf_cli_start(&m_cli_cdc_acm);
+  ret = nrf_log_backend_flash_init(&nrf_fstorage_nvmc);
   APP_ERROR_CHECK(ret);
+#if NRF_LOG_BACKEND_FLASHLOG_ENABLED
+  backend_id = nrf_log_backend_add(&m_flash_log_backend, NRF_LOG_SEVERITY_WARNING);
+  APP_ERROR_CHECK_BOOL(backend_id >= 0);
+
+  nrf_log_backend_enable(&m_flash_log_backend);
+#endif
+
+#if NRF_LOG_BACKEND_CRASHLOG_ENABLED
+  backend_id = nrf_log_backend_add(&m_crash_log_backend, NRF_LOG_SEVERITY_INFO);
+  APP_ERROR_CHECK_BOOL(backend_id >= 0);
+
+  nrf_log_backend_enable(&m_crash_log_backend);
+#endif
+}
+
+static inline void stack_guard_init(void) {
+  APP_ERROR_CHECK(nrf_mpu_lib_init());
+  APP_ERROR_CHECK(nrf_stack_guard_init());
+}
+
+uint32_t cyccnt_get(void) {
+  return DWT->CYCCNT;
 }
 
 void bm_cli_init(void) {
   ret_code_t ret;
 
-  ret = nrf_cli_init(&m_cli_cdc_acm, NULL, true, true, NRF_LOG_SEVERITY_INFO);
+  ret = nrf_drv_clock_init();
+  APP_ERROR_CHECK(ret);
+  nrf_drv_clock_lfclk_request(NULL);
+
+  ret = app_timer_init();
   APP_ERROR_CHECK(ret);
 
-  bm_usbd_init();
+  ret = app_timer_create(&m_timer_0, APP_TIMER_MODE_REPEATED, timer_handle);
+  APP_ERROR_CHECK(ret);
+
+  ret = app_timer_start(m_timer_0, APP_TIMER_TICKS(1000), NULL);
+  APP_ERROR_CHECK(ret);
+
+  cli_init();
+
+  ret = fds_init();
+  APP_ERROR_CHECK(ret);
+
+  UNUSED_RETURN_VALUE(nrf_log_config_load());
+
+  cli_start();
+
+  flashlog_init();
+
+  stack_guard_init();
+
+  NRF_LOG_RAW_INFO("Command Line Interface example started.\n");
+  NRF_LOG_RAW_INFO("Please press the Tab key to see all available commands.\n");
 }
-
-void bm_cli_process(void) {
-  nrf_cli_process(&m_cli_cdc_acm);
-}
-
-/* ======================== CLI Commands ===================== */
-
-static void cmd_nordic(nrf_cli_t const *p_cli, size_t argc, char **argv) {
-  UNUSED_PARAMETER(argc);
-  UNUSED_PARAMETER(argv);
-
-  if (nrf_cli_help_requested(p_cli)) {
-    nrf_cli_help_print(p_cli, NULL, 0);
-    return;
-  }
-
-  nrf_cli_fprintf(p_cli, NRF_CLI_OPTION,
-      "\n"
-      "            .co:.                   'xo,          \n"
-      "         .,collllc,.             'ckOOo::,..      \n"
-      "      .:ooooollllllll:'.     .;dOOOOOOo:::;;;'.   \n"
-      "   'okxddoooollllllllllll;'ckOOOOOOOOOo:::;;;,,,' \n"
-      "   OOOkxdoooolllllllllllllllldxOOOOOOOo:::;;;,,,'.\n"
-      "   OOOOOOkdoolllllllllllllllllllldxOOOo:::;;;,,,'.\n"
-      "   OOOOOOOOOkxollllllllllllllllllcccldl:::;;;,,,'.\n"
-      "   OOOOOOOOOOOOOxdollllllllllllllccccc::::;;;,,,'.\n"
-      "   OOOOOOOOOOOOOOOOkxdlllllllllllccccc::::;;;,,,'.\n"
-      "   kOOOOOOOOOOOOOOOOOOOkdolllllllccccc::::;;;,,,'.\n"
-      "   kOOOOOOOOOOOOOOOOOOOOOOOxdllllccccc::::;;;,,,'.\n"
-      "   kOOOOOOOOOOOOOOOOOOOOOOOOOOkxolcccc::::;;;,,,'.\n"
-      "   kOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOkdlc::::;;;,,,'.\n"
-      "   xOOOOOOOOOOOxdkOOOOOOOOOOOOOOOOOOOOxoc:;;;,,,'.\n"
-      "   xOOOOOOOOOOOdc::ldkOOOOOOOOOOOOOOOOOOOkdc;,,,''\n"
-      "   xOOOOOOOOOOOdc::;;,;cdkOOOOOOOOOOOOOOOOOOOxl;''\n"
-      "   .lkOOOOOOOOOdc::;;,,''..;oOOOOOOOOOOOOOOOOOOOx'\n"
-      "      .;oOOOOOOdc::;;,.       .:xOOOOOOOOOOOOd;.  \n"
-      "          .:xOOdc:,.              'ckOOOOkl'      \n"
-      "             .od'                    'xk,         \n"
-      "\n");
-
-  nrf_cli_print(p_cli, "                Nordic Semiconductor              \n");
-}
-
-NRF_CLI_CMD_REGISTER(nordic, NULL, "Print Nordic Semiconductor logo.", cmd_nordic);
 
 #endif
+
+#endif
+
+void bm_cli_log_init(void) {
+
+  APP_ERROR_CHECK(NRF_LOG_INIT(app_timer_cnt_get));
+}
