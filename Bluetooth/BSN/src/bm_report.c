@@ -1,0 +1,101 @@
+#include "bm_config.h"
+#include "bm_cli.h"
+#include "bm_radio.h"
+#include "bm_report.h"
+#include "bm_rand.h"
+
+#include <hal/nrf_timer.h>
+#include <nrfx_timer.h>
+
+#ifdef ZEPHYR_BLE_MESH
+#include <zephyr.h>
+#elif defined NRF_SDK_Zigbee
+#endif
+
+#define msg_time_ms 5 // Time needed for one message
+#define msg_cnt 5     // Messages count used to transmit
+
+#define ReportAddress 0xFD84AB05
+#define CommonMode NRF_RADIO_MODE_BLE_1MBIT         // Common Mode
+#define CommonStartCH 37                            // Common Start Channel
+#define CommonEndCH 39                              // Common End Channel
+#define CommonCHCnt CommonEndCH - CommonStartCH + 1 // Common Channel Count
+// Selection Between nrf52840 and nrf5340 of TxPower -> The highest available for Common Channel is recomended
+#if defined(RADIO_TXPOWER_TXPOWER_Pos8dBm) || defined(__NRFX_DOXYGEN__)
+#define CommonTxPower NRF_RADIO_TXPOWER_POS8DBM // Common Tx Power < 8 dBm
+#elif defined(RADIO_TXPOWER_TXPOWER_0dBm) || defined(__NRFX_DOXYGEN__)
+#define CommonTxPower NRF_RADIO_TXPOWER_0DBM // Common Tx Power < 0 dBm
+#endif
+
+typedef struct
+{
+  uint16_t ReportEntry; // numer of Report entry requested
+} __attribute__((packed)) bm_report_req_msg_t;
+
+static RADIO_PACKET Radio_Packet_TX, Radio_Packet_RX ;
+
+bm_report_req_msg_t bm_report_req_msg;
+
+uint16_t rec_cnt = 0;
+
+bool bm_report_msg_subscribe(bm_message_info *message_info)
+{
+  bm_radio_init();
+  bm_radio_setMode(CommonMode);
+  bm_radio_setAA(ReportAddress);
+  bm_radio_setTxP(CommonTxPower);
+  uint16_t bm_message_info_entry_ind = 0;
+  bm_report_req_msg.ReportEntry = bm_message_info_entry_ind;
+  Radio_Packet_TX.length = sizeof(bm_report_req_msg);
+  Radio_Packet_TX.PDU = (uint8_t *)&bm_report_req_msg;
+  for (int i = 0; i < CommonCHCnt * NUMBER_OF_BENCHMARK_REPORT_MESSAGES; i++) // There is only one trie to transmitt the Report for a Channel
+  {
+    bm_radio_setCH(CommonStartCH + i % (CommonCHCnt - 1)); // Set the Channel alternating from StartCH till StopCH
+    bm_radio_send_burst(Radio_Packet_TX, msg_time_ms); // Send out Report Requests
+    if (bm_radio_receive(&Radio_Packet_RX, msg_time_ms))
+    {
+      rec_cnt++; // For Safty exit
+      // Save Report Entry
+      message_info[bm_message_info_entry_ind] = *(bm_message_info *)Radio_Packet_RX.PDU; // Bring the sheep to a dry place
+      // Next Report Entry
+      bm_message_info_entry_ind++;
+      bm_report_req_msg.ReportEntry = bm_message_info_entry_ind;
+      // Decrease channel index to keep chanel the same
+      i--;
+      if (message_info[bm_message_info_entry_ind].net_time == 0)
+      {
+        bm_cli_log("All reports received\n");
+        return true;
+      }
+    }
+    //if (i > 100 && )
+  }
+  return false;
+}
+
+bool bm_report_msg_publish(bm_message_info *message_info)
+{
+  bm_radio_init();
+  bm_radio_setMode(CommonMode);
+  bm_radio_setAA(ReportAddress);
+  bm_radio_setTxP(CommonTxPower);
+  uint16_t bm_message_info_entry_ind = 0;
+  Radio_Packet_TX.length = sizeof(bm_message_info);  
+  for (int i = 0; i < CommonCHCnt * NUMBER_OF_BENCHMARK_REPORT_MESSAGES; i++) // There is only one trie to transmitt the Report for a Channel
+  {
+    bm_radio_setCH(CommonStartCH + i % (CommonCHCnt - 1)); // Set the Channel alternating from StartCH till StopCH
+    if (bm_radio_receive(&Radio_Packet_RX, msg_time_ms*2*CommonCHCnt)) // Wait for the master to finish a request on all Channels
+    {
+      // Save Report Entry
+      bm_message_info_entry_ind = (*(bm_report_req_msg_t *)Radio_Packet_RX.PDU).ReportEntry; // Bring the sheep to a dry place
+      Radio_Packet_TX.PDU = (uint8_t *)&(message_info[bm_message_info_entry_ind]); // Prepare Sending
+      bm_radio_send_burst(Radio_Packet_TX, msg_time_ms); // Send out Report
+      // Decrease channel index to keep channel the same
+      i--;
+    } else if (message_info[bm_message_info_entry_ind].net_time == 0) {
+        return true;
+    }
+  }
+  return false;
+}
+

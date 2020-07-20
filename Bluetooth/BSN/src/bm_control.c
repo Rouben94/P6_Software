@@ -3,6 +3,7 @@
 #include "bm_radio.h"
 #include "bm_control.h"
 #include "bm_rand.h"
+#include "bm_timesync.h"
 
 #include <hal/nrf_timer.h>
 #include <nrfx_timer.h>
@@ -30,18 +31,14 @@
   
 
 
-  static RADIO_PACKET Radio_Packet_TX, Radio_Packet_RX;
-  bm_control_msg_t bm_ctrl_pkt_TX, bm_ctrl_pkt_RX;
+static RADIO_PACKET Radio_Packet_TX, Radio_Packet_RX;
 
 
 void bm_control_msg_publish(bm_control_msg_t bm_control_msg) {
-  uint8_t ch = CommonStartCH;                    // init Channel
   bm_radio_init();
   bm_radio_setMode(CommonMode);
   bm_radio_setAA(ControlAddress);
   bm_radio_setTxP(CommonTxPower);
-  synctimer_TimeStampCapture_clear();
-  synctimer_TimeStampCapture_enable();
   Radio_Packet_TX.length = sizeof(bm_control_msg);
   Radio_Packet_TX.PDU = (uint8_t *)&bm_control_msg;
   for (int ch = CommonStartCH; ch <= CommonEndCH; ch++)
@@ -53,13 +50,10 @@ void bm_control_msg_publish(bm_control_msg_t bm_control_msg) {
 }
 
 bool bm_control_msg_subscribe(bm_control_msg_t * bm_control_msg) {
-    uint8_t ch = CommonStartCH;                    // init Channel
     bm_radio_init();
     bm_radio_setMode(CommonMode);
     bm_radio_setAA(ControlAddress);
     bm_radio_setTxP(CommonTxPower);
-    synctimer_TimeStampCapture_clear();
-    synctimer_TimeStampCapture_enable();
     for (int ch = CommonStartCH; ch <= CommonEndCH; ch++)
     {
         bm_radio_setCH(ch);

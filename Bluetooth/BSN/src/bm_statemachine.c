@@ -5,8 +5,10 @@
 #include "bm_timesync.h"
 #include "bm_log.h"
 #include "bm_control.h"
+#include "bm_report.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 #ifdef ZEPHYR_BLE_MESH
 #include <zephyr.h>
@@ -121,7 +123,6 @@ void ST_INIT_fn(void)
 }
 void ST_CONTROL_fn(void)
 {
-
   while (currentState == ST_CONTROL)
   {
 #ifdef BENCHMARK_MASTER
@@ -135,6 +136,10 @@ void ST_CONTROL_fn(void)
       bm_control_msg.benchmark_packet_cnt = 0;
       bm_control_msg_publish(bm_control_msg);
       bm_cli_cmd_getNodeReport.req = false;
+      // DO get Node Report
+      transition_to_report = true;
+      bm_cli_log("Node Reporting initiated\n");
+      break;
     }
     else if (bm_cli_cmd_setNodeSettings.req)
     {
@@ -179,7 +184,7 @@ void ST_CONTROL_fn(void)
       {
         // DO set Node Settings
         bm_params.GroupAddress = bm_control_msg.GroupAddress;
-        bm_cli_log("New Settings Saved\n");
+        bm_cli_log("New Settings Saved Group: %u\n",bm_params.GroupAddress);
       }
       else if (bm_control_msg.MACAddressDst == LSB_MAC_Address && bm_control_msg.NextStateNr == ST_REPORT)
       {
@@ -191,6 +196,20 @@ void ST_CONTROL_fn(void)
     }
 #endif
   }
+  wait_for_transition = true; // Self trigger Transition
+  ST_transition_cb();
+}
+
+void ST_REPORT_fn(void)
+{  
+#ifdef BENCHMARK_MASTER // Master wait for Reports
+  memset(message_info, 0, sizeof(message_info)); // Erase old Log Buffer Content
+  bm_report_msg_subscribe(message_info); // Get the Reports
+#else // Servers and Clients wait for Reports
+  bm_report_msg_publish(message_info); // Send out Reports
+  memset(message_info, 0, sizeof(message_info)); // Erase old Log Buffer Content
+  bm_log_clear_flash(); // Clear Flash Area
+#endif
   wait_for_transition = true; // Self trigger Transition
   ST_transition_cb();
 }

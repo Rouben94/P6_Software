@@ -236,6 +236,15 @@ void bm_radio_send(RADIO_PACKET tx_pkt) {
   bm_radio_disable();
 }
 
+void bm_radio_send_burst(RADIO_PACKET tx_pkt,uint32_t burst_time_ms) { 
+  bm_synctimer_timeout_compare_int = false;
+    synctimer_setCompareInt(burst_time_ms); 
+    while (!(bm_synctimer_timeout_compare_int)) {
+      bm_radio_send(tx_pkt);
+    }
+    bm_synctimer_timeout_compare_int = false; // Reset Interrupt Flags
+}
+
 bool bm_radio_receive(RADIO_PACKET *rx_pkt, uint32_t timeout_ms) {
   bm_radio_disable();
   /* Initialize Rx Buffer */
