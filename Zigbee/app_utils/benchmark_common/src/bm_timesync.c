@@ -379,7 +379,7 @@ typedef struct
   uint8_t seq;
 } __attribute__((packed)) TimesyncPkt;
 
-RADIO_PACKET Radio_Packet_TX, Radio_Packet_RX;
+static RADIO_PACKET Radio_Packet_TX, Radio_Packet_RX;
 TimesyncPkt Tsync_pkt_TX, Tsync_pkt_RX, Tsync_pkt_RX_2;
 
 void bm_timesync_Publish(uint32_t timeout_ms, uint64_t ST_INIT_MESH_STACK_TS, bool Just_Once) {

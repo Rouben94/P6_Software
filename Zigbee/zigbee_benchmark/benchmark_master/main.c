@@ -23,12 +23,12 @@ int main(void) {
 
   bm_cli_init(); /* Initialize the Zigbee CLI subsystem */
 
-  while (true) {
-#ifdef BENCHMARK_MASTER
-    bm_cli_process();
-    UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
-#endif
-  }
+//  while (true) {
+//#ifdef BENCHMARK_MASTER
+//    bm_cli_process();
+//    UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
+//#endif
+//  }
 
 #endif
 

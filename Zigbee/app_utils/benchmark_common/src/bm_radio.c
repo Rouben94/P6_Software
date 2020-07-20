@@ -236,6 +236,15 @@ void bm_radio_send(RADIO_PACKET tx_pkt) {
   bm_radio_disable();
 }
 
+void bm_radio_send_burst(RADIO_PACKET tx_pkt,uint32_t burst_time_ms) { 
+  bm_synctimer_timeout_compare_int = false;
+    synctimer_setCompareInt(burst_time_ms); 
+    while (!(bm_synctimer_timeout_compare_int)) {
+      bm_radio_send(tx_pkt);
+    }
+    bm_synctimer_timeout_compare_int = false; // Reset Interrupt Flags
+}
+
 bool bm_radio_receive(RADIO_PACKET *rx_pkt, uint32_t timeout_ms) {
   bm_radio_disable();
   /* Initialize Rx Buffer */
@@ -503,6 +512,18 @@ void bm_radio_send(RADIO_PACKET tx_pkt) {
   bm_radio_disable();
 }
 
+
+
+void bm_radio_send_burst(RADIO_PACKET tx_pkt,uint32_t burst_time_ms) { 
+  bm_synctimer_timeout_compare_int = false;
+    synctimer_setCompareInt(burst_time_ms); 
+    while (!(bm_synctimer_timeout_compare_int)) {
+      bm_radio_send(tx_pkt);
+    }
+    bm_synctimer_timeout_compare_int = false; // Reset Interrupt Flags
+}
+
+
 bool bm_radio_receive(RADIO_PACKET *rx_pkt, uint32_t timeout_ms) {
   bm_radio_disable();
   /* Initialize Rx Buffer */
@@ -518,7 +539,6 @@ bool bm_radio_receive(RADIO_PACKET *rx_pkt, uint32_t timeout_ms) {
   nrf_radio_shorts_enable(NRF_RADIO_SHORT_READY_START_MASK | NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK | NRF_RADIO_SHORT_END_DISABLE_MASK | NRF_RADIO_SHORT_PHYEND_DISABLE_MASK); // Start after Ready and Start after END -> wait for CRCOK Event otherwise keep on receiving
   nrf_radio_task_trigger(NRF_RADIO_TASK_RXEN);
   bm_synctimer_timeout_compare_int = false;
-  bm_radio_crcok_int = false; // Reset Interrupt Flags
   synctimer_setCompareInt(timeout_ms);
   while (!(bm_synctimer_timeout_compare_int)) {
     //__SEV();__WFE();__WFE(); // Wait for Timer Interrupt nRF5SDK Way

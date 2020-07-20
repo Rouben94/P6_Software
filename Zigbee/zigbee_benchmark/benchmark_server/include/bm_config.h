@@ -15,11 +15,19 @@ extern uint32_t LSB_MAC_Address; // LSB of Randomly Static Assigned MAC Address
 /* =============== Benchmark Parameters ===================== */
 
 // Change the following to switch the Protokoll Stack and SDK
-#define BENCHMARK_SERVER                 /* Node is Benchmark Server */
+#define BENCHMARK_SERVER /* Node is Benchmark Server */
 //#define BENCHMARK_CLIENT                 /* Node is Benchmark Client */
 //#define BENCHMARK_MASTER                 /* Node is Benchmark Master */
 #define BENCHMARK_DEFAULT_TIME_S 10      // Default Benchmark Time (used when no Parameter available)
 #define BENCHMARK_DEFAULT_PACKETS_CNT 10 // Default Benchmark Packet Count (used when no Parameter available)
+
+typedef struct
+{
+  uint16_t benchmark_time_s;
+  uint16_t benchmark_packet_cnt;
+  uint8_t GroupAddress;
+} bm_params_t;
+extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a benchmark is active.
 
 /* =============== Defines for Reporting ===================== */
 #define NUMBER_OF_BENCHMARK_REPORT_MESSAGES 3000 /* Size of the Benchmark Reporting Array message_info */
@@ -78,12 +86,5 @@ extern uint32_t LSB_MAC_Address; // LSB of Randomly Static Assigned MAC Address
 #define GROUP_ID 0xB331                 /* Group ID which will be used to address a specific group of Benchmark Servers */
 
 #define BENCHMARK_CUSTOM_CMD_ID 0x00 /* Custom Benchmark Command ID */
-
-typedef struct
-{
-  uint16_t benchmark_time_s;
-  uint16_t benchmark_packet_cnt;
-} bm_params_t;
-extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a benchmark is active.
 
 #endif //BM_ZIGBEE_H

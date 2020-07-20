@@ -22,7 +22,7 @@ typedef struct
   uint16_t dst_addr;
   uint16_t group_addr;
   uint16_t data_size;
-} bm_message_info;
+} __attribute__((packed)) bm_message_info;
 
 //extern bm_message_info message_info[NUMBER_OF_BENCHMARK_REPORT_MESSAGES];
 
