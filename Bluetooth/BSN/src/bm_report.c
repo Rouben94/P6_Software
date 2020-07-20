@@ -68,7 +68,9 @@ bool bm_report_msg_subscribe(bm_message_info *message_info)
         return true;
       }
     }
-    //if (i > 100 && )
+    if (i > 500 && rec_cnt == 0){ // If no Node is there it should be equal to 5s...
+      return false;
+    }
   }
   return false;
 }
@@ -93,8 +95,10 @@ bool bm_report_msg_publish(bm_message_info *message_info)
       // Decrease channel index to keep channel the same
       i--;
     } else if (message_info[bm_message_info_entry_ind].net_time == 0) {
+        bm_cli_log("All Reports send\n");
         return true;
     }
+    bm_cli_log("hoi %u\n",(uint32_t)message_info[bm_message_info_entry_ind].net_time);
   }
   return false;
 }

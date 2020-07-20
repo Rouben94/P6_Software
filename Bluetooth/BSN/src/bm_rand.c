@@ -82,8 +82,8 @@ void bm_rand_init_message_ts()
   // Convert to Timesstamps relativ to benchmark Time
   for (int i = 0; i < bm_params.benchmark_packet_cnt; i++)
   {
-    bm_cli_log("Value is %u\n",bm_rand_msg_ts[i]);
     bm_rand_msg_ts[i] = (uint32_t)(((double)bm_rand_msg_ts[i] / UINT32_MAX) * (double)bm_params.benchmark_time_s * 1e6); // Be aware of not loosing accuracy
+    bm_cli_log("Value is %u us\n",bm_rand_msg_ts[i]);
   }
   return;
 }

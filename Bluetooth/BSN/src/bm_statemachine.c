@@ -60,7 +60,7 @@ bm_control_msg_t bm_control_msg;     // Control Message Buffer
 bool transition_to_timesync = false; // Switch Flag for a Transition Request to Timesync
 bool transition_to_report = false;   // Switch Flag for a Transition Request to Report
 
-static void ST_BENCHMARK_msg_cb(void);
+static bool ST_BENCHMARK_msg_cb(void);
 
 static void ST_transition_cb(void)
 {
@@ -93,7 +93,9 @@ static void ST_transition_cb(void)
   else if (currentState == ST_BENCHMARK)
   {
     /* Call the Benchmark send_message callback */
-    ST_BENCHMARK_msg_cb();
+    if (!ST_BENCHMARK_msg_cb()){
+      return; // Return only when Benchmark is Done
+    }
   }
   if (!wait_for_transition)
   {
@@ -123,6 +125,7 @@ void ST_INIT_fn(void)
 }
 void ST_CONTROL_fn(void)
 {
+  bm_cli_log("Ready for Control Message\n");
   while (currentState == ST_CONTROL)
   {
 #ifdef BENCHMARK_MASTER
@@ -150,6 +153,7 @@ void ST_CONTROL_fn(void)
       bm_control_msg.benchmark_packet_cnt = 0;
       bm_control_msg_publish(bm_control_msg);
       bm_cli_cmd_setNodeSettings.req = false;
+      bm_cli_log("Ready for Control Message\n");
     }
     else if (bm_cli_cmd_startBM.req)
     {
@@ -177,7 +181,7 @@ void ST_CONTROL_fn(void)
         bm_params.benchmark_time_s = bm_control_msg.benchmark_time_s;
         bm_params.benchmark_packet_cnt = bm_control_msg.benchmark_packet_cnt;
         transition_to_timesync = true;
-        bm_cli_log("Benchmark Start initiated\n");
+        bm_cli_log("Benchmark Start initiated: Time: %us Packet Count: %u\n",bm_params.benchmark_time_s, bm_params.benchmark_packet_cnt);
         break;
       }
       else if (bm_control_msg.MACAddressDst == LSB_MAC_Address && bm_control_msg.GroupAddress > 0)
@@ -185,6 +189,7 @@ void ST_CONTROL_fn(void)
         // DO set Node Settings
         bm_params.GroupAddress = bm_control_msg.GroupAddress;
         bm_cli_log("New Settings Saved Group: %u\n",bm_params.GroupAddress);
+        bm_cli_log("Ready for Control Message\n");
       }
       else if (bm_control_msg.MACAddressDst == LSB_MAC_Address && bm_control_msg.NextStateNr == ST_REPORT)
       {
@@ -288,7 +293,7 @@ void ST_BENCHMARK_fn(void)
   return;
 }
 
-void ST_BENCHMARK_msg_cb(void)
+bool ST_BENCHMARK_msg_cb(void)
 {
   /* Call the Benchmark send_message function */
   bm_send_message();
@@ -305,13 +310,14 @@ void ST_BENCHMARK_msg_cb(void)
   {
     next_state_ts_us = start_time_ts_us + bm_rand_msg_ts[bm_rand_msg_ts_ind];
     synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb); // Shedule the next Timestamp event
-    return;                                                              // Return immidiatly to save time and prevent wait for transition errors
+    return false;                                                              // Return immidiatly to save time and prevent wait for transition errors
   }
   else
   {
     //Finish Benchmark
     wait_for_transition = true; // To Prevent Statmachine Error
     currentState = ST_SAVE_FLASH;
+    return true;
   }
 }
 
@@ -356,6 +362,9 @@ void bm_statemachine()
       break;
     case ST_CONTROL:
       ST_CONTROL_fn();
+      break;
+    case ST_REPORT:
+      ST_REPORT_fn();
       break;
     case ST_TIMESYNC:
       ST_TIMESYNC_fn();
