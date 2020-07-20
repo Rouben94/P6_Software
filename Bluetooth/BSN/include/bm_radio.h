@@ -38,7 +38,11 @@ void bm_radio_setTxP(nrf_radio_txpower_t TxP);
 
 void bm_radio_send(RADIO_PACKET tx_pkt);
 
+void bm_radio_send_burst(RADIO_PACKET tx_pkt,uint32_t burst_time_ms);
+
 bool bm_radio_receive(RADIO_PACKET *rx_pkt, uint32_t timeout_ms);
+
+
 
 
 
