@@ -2627,13 +2627,13 @@
  
 
 #ifndef NRF_LOG_BACKEND_FLASH_CLI_CMDS
-#define NRF_LOG_BACKEND_FLASH_CLI_CMDS 1
+#define NRF_LOG_BACKEND_FLASH_CLI_CMDS 0
 #endif
 
 // <e> NRF_LOG_BACKEND_FLASHLOG_ENABLED - Enable flashlog backend.
 //==========================================================
 #ifndef NRF_LOG_BACKEND_FLASHLOG_ENABLED
-#define NRF_LOG_BACKEND_FLASHLOG_ENABLED 1
+#define NRF_LOG_BACKEND_FLASHLOG_ENABLED 0
 #endif
 // <o> NRF_LOG_BACKEND_FLASHLOG_QUEUE_SIZE - Logger messages queue size. 
 // <i> Queue holds log messages pending to be written to flash.
@@ -2827,7 +2827,7 @@
 // <16384=> 16384
 
 #ifndef NRF_LOG_BUFSIZE
-#define NRF_LOG_BUFSIZE 1024
+#define NRF_LOG_BUFSIZE 4096
 #endif
 
 // <q> NRF_LOG_CLI_CMDS  - Enable CLI commands for the module.

@@ -21,14 +21,8 @@ int main(void) {
 
   bm_cli_log_init(); /* Initialize the Zigbee LOG subsystem */
 
-  bm_cli_init(); /* Initialize the Zigbee CLI subsystem */
+//  bm_cli_init(); /* Initialize the Zigbee CLI subsystem */
 
-//  while (true) {
-//#ifdef BENCHMARK_MASTER
-//    bm_cli_process();
-//    UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
-//#endif
-//  }
 
 #endif
 

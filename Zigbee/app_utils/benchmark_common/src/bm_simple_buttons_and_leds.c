@@ -125,7 +125,8 @@ void bm_init_leds()
 	ret_code_t error_code;
 
 	/* Initialize LEDs and buttons - use BSP to control them. */
-	error_code = bsp_init(BSP_INIT_LEDS | BSP_INIT_BUTTONS, buttons_handler);
+        //	error_code = bsp_init(BSP_INIT_LEDS | BSP_INIT_BUTTONS, buttons_handler);
+        error_code = bsp_init(BSP_INIT_LEDS, NULL);
 	APP_ERROR_CHECK(error_code);
 	/* By default the bsp_init attaches BSP_KEY_EVENTS_{0-4} to the PUSH events of the corresponding buttons. */
 

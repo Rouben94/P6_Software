@@ -160,6 +160,7 @@
       <file file_name="../../../../../../../components/libraries/fds/fds.h" />
       <file file_name="../../../../../app_utils/benchmark_common/src/bm_control.c" />
       <file file_name="../../../../../app_utils/benchmark_common/src/bm_report.c" />
+      <file file_name="../../../../../app_utils/benchmark_common/src/bm_simple_buttons_and_leds.c" />
     </folder>
     <folder Name="UTF8/UTF16 converter">
       <file file_name="../../../../../../../external/utf_converter/utf.c" />

@@ -91,6 +91,7 @@
 "Output/zigbee_benchmark_master Release/Obj/fds.o"
 "Output/zigbee_benchmark_master Release/Obj/bm_control.o"
 "Output/zigbee_benchmark_master Release/Obj/bm_report.o"
+"Output/zigbee_benchmark_master Release/Obj/bm_simple_buttons_and_leds.o"
 "Output/zigbee_benchmark_master Release/Obj/utf.o"
 "Output/zigbee_benchmark_master Release/Obj/SEGGER_RTT.o"
 "Output/zigbee_benchmark_master Release/Obj/SEGGER_RTT_printf.o"

@@ -17,6 +17,7 @@
 #include "bm_cli.h"
 #include "bm_config.h"
 #include "bm_log.h"
+#include "bm_simple_buttons_and_leds.h"
 #include "bm_timesync.h"
 #include "bm_zigbee.h"
 
@@ -41,7 +42,9 @@
 static zb_void_t steering_finished(zb_uint8_t param) {
   UNUSED_PARAMETER(param);
   NRF_LOG_INFO("Network steering finished");
-  bsp_board_led_off(ZIGBEE_NETWORK_STATE_LED);
+
+  bm_led2_set(true);
+  //  bsp_board_led_off(ZIGBEE_NETWORK_STATE_LED);
 }
 
 /************************************ Button Handler Functions ***********************************************/
@@ -66,11 +69,11 @@ static void buttons_handler(bsp_event_t evt) {
       NRF_LOG_INFO("Top level comissioning hasn't finished yet!");
     }
     break;
-//  case BSP_EVENT_KEY_3:
-//    button = BENCHMARK_BUTTON;
-//    NRF_LOG_INFO("BENCHMARK Button pressed");
-//
-//    break;
+    //  case BSP_EVENT_KEY_3:
+    //    button = BENCHMARK_BUTTON;
+    //    NRF_LOG_INFO("BENCHMARK Button pressed");
+    //
+    //    break;
 
   default:
     NRF_LOG_INFO("Unhandled BSP Event received: %d", evt);
@@ -80,13 +83,13 @@ static void buttons_handler(bsp_event_t evt) {
 
 /**@brief Function for initializing LEDs and Buttons.
  */
-static void leds_buttons_init(void) {
-  uint32_t err_code = bsp_init(BSP_INIT_LEDS | BSP_INIT_BUTTONS, buttons_handler);
-  APP_ERROR_CHECK(err_code);
-  /* By default the bsp_init attaches BSP_KEY_EVENTS_{0-4} to the PUSH events of the corresponding buttons. */
-
-  bsp_board_leds_off();
-}
+//static void leds_buttons_init(void) {
+//  uint32_t err_code = bsp_init(BSP_INIT_LEDS | BSP_INIT_BUTTONS, buttons_handler);
+//  APP_ERROR_CHECK(err_code);
+//  /* By default the bsp_init attaches BSP_KEY_EVENTS_{0-4} to the PUSH events of the corresponding buttons. */
+//
+//  bsp_board_leds_off();
+//}
 
 /************************************ Benchmark Functions ***********************************************/
 
@@ -182,9 +185,12 @@ void zboss_signal_handler(zb_bufid_t bufid) {
 
   /* Update network status LED */
   if (ZB_JOINED() && (ZB_SCHEDULE_GET_ALARM_TIME(steering_finished, ZB_ALARM_ANY_PARAM, &timeout_bi) == RET_OK)) {
-    bsp_board_led_on(ZIGBEE_NETWORK_STATE_LED);
+    //    bsp_board_led_on(ZIGBEE_NETWORK_STATE_LED);
+    bm_led2_set(true);
+
   } else {
-    bsp_board_led_off(ZIGBEE_NETWORK_STATE_LED);
+    //    bsp_board_led_off(ZIGBEE_NETWORK_STATE_LED);
+    bm_led2_set(false);
   }
 
   /* All callbacks should either reuse or free passed buffers. If bufid == 0, the buffer is invalid (not passed) */
@@ -199,12 +205,7 @@ void bm_zigbee_init(void) {
   zb_ret_t zb_err_code;
   zb_ieee_addr_t ieee_addr;
 
-  //  timers_init();
-  leds_buttons_init();
   bm_log_init();
-
-  /* Initialize the Zigbee CLI subsystem */
-//  bm_cli_init();
 
   /* Set Zigbee stack logging level and traffic dump subsystem. */
   ZB_SET_TRACE_LEVEL(ZIGBEE_TRACE_LEVEL);
@@ -231,7 +232,7 @@ void bm_zigbee_enable(void) {
   zb_ieee_addr_t ieee_addr;
 
   /* Start Zigbee CLI subsystem. */
-//  bm_cli_start();
+  //  bm_cli_start();
 
   /** Start Zigbee Stack. */
   zb_err_code = zboss_start_no_autostart();
