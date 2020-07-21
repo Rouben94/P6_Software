@@ -48,9 +48,25 @@ void bm_log_save_to_flash() {
   }
   bm_cli_log("Write to Flash finished. %d data packets saved\n", bm_message_cnt_flash);
   #elif defined ZEPHYR_BLE_MESH
-  flash_write_protection_set(flash_dev, false);
-  flash_write(flash_dev, FLASH_OFFSET, message_info, sizeof(message_info));
+  int ret;
+  ret = flash_write_protection_set(flash_dev, false);
+  if(ret == 0){
+    bm_cli_log("Disabled Flash Write Protection Sucessfully\n");
+  } else {
+    bm_cli_log("Disable Flash Write Protection resultet in error code %d\n",ret);
+  }
+  ret = flash_write(flash_dev, FLASH_OFFSET, message_info, sizeof(message_info));
+  if(ret == 0){
+    bm_cli_log("Write to Flash Sucessfully\n");
+  } else {
+    bm_cli_log("Write to Flash Sucessfully resultet in error code %d\n",ret);
+  }
   flash_write_protection_set(flash_dev, true); // enable is recommended
+  if(ret == 0){
+    bm_cli_log("Enabled Flash Write Protection Sucessfully\n");
+  } else {
+    bm_cli_log("Enable Flash Write Protection resultet in error code %d\n",ret);
+  }
   #endif
 }
 
