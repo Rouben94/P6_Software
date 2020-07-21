@@ -53,9 +53,11 @@
       <option value="audi">Audi</option>
     </select>
   </p>
-  <p>
-    <button type="button" id="setParams" class="btn btn-dark navbar-btn">Set Parameters</button>
-  </p>       
+  <form action="" method="post">{% csrf_token %}
+    <p>
+      <button type="button" id="setParams" class="btn btn-dark navbar-btn">Set Parameters</button>
+    </p> 
+  </form>
   <table class="table table-dark table-striped">
     <thead>
       <tr>
