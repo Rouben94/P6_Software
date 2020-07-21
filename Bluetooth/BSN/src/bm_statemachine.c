@@ -1,19 +1,19 @@
-#include "bm_config.h"
 #include "bm_cli.h"
+#include "bm_config.h"
+#include "bm_control.h"
+#include "bm_log.h"
 #include "bm_radio.h"
 #include "bm_rand.h"
-#include "bm_timesync.h"
-#include "bm_log.h"
-#include "bm_control.h"
 #include "bm_report.h"
+#include "bm_timesync.h"
 
 #include <stdlib.h>
 #include <string.h>
 
 #ifdef ZEPHYR_BLE_MESH
-#include <zephyr.h>
 #include "bm_blemesh.h"
 #include "bm_blemesh_model_handler.h"
+#include <zephyr.h>
 #elif defined NRF_SDK_Zigbee
 #include "bm_zigbee.h"
 #endif
@@ -60,45 +60,35 @@ bm_control_msg_t bm_control_msg;     // Control Message Buffer
 bool transition_to_timesync = false; // Switch Flag for a Transition Request to Timesync
 bool transition_to_report = false;   // Switch Flag for a Transition Request to Report
 
+#ifdef BENCHMARK_CLIENT
 static bool ST_BENCHMARK_msg_cb(void);
+#endif
 
-static void ST_transition_cb(void)
-{
-  if (currentState == ST_INIT)
-  {
+static void ST_transition_cb(void) {
+  if (currentState == ST_INIT) {
     currentState = ST_CONTROL;
-  }
-  else if (currentState == ST_CONTROL && transition_to_timesync)
-  {
+  } else if (currentState == ST_CONTROL && transition_to_timesync) {
     transition_to_timesync = false;
     currentState = ST_TIMESYNC;
-  }
-  else if (currentState == ST_CONTROL && transition_to_report)
-  {
+  } else if (currentState == ST_CONTROL && transition_to_report) {
     transition_to_report = false;
     currentState = ST_REPORT;
-  }
-  else if (currentState == ST_REPORT)
-  {
+  } else if (currentState == ST_REPORT) {
     currentState = ST_CONTROL;
-  }
-  else if ((currentState == ST_TIMESYNC && (bm_state_synced && !isTimeMaster)) || (currentState == ST_TIMESYNC && isTimeMaster)) // Not Synced Slave Nodes stay in Timesync State.
+  } else if ((currentState == ST_TIMESYNC && (bm_state_synced && !isTimeMaster)) || (currentState == ST_TIMESYNC && isTimeMaster)) // Not Synced Slave Nodes stay in Timesync State.
   {
     currentState = ST_INIT_BENCHMARK;
-  }
-  else if (currentState == ST_INIT_BENCHMARK)
-  {
+  } else if (currentState == ST_INIT_BENCHMARK) {
     currentState = ST_BENCHMARK;
-  }
-  else if (currentState == ST_BENCHMARK)
-  {
+  } else if (currentState == ST_BENCHMARK) {
+    #ifdef BENCHMARK_CLIENT
     /* Call the Benchmark send_message callback */
-    if (!ST_BENCHMARK_msg_cb()){
+    if (!ST_BENCHMARK_msg_cb()) {
       return; // Return only when Benchmark is Done
     }
+    #endif
   }
-  if (!wait_for_transition)
-  {
+  if (!wait_for_transition) {
     bm_cli_log("ERROR: Statemachine out of Sync !!!\n");
     bm_cli_log("Please reset Device\n");
   }
@@ -107,8 +97,7 @@ static void ST_transition_cb(void)
   bm_cli_log("Current State: %d\n", currentState);
 }
 
-void ST_INIT_fn(void)
-{
+void ST_INIT_fn(void) {
   synctimer_init();
   synctimer_start();
   bm_rand_init();
@@ -123,15 +112,12 @@ void ST_INIT_fn(void)
   wait_for_transition = true; // Self trigger Transition
   ST_transition_cb();
 }
-void ST_CONTROL_fn(void)
-{
+void ST_CONTROL_fn(void) {
   bm_cli_log("Ready for Control Message\n");
-  while (currentState == ST_CONTROL)
-  {
+  while (currentState == ST_CONTROL) {
 #ifdef BENCHMARK_MASTER
     // Poll for CLI Commands
-    if (bm_cli_cmd_getNodeReport.req)
-    {
+    if (bm_cli_cmd_getNodeReport.req) {
       bm_control_msg.MACAddressDst = bm_cli_cmd_getNodeReport.MAC;
       bm_control_msg.NextStateNr = ST_REPORT;
       bm_control_msg.GroupAddress = 0;
@@ -143,9 +129,7 @@ void ST_CONTROL_fn(void)
       transition_to_report = true;
       bm_cli_log("Node Reporting initiated\n");
       break;
-    }
-    else if (bm_cli_cmd_setNodeSettings.req)
-    {
+    } else if (bm_cli_cmd_setNodeSettings.req) {
       bm_control_msg.MACAddressDst = bm_cli_cmd_setNodeSettings.MAC;
       bm_control_msg.NextStateNr = 0;
       bm_control_msg.GroupAddress = bm_cli_cmd_setNodeSettings.GroupAddress;
@@ -154,9 +138,7 @@ void ST_CONTROL_fn(void)
       bm_control_msg_publish(bm_control_msg);
       bm_cli_cmd_setNodeSettings.req = false;
       bm_cli_log("Ready for Control Message\n");
-    }
-    else if (bm_cli_cmd_startBM.req)
-    {
+    } else if (bm_cli_cmd_startBM.req) {
       bm_control_msg.MACAddressDst = 0xFFFFFFFF; //Broadcast Address
       bm_control_msg.NextStateNr = ST_TIMESYNC;
       bm_control_msg.GroupAddress = 0;
@@ -171,28 +153,26 @@ void ST_CONTROL_fn(void)
       bm_cli_log("Benchmark Start initiatet\n");
       break;
     }
+#ifdef NRF_SDK_Zigbee
+    bm_cli_process();
+    UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
+#endif
     bm_sleep(100); // Poll Interval is 100ms
 #else              // If not MASTER then Server or Client
-    if (bm_control_msg_subscribe(&bm_control_msg))
-    {
-      if (bm_control_msg.benchmark_time_s > 0 && bm_control_msg.benchmark_packet_cnt > 0 && bm_control_msg.benchmark_packet_cnt <= 1000 && bm_control_msg.NextStateNr == ST_TIMESYNC && bm_control_msg.MACAddressDst == 0xFFFFFFFF)
-      {
+    if (bm_control_msg_subscribe(&bm_control_msg)) {
+      if (bm_control_msg.benchmark_time_s > 0 && bm_control_msg.benchmark_packet_cnt > 0 && bm_control_msg.benchmark_packet_cnt <= 1000 && bm_control_msg.NextStateNr == ST_TIMESYNC && bm_control_msg.MACAddressDst == 0xFFFFFFFF) {
         // DO Start Benchmark
         bm_params.benchmark_time_s = bm_control_msg.benchmark_time_s;
         bm_params.benchmark_packet_cnt = bm_control_msg.benchmark_packet_cnt;
         transition_to_timesync = true;
-        bm_cli_log("Benchmark Start initiated: Time: %us Packet Count: %u\n",bm_params.benchmark_time_s, bm_params.benchmark_packet_cnt);
+        bm_cli_log("Benchmark Start initiated: Time: %us Packet Count: %u\n", bm_params.benchmark_time_s, bm_params.benchmark_packet_cnt);
         break;
-      }
-      else if (bm_control_msg.MACAddressDst == LSB_MAC_Address && bm_control_msg.GroupAddress > 0)
-      {
+      } else if (bm_control_msg.MACAddressDst == LSB_MAC_Address && bm_control_msg.GroupAddress > 0) {
         // DO set Node Settings
         bm_params.GroupAddress = bm_control_msg.GroupAddress;
-        bm_cli_log("New Settings Saved Group: %u\n",bm_params.GroupAddress);
+        bm_cli_log("New Settings Saved Group: %u\n", bm_params.GroupAddress);
         bm_cli_log("Ready for Control Message\n");
-      }
-      else if (bm_control_msg.MACAddressDst == LSB_MAC_Address && bm_control_msg.NextStateNr == ST_REPORT)
-      {
+      } else if (bm_control_msg.MACAddressDst == LSB_MAC_Address && bm_control_msg.NextStateNr == ST_REPORT) {
         // DO get Node Report
         transition_to_report = true;
         bm_cli_log("Node Reporting initiated\n");
@@ -205,44 +185,36 @@ void ST_CONTROL_fn(void)
   ST_transition_cb();
 }
 
-void ST_REPORT_fn(void)
-{  
-#ifdef BENCHMARK_MASTER // Master wait for Reports
+void ST_REPORT_fn(void) {
+#ifdef BENCHMARK_MASTER                          // Master wait for Reports
   memset(message_info, 0, sizeof(message_info)); // Erase old Log Buffer Content
-  bm_report_msg_subscribe(message_info); // Get the Reports
-#else // Servers and Clients wait for Reports
-  bm_report_msg_publish(message_info); // Send out Reports
+  bm_report_msg_subscribe(message_info);         // Get the Reports
+#else                                            // Servers and Clients wait for Reports
+  bm_report_msg_publish(message_info);           // Send out Reports
   memset(message_info, 0, sizeof(message_info)); // Erase old Log Buffer Content
-  bm_log_clear_flash(); // Clear Flash Area
+  bm_log_clear_flash();                          // Clear Flash Area
 #endif
   wait_for_transition = true; // Self trigger Transition
   ST_transition_cb();
 }
 
-void ST_TIMESYNC_fn(void)
-{
+void ST_TIMESYNC_fn(void) {
   next_state_ts_us = (synctimer_getSyncTime() + ST_TIMESYNC_TIME_MS * 1000 + ST_MARGIN_TIME_MS * 1000);
   synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb);
-  if (isTimeMaster)
-  {
+  if (isTimeMaster) {
     bm_timesync_Publish(ST_TIMESYNC_TIME_MS, next_state_ts_us, false);
-  }
-  else
-  {
-    if (bm_timesync_Subscribe(ST_TIMESYNC_TIME_MS, ST_transition_cb))
-    {
-      while (synctimer_getSyncTimeCompareIntTS() > (synctimer_getSyncTime() + ST_MARGIN_TIME_MS * 1000 + ST_TIMESYNC_BACKOFF_TIME_MS * 1000))
-      {                                                                    // Check if there is Time Left for Propagating Timesync further
-        bm_sleep(bm_rand_32 % ST_TIMESYNC_BACKOFF_TIME_MS);                // Sleep from 0 till Random Backoff Time
-        bm_timesync_Publish(0, synctimer_getSyncTimeCompareIntTS(), true); // Propagate the Timesync further just once for each Channel
+  } else {
+    if (bm_timesync_Subscribe(ST_TIMESYNC_TIME_MS, ST_transition_cb)) {
+      while (synctimer_getSyncTimeCompareIntTS() > (synctimer_getSyncTime() + ST_MARGIN_TIME_MS * 1000 + ST_TIMESYNC_BACKOFF_TIME_MS * 1000)) { // Check if there is Time Left for Propagating Timesync further
+        bm_sleep(bm_rand_32 % ST_TIMESYNC_BACKOFF_TIME_MS);                                                                                     // Sleep from 0 till Random Backoff Time
+        bm_timesync_Publish(0, synctimer_getSyncTimeCompareIntTS(), true);                                                                      // Propagate the Timesync further just once for each Channel
       }
     }
   }
   return;
 }
 
-void ST_INIT_BENCHMARK_fn(void)
-{
+void ST_INIT_BENCHMARK_fn(void) {
 #ifdef ZEPHYR_BLE_MESH
   next_state_ts_us = (synctimer_getSyncTime() + ST_INIT_BENCHMARK_TIME_MS * 1000 + ST_MARGIN_TIME_MS * 1000);
 #elif defined NRF_SDK_Zigbee
@@ -262,17 +234,18 @@ void ST_INIT_BENCHMARK_fn(void)
   bm_zigbee_enable();
   /* Zigbee or Zboss has its own RTOS Scheduler. He owns all the CPU so we let him work while we wait. 
   Note that the check for time left slows down the Zboss stack a bit. Since we are still init the stack this shouldnt be a big deal. */
-  while ((synctimer_getSyncTime() - start_time_ts_us) < ST_INIT_BENCHMARK_TIME_MS * 1000)
-  {
+  while ((synctimer_getSyncTime() - start_time_ts_us) < ST_INIT_BENCHMARK_TIME_MS * 1000) {
     zboss_main_loop_iteration();
     UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
+#ifdef BENCHMARK_MASTER
+    bm_cli_process();
+#endif
   }
 #endif
   return;
 }
 
-void ST_BENCHMARK_fn(void)
-{
+void ST_BENCHMARK_fn(void) {
   bm_rand_msg_ts_ind = 0;                                                            // Init the Random Timestamp Array INdex
   start_time_ts_us = synctimer_getSyncTime();                                        // Get the current Timestamp
   next_state_ts_us = (start_time_ts_us + bm_rand_msg_ts[bm_rand_msg_ts_ind] + 1000); // Add a satfy margin of 1000us incase Random value was 0
@@ -284,45 +257,45 @@ void ST_BENCHMARK_fn(void)
 #elif defined NRF_SDK_Zigbee
   /* Zigbee or Zboss has its own RTOS Scheduler. He owns all the CPU so we let him work while we wait. 
   Note that the check forcurrent slows down the Zboss stack a bit... this shouldnt be a big deal. */
-  while (currentState == ST_BENCHMARK)
-  {
+  while (currentState == ST_BENCHMARK) {
     zboss_main_loop_iteration();
     UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
+#ifdef BENCHMARK_MASTER
+    bm_cli_process();
+#endif
   }
 #endif
   return;
 }
 
-bool ST_BENCHMARK_msg_cb(void)
-{
+
+#ifdef BENCHMARK_CLIENT
+bool ST_BENCHMARK_msg_cb(void) {
   /* Call the Benchmark send_message function */
   bm_send_message();
   /* Schedule Next Message */
   bm_rand_msg_ts_ind++;
   //Next Package -> Check if Timestamp is too close or the same and that not end reached
-  while ((start_time_ts_us + bm_rand_msg_ts[bm_rand_msg_ts_ind] <= synctimer_getSyncTime() + ST_BENCHMARK_MIN_GAP_TIME_US) && (bm_rand_msg_ts_ind < bm_params.benchmark_packet_cnt))
-  {
+  while ((start_time_ts_us + bm_rand_msg_ts[bm_rand_msg_ts_ind] <= synctimer_getSyncTime() + ST_BENCHMARK_MIN_GAP_TIME_US) && (bm_rand_msg_ts_ind < bm_params.benchmark_packet_cnt)) {
     /* Call the Benchmark send_message function */
     bm_send_message();
     bm_rand_msg_ts_ind++;
   }
-  if (bm_rand_msg_ts_ind < bm_params.benchmark_packet_cnt)
-  {
+  if (bm_rand_msg_ts_ind < bm_params.benchmark_packet_cnt) {
     next_state_ts_us = start_time_ts_us + bm_rand_msg_ts[bm_rand_msg_ts_ind];
     synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb); // Shedule the next Timestamp event
-    return false;                                                              // Return immidiatly to save time and prevent wait for transition errors
-  }
-  else
-  {
+    return false;                                                        // Return immidiatly to save time and prevent wait for transition errors
+  } else {
     //Finish Benchmark
     wait_for_transition = true; // To Prevent Statmachine Error
     currentState = ST_SAVE_FLASH;
     return true;
   }
 }
+#endif
 
-void ST_SAVE_FLASH_fn(void)
-{
+
+void ST_SAVE_FLASH_fn(void) {
   next_state_ts_us = (synctimer_getSyncTime() + ST_SAVE_FLASH_TIME_MS * 1000 + ST_MARGIN_TIME_MS * 1000);
   synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb); // Shedule the Timestamp event
   start_time_ts_us = synctimer_getSyncTime();                          // Get the current Timestamp
@@ -332,11 +305,9 @@ void ST_SAVE_FLASH_fn(void)
   return;
 }
 
-void ST_WAIT_FOR_TRANSITION_fn()
-{
+void ST_WAIT_FOR_TRANSITION_fn() {
   wait_for_transition = true;
-  while (!(transition))
-  {
+  while (!(transition)) {
 #ifdef ZEPHYR_BLE_MESH
     k_sleep(K_FOREVER); // Zephyr Way
 #elif defined NRF_SDK_Zigbee
@@ -350,13 +321,10 @@ void ST_WAIT_FOR_TRANSITION_fn()
   return;
 }
 
-void bm_statemachine()
-{
-  while (true)
-  {
+void bm_statemachine() {
+  while (true) {
     transition = false;
-    switch (currentState)
-    {
+    switch (currentState) {
     case ST_INIT:
       ST_INIT_fn();
       break;
