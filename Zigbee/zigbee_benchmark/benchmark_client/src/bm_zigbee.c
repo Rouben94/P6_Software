@@ -204,12 +204,12 @@ static void timers_init(void) {
 
 /**@brief Function for initializing the nrf log module.
  */
-static void log_init(void) {
-  ret_code_t err_code = NRF_LOG_INIT(NULL);
-  APP_ERROR_CHECK(err_code);
-
-  NRF_LOG_DEFAULT_BACKENDS_INIT();
-}
+//static void log_init(void) {
+//  ret_code_t err_code = NRF_LOG_INIT(NULL);
+//  APP_ERROR_CHECK(err_code);
+//
+//  NRF_LOG_DEFAULT_BACKENDS_INIT();
+//}
 
 /**@brief Function for initializing LEDs and buttons.
  */
@@ -291,21 +291,21 @@ zb_void_t bm_button_handler(zb_uint8_t button) {
     break;
 
   case BENCHMARK_BUTTON:
-    bm_msg_cnt_sent = 0;
-    bm_msg_cnt = 20;
-    bm_time_interval_msec = 20000;
-    timeslot = bm_time_interval_msec / bm_msg_cnt;
-    timeout = timeslot;
-
-    zb_err_code = ZB_SCHEDULE_APP_CALLBACK(bm_send_message, 0);
-    ZB_ERROR_CHECK(zb_err_code);
+//    bm_msg_cnt_sent = 0;
+//    bm_msg_cnt = 20;
+//    bm_time_interval_msec = 20000;
+//    timeslot = bm_time_interval_msec / bm_msg_cnt;
+//    timeout = timeslot;
+//
+//    zb_err_code = ZB_SCHEDULE_APP_CALLBACK(bm_send_message, 0);
+//    ZB_ERROR_CHECK(zb_err_code);
     break;
 
   case TEST_BUTTON:
-    //random_level_value = ZB_RANDOM_VALUE(256);
-    NRF_LOG_INFO("Read data from Flash done");
-    zb_err_code = ZB_SCHEDULE_APP_ALARM(bm_report_data, 0, ZB_MILLISECONDS_TO_BEACON_INTERVAL(1000));
-    ZB_ERROR_CHECK(zb_err_code);
+//    random_level_value = ZB_RANDOM_VALUE(256);
+//    NRF_LOG_INFO("Read data from Flash done");
+//    zb_err_code = ZB_SCHEDULE_APP_ALARM(bm_report_data, 0, ZB_MILLISECONDS_TO_BEACON_INTERVAL(1000));
+//    ZB_ERROR_CHECK(zb_err_code);
 
     break;
 
@@ -651,7 +651,7 @@ void bm_zigbee_init(void) {
 
   /* Register callback for handling ZCL commands. */
   ZB_AF_SET_ENDPOINT_HANDLER(BENCHMARK_CLIENT_ENDPOINT, bm_zcl_handler);
-  ZB_AF_SET_ENDPOINT_HANDLER(BENCHMARK_CONTROL_ENDPOINT, bm_zcl_handler);
+//  ZB_AF_SET_ENDPOINT_HANDLER(BENCHMARK_CONTROL_ENDPOINT, bm_zcl_handler);
   ZB_ZCL_REGISTER_DEVICE_CB(zcl_device_cb);
 
   /* Initialzie Cluster Attributes */

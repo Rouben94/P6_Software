@@ -150,10 +150,10 @@ void ST_CONTROL_fn(void) {
       break;
     }
 
-#ifdef BENCHMARK_MASTER
+#ifdef NRF_SDK_Zigbee
     bm_cli_process();
-#endif
     UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
+#endif
 
     bm_sleep(100); // Poll Interval is 100ms
 #else              // If not MASTER then Server or Client

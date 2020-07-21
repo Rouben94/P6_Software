@@ -1,7 +1,3 @@
-/*
- * Zigbee Benchmark Server
- * Acting as a Light Bulb
- */
 
 #include "bm_cli.h"
 #include "bm_config.h"

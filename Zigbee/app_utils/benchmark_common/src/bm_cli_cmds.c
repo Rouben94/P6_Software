@@ -24,10 +24,6 @@ bm_cli_cmd_setNodeSettings_t bm_cli_cmd_setNodeSettings;
 bm_cli_cmd_startBM_t bm_cli_cmd_startBM;
 
 #ifdef ZEPHYR_BLE_MESH
-
-void bm_cli_log(const char *fmt, ...) {
-  // Zephyr way to Log info
-  printk(fmt);
 }
 
 static int cmd_getNodeReport(const struct shell *shell, size_t argc, char **argv) { // Todo: Add error check for validating the Params are valid
@@ -102,13 +98,6 @@ static void cmd_startBM(nrf_cli_t const *p_cli, size_t argc, char **argv) { // T
   }
 }
 NRF_CLI_CMD_REGISTER(startBM, NULL, "Start the Benchmark", cmd_startBM);
-
-/* Command handlers */
-static void cmd_print_param(nrf_cli_t const *p_cli, size_t argc, char **argv) {
-  for (size_t i = 1; i < argc; i++) {
-    nrf_cli_print(p_cli, "argv[%d] = %s", i, argv[i]);
-  }
-}
 
 #endif
 #endif

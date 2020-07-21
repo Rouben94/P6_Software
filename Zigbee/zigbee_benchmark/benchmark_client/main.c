@@ -1,7 +1,3 @@
-/*
- * Zigbee Benchmark Client
- * Acting as a Dimmer Light Switch
- */
 
 #include "bm_cli.h"
 #include "bm_config.h"

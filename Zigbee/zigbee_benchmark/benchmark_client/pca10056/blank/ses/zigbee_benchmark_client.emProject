@@ -145,6 +145,9 @@
       <file file_name="../../../../../../../components/libraries/fds/fds.c" />
       <file file_name="../../../../../app_utils/benchmark_common/include/bm_log.h" />
       <file file_name="../../../../../app_utils/benchmark_common/include/bm_cli.h" />
+      <file file_name="../../../../../app_utils/benchmark_common/src/bm_cli_cmds.c" />
+      <file file_name="../../../../../app_utils/benchmark_common/src/bm_control.c" />
+      <file file_name="../../../../../app_utils/benchmark_common/src/bm_report.c" />
     </folder>
   </project>
   <configuration
