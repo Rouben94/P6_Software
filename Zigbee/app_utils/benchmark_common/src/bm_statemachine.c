@@ -97,8 +97,12 @@ void ST_INIT_fn(void) {
   synctimer_init();
   synctimer_start();
   bm_rand_init();
+  bm_cli_log("TEST 1");
   bm_radio_init();
+  bm_cli_log("TEST 2");
+
   bm_log_init();
+  
 
   /* Test read FLASH Data */
   uint32_t restored_cnt = bm_log_load_from_flash(); // Restor Log Data from FLASH

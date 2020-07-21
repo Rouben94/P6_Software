@@ -25,10 +25,6 @@
 
 static light_switch_ctx_t m_device_ctx;
 
-//#if !defined ZB_ROUTER_ROLE
-//#error Define ZB_ROUTER_ROLE to compile light bulb (Router) source code.
-//#endif
-
 /* Main application customizable context. Stores all settings and static values. */
 
 APP_PWM_INSTANCE(BULB_PWM_NAME, BULB_PWM_TIMER);
@@ -85,33 +81,34 @@ ZB_HA_DECLARE_DIMMABLE_LIGHT_CLUSTER_LIST(dimmable_light_clusters,
 
 /* Declare cluster list for Controllable Output device (Identify, Basic, Scenes, Groups, On Off, Level Control). 
  * Only clusters Identify and Basic have attributes.*/
-ZB_HA_DECLARE_DIMMER_SWITCH_CLUSTER_LIST(bm_control_clusters,
-    basic_attr_list,
-    identify_attr_list);
+//ZB_HA_DECLARE_DIMMER_SWITCH_CLUSTER_LIST(bm_control_clusters,
+//    basic_attr_list,
+//    identify_attr_list);
 
-ZB_HA_DECLARE_CONFIGURATION_TOOL_CLUSTER_LIST(bm_report_clusters, basic_attr_list, identify_attr_list);
+//ZB_HA_DECLARE_CONFIGURATION_TOOL_CLUSTER_LIST(bm_report_clusters, basic_attr_list, identify_attr_list);
 
 /* Declare endpoint for Dimmable Light device. */
 ZB_HA_DECLARE_DIMMABLE_LIGHT_EP(
     dimmable_light_ep,
-    HA_DIMMABLE_LIGHT_ENDPOINT,
+    BENCHMARK_SERVER_ENDPOINT,
     dimmable_light_clusters);
 
 /* Declare endpoint for Dimmer Switch device. */
 /* Will be used to control the benchmarking behavior of the node. */
-ZB_HA_DECLARE_DIMMER_SWITCH_EP(bm_control_ep,
-    BENCHMARK_CONTROL_ENDPOINT,
-    bm_control_clusters);
+//ZB_HA_DECLARE_DIMMER_SWITCH_EP(bm_control_ep,
+//    BENCHMARK_CONTROL_ENDPOINT,
+//    bm_control_clusters);
 
-ZB_HA_DECLARE_CONFIGURATION_TOOL_EP(bm_report_ep, BENCHMARK_REPORTING_ENDPOINT, bm_report_clusters);
+//ZB_HA_DECLARE_CONFIGURATION_TOOL_EP(bm_report_ep, BENCHMARK_REPORTING_ENDPOINT, bm_report_clusters);
 
 /* Declare application's device context (list of registered endpoints)
  * for Benchmark Server device.*/
+ZBOSS_DECLARE_DEVICE_CTX_1_EP(bm_server_ctx, dimmable_light_ep);
 
-ZBOSS_DECLARE_DEVICE_CTX_3_EP(bm_server_ctx,
-    dimmable_light_ep,
-    bm_control_ep,
-    bm_report_ep);
+//ZBOSS_DECLARE_DEVICE_CTX_3_EP(bm_server_ctx,
+//    dimmable_light_ep,
+//    bm_control_ep,
+//    bm_report_ep);
 
 /************************************ Forward Declarations ***********************************************/
 
@@ -170,14 +167,14 @@ static void bm_server_clusters_attr_init(void) {
   m_dev_ctx.level_control_attr.current_level = ZB_ZCL_LEVEL_CONTROL_LEVEL_MAX_VALUE;
   m_dev_ctx.level_control_attr.remaining_time = ZB_ZCL_LEVEL_CONTROL_REMAINING_TIME_DEFAULT_VALUE;
 
-  ZB_ZCL_SET_ATTRIBUTE(HA_DIMMABLE_LIGHT_ENDPOINT,
+  ZB_ZCL_SET_ATTRIBUTE(BENCHMARK_SERVER_ENDPOINT,
       ZB_ZCL_CLUSTER_ID_ON_OFF,
       ZB_ZCL_CLUSTER_SERVER_ROLE,
       ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID,
       (zb_uint8_t *)&m_dev_ctx.on_off_attr.on_off,
       ZB_FALSE);
 
-  ZB_ZCL_SET_ATTRIBUTE(HA_DIMMABLE_LIGHT_ENDPOINT,
+  ZB_ZCL_SET_ATTRIBUTE(BENCHMARK_SERVER_ENDPOINT,
       ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL,
       ZB_ZCL_CLUSTER_SERVER_ROLE,
       ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID,
@@ -205,14 +202,30 @@ static void log_init(void) {
 
 /**@brief Function for initializing LEDs and a single PWM channel.
  */
-static void leds_buttons_init(void) {
+//static void leds_buttons_init(void) {
+//  ret_code_t err_code;
+//  app_pwm_config_t pwm_cfg = APP_PWM_DEFAULT_CONFIG_1CH(5000L, bsp_board_led_idx_to_pin(BULB_LED));
+//
+//  /* Initialize all LEDs and buttons. */
+//  err_code = bsp_init(BSP_INIT_LEDS | BSP_INIT_BUTTONS, buttons_handler);
+//  APP_ERROR_CHECK(err_code);
+//  /* By default the bsp_init attaches BSP_KEY_EVENTS_{0-4} to the PUSH events of the corresponding buttons. */
+//
+//  /* Initialize PWM running on timer 1 in order to control dimmable light bulb. */
+//  err_code = app_pwm_init(&BULB_PWM_NAME, &pwm_cfg, NULL);
+//  APP_ERROR_CHECK(err_code);
+//
+//  app_pwm_enable(&BULB_PWM_NAME);
+//
+//  while (app_pwm_channel_duty_set(&BULB_PWM_NAME, 0, 99) == NRF_ERROR_BUSY) {
+//  }
+//}
+
+/**@brief Function for initializing LEDs and a single PWM channel.
+ */
+static void leds_pwm_init(void) {
   ret_code_t err_code;
   app_pwm_config_t pwm_cfg = APP_PWM_DEFAULT_CONFIG_1CH(5000L, bsp_board_led_idx_to_pin(BULB_LED));
-
-  /* Initialize all LEDs and buttons. */
-  err_code = bsp_init(BSP_INIT_LEDS | BSP_INIT_BUTTONS, buttons_handler);
-  APP_ERROR_CHECK(err_code);
-  /* By default the bsp_init attaches BSP_KEY_EVENTS_{0-4} to the PUSH events of the corresponding buttons. */
 
   /* Initialize PWM running on timer 1 in order to control dimmable light bulb. */
   err_code = app_pwm_init(&BULB_PWM_NAME, &pwm_cfg, NULL);
@@ -256,7 +269,7 @@ static void light_bulb_set_brightness(zb_uint8_t brightness_level) {
 static void level_control_set_value(zb_uint16_t new_level) {
   NRF_LOG_INFO("Set level value: %i", new_level);
 
-  ZB_ZCL_SET_ATTRIBUTE(HA_DIMMABLE_LIGHT_ENDPOINT,
+  ZB_ZCL_SET_ATTRIBUTE(BENCHMARK_SERVER_ENDPOINT,
       ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL,
       ZB_ZCL_CLUSTER_SERVER_ROLE,
       ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID,
@@ -266,7 +279,7 @@ static void level_control_set_value(zb_uint16_t new_level) {
   /* According to the table 7.3 of Home Automation Profile Specification v 1.2 rev 29, chapter 7.1.3. */
   if (new_level == 0) {
     zb_uint8_t value = ZB_FALSE;
-    ZB_ZCL_SET_ATTRIBUTE(HA_DIMMABLE_LIGHT_ENDPOINT,
+    ZB_ZCL_SET_ATTRIBUTE(BENCHMARK_SERVER_ENDPOINT,
         ZB_ZCL_CLUSTER_ID_ON_OFF,
         ZB_ZCL_CLUSTER_SERVER_ROLE,
         ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID,
@@ -274,7 +287,7 @@ static void level_control_set_value(zb_uint16_t new_level) {
         ZB_FALSE);
   } else {
     zb_uint8_t value = ZB_TRUE;
-    ZB_ZCL_SET_ATTRIBUTE(HA_DIMMABLE_LIGHT_ENDPOINT,
+    ZB_ZCL_SET_ATTRIBUTE(BENCHMARK_SERVER_ENDPOINT,
         ZB_ZCL_CLUSTER_ID_ON_OFF,
         ZB_ZCL_CLUSTER_SERVER_ROLE,
         ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID,
@@ -292,7 +305,7 @@ static void level_control_set_value(zb_uint16_t new_level) {
 static void on_off_set_value(zb_bool_t on) {
   NRF_LOG_INFO("Set ON/OFF value: %i", on);
 
-  ZB_ZCL_SET_ATTRIBUTE(HA_DIMMABLE_LIGHT_ENDPOINT,
+  ZB_ZCL_SET_ATTRIBUTE(BENCHMARK_SERVER_ENDPOINT,
       ZB_ZCL_CLUSTER_ID_ON_OFF,
       ZB_ZCL_CLUSTER_SERVER_ROLE,
       ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID,
@@ -324,7 +337,7 @@ zb_void_t bm_button_handler(zb_uint8_t button) {
   current_time = ZB_TIMER_GET();
 
   switch (button) {
-  case BULB_BUTTON:
+  case DONGLE_BUTTON:
 
     break;
 
@@ -347,6 +360,7 @@ static void buttons_handler(bsp_event_t evt) {
   /* Inform default signal handler about user input at the device. */
   switch (evt) {
   case BSP_EVENT_KEY_0:
+    button = DONGLE_BUTTON_ON;
     NRF_LOG_INFO("BUTTON pressed");
     break;
 
@@ -375,12 +389,13 @@ static void buttons_handler(bsp_event_t evt) {
  * @param[in]   bufid   Reference to Zigbee stack buffer used to pass received data.
  */
 static zb_void_t add_group_id(zb_bufid_t bufid) {
+  zb_uint16_t groupID = bm_params.GroupAddress + GROUP_ID;
 
   zb_get_long_address(local_node_ieee_addr);
   local_node_short_addr = zb_address_short_by_ieee(local_node_ieee_addr);
   local_node_addr_len = ieee_addr_to_str(local_nodel_ieee_addr_buf, sizeof(local_nodel_ieee_addr_buf), local_node_ieee_addr);
 
-  NRF_LOG_INFO("Include device 0x%x, ep %d to the group 0x%x", local_node_short_addr, BENCHMARK_SERVER_ENDPOINT, GROUP_ID);
+  NRF_LOG_INFO("Include device 0x%x, ep %d to the group 0x%x", local_node_short_addr, BENCHMARK_SERVER_ENDPOINT, groupID);
 
   ZB_ZCL_GROUPS_SEND_ADD_GROUP_REQ(bufid,
       local_node_short_addr,
@@ -390,7 +405,7 @@ static zb_void_t add_group_id(zb_bufid_t bufid) {
       ZB_AF_HA_PROFILE_ID,
       ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
       NULL,
-      GROUP_ID);
+      groupID);
 }
 
 /**@brief Function for receiving benchmark message.
@@ -430,7 +445,6 @@ void bm_receive_message(zb_bufid_t bufid) {
 
   bm_log_append_ram(message);
 }
-
 
 //void bm_report_data(zb_uint8_t param) {
 //  uint16_t bm_msg_flash_cnt = 0;
@@ -479,14 +493,6 @@ static zb_uint8_t bm_zcl_handler(zb_bufid_t bufid) {
       ZB_SCHEDULE_APP_CALLBACK(bm_receive_message, bufid);
       break;
 
-//    case BENCHMARK_CONTROL_ENDPOINT:
-//      ZB_SCHEDULE_APP_CALLBACK(bm_receive_config, bufid);
-//      break;
-
-    case BENCHMARK_REPORTING_ENDPOINT:
-      //      ZB_SCHEDULE_APP_CALLBACK(bm_send_reporting_message, bufid);
-      break;
-
     default:
       break;
     }
@@ -494,23 +500,6 @@ static zb_uint8_t bm_zcl_handler(zb_bufid_t bufid) {
   return ZB_FALSE;
 }
 
-/**@brief Callback function for handling custom ZCL commands.
- *
- * @param[in]   bufid   Reference to Zigbee stack buffer
- *                      used to pass received data.
- */
-static zb_uint8_t bm_zcl_report_ep_handler(zb_bufid_t bufid) {
-  zb_zcl_parsed_hdr_t cmd_info;
-
-  ZB_ZCL_COPY_PARSED_HEADER(bufid, &cmd_info);
-  //zb_zcl_device_callback_param_t *p_device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
-
-  NRF_LOG_INFO("%s with Endpoint ID: %hd, Cluster ID: %d, Command ID: %d", __func__, cmd_info.addr_data.common_data.dst_endpoint, cmd_info.cluster_id, cmd_info.cmd_id);
-
-  //  ZB_SCHEDULE_APP_CALLBACK(bm_send_reporting_message, bufid);
-
-  return ZB_FALSE;
-}
 /**@brief Callback function for handling ZCL commands.
  *
  * @param[in]   bufid   Reference to Zigbee stack buffer used to pass received data.
@@ -619,7 +608,8 @@ void bm_zigbee_init(void) {
 
   /* Initialize timer, logging system and GPIOs. */
   timer_init();
-  leds_buttons_init();
+  //  leds_buttons_init();
+  leds_pwm_init();
   bm_log_init();
 
   /* Set Zigbee stack logging level and traffic dump subsystem. */
@@ -648,8 +638,6 @@ void bm_zigbee_init(void) {
 
   /* Register callback for handling ZCL commands. */
   ZB_AF_SET_ENDPOINT_HANDLER(BENCHMARK_SERVER_ENDPOINT, bm_zcl_handler);
-  ZB_AF_SET_ENDPOINT_HANDLER(BENCHMARK_CONTROL_ENDPOINT, bm_zcl_handler);
-  ZB_AF_SET_ENDPOINT_HANDLER(BENCHMARK_REPORTING_ENDPOINT, bm_zcl_report_ep_handler);
   ZB_ZCL_REGISTER_DEVICE_CB(zcl_device_cb);
 
   bm_server_clusters_attr_init();

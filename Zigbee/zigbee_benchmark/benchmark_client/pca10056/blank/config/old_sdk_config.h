@@ -44,12 +44,10 @@
 #ifdef USE_APP_CONFIG
 #include "app_config.h"
 #endif
-// <h> Application
-
-// </h>
-//==========================================================
+// <h> Zigbee
 
 /*************************************** FDS Flash Save Definitions ***************************************************/
+
 
 // <e> FDS_ENABLED - fds - Flash data storage module
 //==========================================================
@@ -387,6 +385,7 @@
 
 // </e>
 
+// <q> NRF_CLI_UART_ENABLED  - nrf_cli_uart - UART command line interface transport
 
 // <h> nRF_Segger_RTT
 
@@ -432,9 +431,6 @@
 #endif
 
 /************************************************************************************************************************/
-
-
-// <h> Zigbee
 
 //==========================================================
 // <h> zb_error - ZBOSS error handling helpers
@@ -718,64 +714,6 @@
 
 // </e>
 
-// <e> NRFX_PPI_ENABLED - nrfx_ppi - PPI peripheral allocator
-//==========================================================
-#ifndef NRFX_PPI_ENABLED
-#define NRFX_PPI_ENABLED 1
-#endif
-// <e> NRFX_PPI_CONFIG_LOG_ENABLED - Enables logging in the module.
-//==========================================================
-#ifndef NRFX_PPI_CONFIG_LOG_ENABLED
-#define NRFX_PPI_CONFIG_LOG_ENABLED 0
-#endif
-// <o> NRFX_PPI_CONFIG_LOG_LEVEL  - Default Severity level
-
-// <0=> Off
-// <1=> Error
-// <2=> Warning
-// <3=> Info
-// <4=> Debug
-
-#ifndef NRFX_PPI_CONFIG_LOG_LEVEL
-#define NRFX_PPI_CONFIG_LOG_LEVEL 3
-#endif
-
-// <o> NRFX_PPI_CONFIG_INFO_COLOR  - ANSI escape code prefix.
-
-// <0=> Default
-// <1=> Black
-// <2=> Red
-// <3=> Green
-// <4=> Yellow
-// <5=> Blue
-// <6=> Magenta
-// <7=> Cyan
-// <8=> White
-
-#ifndef NRFX_PPI_CONFIG_INFO_COLOR
-#define NRFX_PPI_CONFIG_INFO_COLOR 0
-#endif
-
-// <o> NRFX_PPI_CONFIG_DEBUG_COLOR  - ANSI escape code prefix.
-
-// <0=> Default
-// <1=> Black
-// <2=> Red
-// <3=> Green
-// <4=> Yellow
-// <5=> Blue
-// <6=> Magenta
-// <7=> Cyan
-// <8=> White
-
-#ifndef NRFX_PPI_CONFIG_DEBUG_COLOR
-#define NRFX_PPI_CONFIG_DEBUG_COLOR 0
-#endif
-
-// </e>
-
-// </e>
-
 // <e> NRFX_PRS_ENABLED - nrfx_prs - Peripheral Resource Sharing module
 //==========================================================
 #ifndef NRFX_PRS_ENABLED
@@ -858,176 +796,6 @@
 
 #ifndef NRFX_PRS_CONFIG_DEBUG_COLOR
 #define NRFX_PRS_CONFIG_DEBUG_COLOR 0
-#endif
-
-// </e>
-
-// </e>
-
-// <e> NRFX_PWM_ENABLED - nrfx_pwm - PWM peripheral driver
-//==========================================================
-#ifndef NRFX_PWM_ENABLED
-#define NRFX_PWM_ENABLED 1
-#endif
-// <q> NRFX_PWM0_ENABLED  - Enable PWM0 instance
-
-#ifndef NRFX_PWM0_ENABLED
-#define NRFX_PWM0_ENABLED 1
-#endif
-
-// <q> NRFX_PWM1_ENABLED  - Enable PWM1 instance
-
-#ifndef NRFX_PWM1_ENABLED
-#define NRFX_PWM1_ENABLED 0
-#endif
-
-// <q> NRFX_PWM2_ENABLED  - Enable PWM2 instance
-
-#ifndef NRFX_PWM2_ENABLED
-#define NRFX_PWM2_ENABLED 0
-#endif
-
-// <q> NRFX_PWM3_ENABLED  - Enable PWM3 instance
-
-#ifndef NRFX_PWM3_ENABLED
-#define NRFX_PWM3_ENABLED 0
-#endif
-
-// <o> NRFX_PWM_DEFAULT_CONFIG_OUT0_PIN - Out0 pin  <0-31>
-
-#ifndef NRFX_PWM_DEFAULT_CONFIG_OUT0_PIN
-#define NRFX_PWM_DEFAULT_CONFIG_OUT0_PIN 31
-#endif
-
-// <o> NRFX_PWM_DEFAULT_CONFIG_OUT1_PIN - Out1 pin  <0-31>
-
-#ifndef NRFX_PWM_DEFAULT_CONFIG_OUT1_PIN
-#define NRFX_PWM_DEFAULT_CONFIG_OUT1_PIN 31
-#endif
-
-// <o> NRFX_PWM_DEFAULT_CONFIG_OUT2_PIN - Out2 pin  <0-31>
-
-#ifndef NRFX_PWM_DEFAULT_CONFIG_OUT2_PIN
-#define NRFX_PWM_DEFAULT_CONFIG_OUT2_PIN 31
-#endif
-
-// <o> NRFX_PWM_DEFAULT_CONFIG_OUT3_PIN - Out3 pin  <0-31>
-
-#ifndef NRFX_PWM_DEFAULT_CONFIG_OUT3_PIN
-#define NRFX_PWM_DEFAULT_CONFIG_OUT3_PIN 31
-#endif
-
-// <o> NRFX_PWM_DEFAULT_CONFIG_BASE_CLOCK  - Base clock
-
-// <0=> 16 MHz
-// <1=> 8 MHz
-// <2=> 4 MHz
-// <3=> 2 MHz
-// <4=> 1 MHz
-// <5=> 500 kHz
-// <6=> 250 kHz
-// <7=> 125 kHz
-
-#ifndef NRFX_PWM_DEFAULT_CONFIG_BASE_CLOCK
-#define NRFX_PWM_DEFAULT_CONFIG_BASE_CLOCK 4
-#endif
-
-// <o> NRFX_PWM_DEFAULT_CONFIG_COUNT_MODE  - Count mode
-
-// <0=> Up
-// <1=> Up and Down
-
-#ifndef NRFX_PWM_DEFAULT_CONFIG_COUNT_MODE
-#define NRFX_PWM_DEFAULT_CONFIG_COUNT_MODE 0
-#endif
-
-// <o> NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE - Top value
-#ifndef NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE
-#define NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE 1000
-#endif
-
-// <o> NRFX_PWM_DEFAULT_CONFIG_LOAD_MODE  - Load mode
-
-// <0=> Common
-// <1=> Grouped
-// <2=> Individual
-// <3=> Waveform
-
-#ifndef NRFX_PWM_DEFAULT_CONFIG_LOAD_MODE
-#define NRFX_PWM_DEFAULT_CONFIG_LOAD_MODE 0
-#endif
-
-// <o> NRFX_PWM_DEFAULT_CONFIG_STEP_MODE  - Step mode
-
-// <0=> Auto
-// <1=> Triggered
-
-#ifndef NRFX_PWM_DEFAULT_CONFIG_STEP_MODE
-#define NRFX_PWM_DEFAULT_CONFIG_STEP_MODE 0
-#endif
-
-// <o> NRFX_PWM_DEFAULT_CONFIG_IRQ_PRIORITY  - Interrupt priority
-
-// <0=> 0 (highest)
-// <1=> 1
-// <2=> 2
-// <3=> 3
-// <4=> 4
-// <5=> 5
-// <6=> 6
-// <7=> 7
-
-#ifndef NRFX_PWM_DEFAULT_CONFIG_IRQ_PRIORITY
-#define NRFX_PWM_DEFAULT_CONFIG_IRQ_PRIORITY 6
-#endif
-
-// <e> NRFX_PWM_CONFIG_LOG_ENABLED - Enables logging in the module.
-//==========================================================
-#ifndef NRFX_PWM_CONFIG_LOG_ENABLED
-#define NRFX_PWM_CONFIG_LOG_ENABLED 0
-#endif
-// <o> NRFX_PWM_CONFIG_LOG_LEVEL  - Default Severity level
-
-// <0=> Off
-// <1=> Error
-// <2=> Warning
-// <3=> Info
-// <4=> Debug
-
-#ifndef NRFX_PWM_CONFIG_LOG_LEVEL
-#define NRFX_PWM_CONFIG_LOG_LEVEL 3
-#endif
-
-// <o> NRFX_PWM_CONFIG_INFO_COLOR  - ANSI escape code prefix.
-
-// <0=> Default
-// <1=> Black
-// <2=> Red
-// <3=> Green
-// <4=> Yellow
-// <5=> Blue
-// <6=> Magenta
-// <7=> Cyan
-// <8=> White
-
-#ifndef NRFX_PWM_CONFIG_INFO_COLOR
-#define NRFX_PWM_CONFIG_INFO_COLOR 0
-#endif
-
-// <o> NRFX_PWM_CONFIG_DEBUG_COLOR  - ANSI escape code prefix.
-
-// <0=> Default
-// <1=> Black
-// <2=> Red
-// <3=> Green
-// <4=> Yellow
-// <5=> Blue
-// <6=> Magenta
-// <7=> Cyan
-// <8=> White
-
-#ifndef NRFX_PWM_CONFIG_DEBUG_COLOR
-#define NRFX_PWM_CONFIG_DEBUG_COLOR 0
 #endif
 
 // </e>
@@ -1547,12 +1315,6 @@
 
 // </e>
 
-// <q> PPI_ENABLED  - nrf_drv_ppi - PPI peripheral driver - legacy layer
-
-#ifndef PPI_ENABLED
-#define PPI_ENABLED 1
-#endif
-
 // <e> RNG_ENABLED - nrf_drv_rng - RNG peripheral driver - legacy layer
 //==========================================================
 #ifndef RNG_ENABLED
@@ -1666,7 +1428,7 @@
 // <q> TIMER2_ENABLED  - Enable TIMER2 instance
 
 #ifndef TIMER2_ENABLED
-#define TIMER2_ENABLED 1
+#define TIMER2_ENABLED 0
 #endif
 
 // <q> TIMER3_ENABLED  - Enable TIMER3 instance
@@ -1785,18 +1547,6 @@
 // <h> nRF_Libraries
 
 //==========================================================
-// <q> APP_GPIOTE_ENABLED  - app_gpiote - GPIOTE events dispatcher
-
-#ifndef APP_GPIOTE_ENABLED
-#define APP_GPIOTE_ENABLED 1
-#endif
-
-// <q> APP_PWM_ENABLED  - app_pwm - PWM functionality
-
-#ifndef APP_PWM_ENABLED
-#define APP_PWM_ENABLED 1
-#endif
-
 // <e> APP_SCHEDULER_ENABLED - app_scheduler - Events scheduler
 //==========================================================
 #ifndef APP_SCHEDULER_ENABLED
@@ -2219,12 +1969,11 @@
 // <e> NRF_LOG_BACKEND_UART_ENABLED - nrf_log_backend_uart - Log UART backend
 //==========================================================
 #ifndef NRF_LOG_BACKEND_UART_ENABLED
-#define NRF_LOG_BACKEND_UART_ENABLED 1
-
+#define NRF_LOG_BACKEND_UART_ENABLED 0
 #endif
 // <o> NRF_LOG_BACKEND_UART_TX_PIN - UART TX pin
 #ifndef NRF_LOG_BACKEND_UART_TX_PIN
-#define NRF_LOG_BACKEND_UART_TX_PIN 31
+#define NRF_LOG_BACKEND_UART_TX_PIN 6
 #endif
 
 // <o> NRF_LOG_BACKEND_UART_BAUDRATE  - Default Baudrate
@@ -2342,7 +2091,7 @@
 // <i> Log data is buffered and can be processed in idle.
 
 #ifndef NRF_LOG_DEFERRED
-#define NRF_LOG_DEFERRED 0
+#define NRF_LOG_DEFERRED 1
 #endif
 
 // <q> NRF_LOG_FILTERS_ENABLED  - Enable dynamic filtering of logs.

@@ -41,12 +41,12 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 
 #define IEEE_CHANNEL_MASK (1l << ZIGBEE_CHANNEL) /**< Scan only one, predefined channel to find the coordinator. */
 //#define IEEE_CHANNEL_MASK                   0x07fff800U
-#define LIGHT_SWITCH_ENDPOINT 1                              /**< Source endpoint used to control light bulb. */
-#define LIGHT_BULB_ENDPOINT 10                               /**< Destination endpoint used to control light bulb. */
+//#define LIGHT_SWITCH_ENDPOINT 1                              /**< Source endpoint used to control light bulb. */
+//#define LIGHT_BULB_ENDPOINT 10                               /**< Destination endpoint used to control light bulb. */
 #define MATCH_DESC_REQ_START_DELAY (2 * ZB_TIME_ONE_SECOND)  /**< Delay between the light switch startup and light bulb finding procedure. */
 #define MATCH_DESC_REQ_TIMEOUT (5 * ZB_TIME_ONE_SECOND)      /**< Timeout for finding procedure. */
 #define MATCH_DESC_REQ_ROLE ZB_NWK_BROADCAST_RX_ON_WHEN_IDLE /**< Find only non-sleepy device. */
-#define ERASE_PERSISTENT_CONFIG ZB_FALSE                     /**< Do not erase NVRAM to save the network parameters after device reboot or power-off. NOTE: If this option is set to ZB_TRUE then do full device erase for all network devices before running other samples. */
+#define ERASE_PERSISTENT_CONFIG ZB_TRUE                     /**< Do not erase NVRAM to save the network parameters after device reboot or power-off. NOTE: If this option is set to ZB_TRUE then do full device erase for all network devices before running other samples. */
 
 #define BENCHMARK_INIT_BASIC_APP_VERSION 01                                   /* Version of the application software (1 byte). */
 #define BENCHMARK_INIT_BASIC_STACK_VERSION 10                                 /* Version of the implementation of the Zigbee stack (1 byte). */
@@ -66,8 +66,10 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 #define LIGHT_SWITCH_BUTTON_LONG_POLL_TMO ZB_MILLISECONDS_TO_BEACON_INTERVAL(300) /**< Time after which the button state is checked again to detect button hold - the dimm command is sent again. */
 
 #ifdef BOARD_PCA10059                            /**< If it is Dongle */
-#define IDENTIFY_MODE_BSP_EVT BSP_EVENT_KEY_0    /**< Button event used to enter the Bulb into the Identify mode. */
 #define ZIGBEE_NETWORK_STATE_LED BSP_BOARD_LED_0 /**< LED indicating that light switch successfully joind Zigbee network. */
+#define BULB_LED BSP_BOARD_LED_3                 /**< LED immitaing dimmable light bulb. */
+#define DONGLE_BUTTON BSP_EVENT_KEY_0            /**< Button event used trigger button actions on the dongle hardware */
+#define DONGLE_BUTTON_ON BSP_BOARD_BUTTON_0      /**< Button ID used to switch on the Dongle button */
 #else
 #define IDENTIFY_MODE_BSP_EVT BSP_EVENT_KEY_3    /**< Button event used to enter the Bulb into the Identify mode. */
 #define ZIGBEE_NETWORK_STATE_LED BSP_BOARD_LED_2 /**< LED indicating that light switch successfully joind Zigbee network. */
@@ -80,17 +82,9 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 #endif
 
 /* Benchmark specific Definitions*/
-#define BENCHMARK_CLIENT_ENDPOINT 1     /* ZCL Endpoint of the Benchmark Client */
-#define BENCHMARK_SERVER_ENDPOINT 10    /* ZCL Endpoint of the Benchmark Server */
-#define BENCHMARK_CONTROL_ENDPOINT 11   /* ZCL Endpoint for Benchmark Control */
-#define BENCHMARK_REPORTING_ENDPOINT 12 /* ZCL Endpoint for Benchmark Reporting Message */
-#define GROUP_ID 0xB331                 /* Group ID to send Benchmark message to.*/
-
-#define BENCHMARK_CUSTOM_CMD_ID 0x00 /* Custom Benchmark Command ID */
-
-//#if !defined ZB_ED_ROLE
-//#error Define ZB_ED_ROLE to compile light switch (End Device) source code.
-//#endif
+#define BENCHMARK_CLIENT_ENDPOINT 1  /* ZCL Endpoint of the Benchmark Client */
+#define BENCHMARK_SERVER_ENDPOINT 10 /* ZCL Endpoint of the Benchmark Server */
+#define GROUP_ID 0xB331              /* Group ID to send Benchmark message to.*/
 
 /* =============== Benchmark Parameters ===================== */
 #define BENCHMARK_DEFAULT_TIME_S 10      // Default Benchmark Time (used when no Parameter available)

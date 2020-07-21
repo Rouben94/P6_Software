@@ -387,7 +387,6 @@
 
 // </e>
 
-// <q> NRF_CLI_UART_ENABLED  - nrf_cli_uart - UART command line interface transport
 
 // <h> nRF_Segger_RTT
 
@@ -434,31 +433,6 @@
 
 /************************************************************************************************************************/
 
-// <h> Example
-
-//==========================================================
-// <h> ws2812 - WS2812 led chain driver
-
-//==========================================================
-// <o> DRV_WS2812_LED_CHAIN_PIXELS_COUNT_MAX - Maximum number of the WS2812 LEDs in chain supported by the WS2812 driver.
-#ifndef DRV_WS2812_LED_CHAIN_PIXELS_COUNT_MAX
-#define DRV_WS2812_LED_CHAIN_PIXELS_COUNT_MAX 40
-#endif
-
-// <o> DRV_WS2812_PWM_INSTANCE_NO - Number of the nrfx PWM instance used by the WS2812 driver.
-// <i> When DRV_WS2812_PWM_INSTANCE_NO == 0 define PWM0_ENABLED to 1
-// <i> When DRV_WS2812_PWM_INSTANCE_NO == 1 define PWM1_ENABLED to 1
-// <i> etc.
-
-#ifndef DRV_WS2812_PWM_INSTANCE_NO
-#define DRV_WS2812_PWM_INSTANCE_NO 0
-#endif
-
-// </h>
-//==========================================================
-
-// </h>
-//==========================================================
 
 // <h> Zigbee
 
@@ -2273,7 +2247,7 @@
 // <268435456=> 1000000 baud
 
 #ifndef NRF_LOG_BACKEND_UART_BAUDRATE
-#define NRF_LOG_BACKEND_UART_BAUDRATE 268435456
+#define NRF_LOG_BACKEND_UART_BAUDRATE 30801920
 #endif
 
 // <o> NRF_LOG_BACKEND_UART_TEMP_BUFFER_SIZE - Size of buffer for partially processed strings.

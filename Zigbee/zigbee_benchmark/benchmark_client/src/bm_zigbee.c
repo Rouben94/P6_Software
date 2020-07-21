@@ -71,29 +71,30 @@ ZB_HA_DECLARE_DIMMER_SWITCH_CLUSTER_LIST(dimmer_switch_clusters,
     identify_attr_list);
 
 /* Declare cluster list for Controllable Output device (Identify, Basic, Scenes, Groups, On Off, Level Control). */
-ZB_HA_DECLARE_LEVEL_CONTROLLABLE_OUTPUT_CLUSTER_LIST(bm_control_clusters,
-    basic_attr_list,
-    identify_attr_list,
-    scenes_attr_list,
-    groups_attr_list,
-    on_off_attr_list,
-    level_control_attr_list);
+//ZB_HA_DECLARE_LEVEL_CONTROLLABLE_OUTPUT_CLUSTER_LIST(bm_control_clusters,
+//    basic_attr_list,
+//    identify_attr_list,
+//    scenes_attr_list,
+//    groups_attr_list,
+//    on_off_attr_list,
+//    level_control_attr_list);
 
 /* Declare endpoint for Dimmer Switch device. */
 ZB_HA_DECLARE_DIMMER_SWITCH_EP(dimmer_switch_ep,
-    LIGHT_SWITCH_ENDPOINT,
+    BENCHMARK_CLIENT_ENDPOINT,
     dimmer_switch_clusters);
 
 /* Declare endpoint for Controllable Output device. */
 /* Will be used to control the benchmarking behvior of the node. */
-ZB_HA_DECLARE_LEVEL_CONTROLLABLE_OUTPUT_EP(bm_control_ep,
-    BENCHMARK_CONTROL_ENDPOINT,
-    bm_control_clusters);
+//ZB_HA_DECLARE_LEVEL_CONTROLLABLE_OUTPUT_EP(bm_control_ep,
+//    BENCHMARK_CONTROL_ENDPOINT,
+//    bm_control_clusters);
 
 /* Declare application's device context (list of registered endpoints) for Dimmer Switch device. */
-ZBOSS_DECLARE_DEVICE_CTX_2_EP(bm_client_ctx,
-    dimmer_switch_ep,
-    bm_control_ep);
+ZBOSS_DECLARE_DEVICE_CTX_1_EP(bm_client_ctx, dimmer_switch_ep);
+//ZBOSS_DECLARE_DEVICE_CTX_2_EP(bm_client_ctx,
+//    dimmer_switch_ep,
+//    bm_control_ep);
 
 /************************************ Forward Declarations ***********************************************/
 
@@ -171,21 +172,21 @@ static void bm_client_clusters_attr_init(void) {
   dev_ctx.level_control_attr.remaining_time =
       ZB_ZCL_LEVEL_CONTROL_REMAINING_TIME_DEFAULT_VALUE;
 
-  ZB_ZCL_SET_ATTRIBUTE(
-      BENCHMARK_CONTROL_ENDPOINT,
-      ZB_ZCL_CLUSTER_ID_ON_OFF,
-      ZB_ZCL_CLUSTER_SERVER_ROLE,
-      ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID,
-      (zb_uint8_t *)&dev_ctx.on_off_attr.on_off,
-      ZB_FALSE);
-
-  ZB_ZCL_SET_ATTRIBUTE(
-      BENCHMARK_CONTROL_ENDPOINT,
-      ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL,
-      ZB_ZCL_CLUSTER_SERVER_ROLE,
-      ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID,
-      (zb_uint8_t *)&dev_ctx.level_control_attr.current_level,
-      ZB_FALSE);
+  //  ZB_ZCL_SET_ATTRIBUTE(
+  //      BENCHMARK_CONTROL_ENDPOINT,
+  //      ZB_ZCL_CLUSTER_ID_ON_OFF,
+  //      ZB_ZCL_CLUSTER_SERVER_ROLE,
+  //      ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID,
+  //      (zb_uint8_t *)&dev_ctx.on_off_attr.on_off,
+  //      ZB_FALSE);
+  //
+  //  ZB_ZCL_SET_ATTRIBUTE(
+  //      BENCHMARK_CONTROL_ENDPOINT,
+  //      ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL,
+  //      ZB_ZCL_CLUSTER_SERVER_ROLE,
+  //      ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID,
+  //      (zb_uint8_t *)&dev_ctx.level_control_attr.current_level,
+  //      ZB_FALSE);
 }
 
 /************************************ General Init Functions ***********************************************/
@@ -247,7 +248,7 @@ static zb_void_t light_switch_send_on_off(zb_bufid_t bufid, zb_uint16_t on_off) 
       group_id,
       ZB_APS_ADDR_MODE_16_GROUP_ENDP_NOT_PRESENT,
       0,
-      LIGHT_SWITCH_ENDPOINT,
+      BENCHMARK_CLIENT_ENDPOINT,
       ZB_AF_HA_PROFILE_ID,
       ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
       cmd_id,
@@ -272,40 +273,25 @@ zb_void_t bm_button_handler(zb_uint8_t button) {
   current_time = ZB_TIMER_GET();
 
   switch (button) {
-  case LIGHT_SWITCH_BUTTON_ON:
-    on_off = ZB_TRUE;
+    //  case LIGHT_SWITCH_BUTTON_ON:
+    //    on_off = ZB_TRUE;
+    //
+    //    /* Allocate output buffer and send on/off command. */
+    //    zb_err_code = zb_buf_get_out_delayed_ext(light_switch_send_on_off, on_off, 0);
+    //    ZB_ERROR_CHECK(zb_err_code);
+    //    NRF_LOG_INFO("Light Switch BUTTON_ON pressed");
+    //    break;
+    //  case LIGHT_SWITCH_BUTTON_OFF:
+    //    on_off = ZB_FALSE;
+    //
+    //    /* Allocate output buffer and send on/off command. */
+    //    zb_err_code = zb_buf_get_out_delayed_ext(light_switch_send_on_off, on_off, 0);
+    //    ZB_ERROR_CHECK(zb_err_code);
+    //    NRF_LOG_INFO("Light Switch BUTTON_OFF pressed");
+    //
+    //    break;
 
-    /* Allocate output buffer and send on/off command. */
-    zb_err_code = zb_buf_get_out_delayed_ext(light_switch_send_on_off, on_off, 0);
-    ZB_ERROR_CHECK(zb_err_code);
-    NRF_LOG_INFO("Light Switch BUTTON_ON pressed");
-    break;
-  case LIGHT_SWITCH_BUTTON_OFF:
-    on_off = ZB_FALSE;
-
-    /* Allocate output buffer and send on/off command. */
-    zb_err_code = zb_buf_get_out_delayed_ext(light_switch_send_on_off, on_off, 0);
-    ZB_ERROR_CHECK(zb_err_code);
-    NRF_LOG_INFO("Light Switch BUTTON_OFF pressed");
-
-    break;
-
-  case BENCHMARK_BUTTON:
-//    bm_msg_cnt_sent = 0;
-//    bm_msg_cnt = 20;
-//    bm_time_interval_msec = 20000;
-//    timeslot = bm_time_interval_msec / bm_msg_cnt;
-//    timeout = timeslot;
-//
-//    zb_err_code = ZB_SCHEDULE_APP_CALLBACK(bm_send_message, 0);
-//    ZB_ERROR_CHECK(zb_err_code);
-    break;
-
-  case TEST_BUTTON:
-//    random_level_value = ZB_RANDOM_VALUE(256);
-//    NRF_LOG_INFO("Read data from Flash done");
-//    zb_err_code = ZB_SCHEDULE_APP_ALARM(bm_report_data, 0, ZB_MILLISECONDS_TO_BEACON_INTERVAL(1000));
-//    ZB_ERROR_CHECK(zb_err_code);
+  case DONGLE_BUTTON:
 
     break;
 
@@ -330,22 +316,26 @@ void buttons_handler(bsp_event_t evt) {
 
   switch (evt) {
   case BSP_EVENT_KEY_0:
-    button = LIGHT_SWITCH_BUTTON_ON;
-    break;
+    button = DONGLE_BUTTON_ON;
 
-  case BSP_EVENT_KEY_1:
-    button = LIGHT_SWITCH_BUTTON_OFF;
     break;
+    //  case BSP_EVENT_KEY_0:
+    //    button = LIGHT_SWITCH_BUTTON_ON;
+    //    break;
 
-  case BSP_EVENT_KEY_2:
-    NRF_LOG_INFO("BENCHMARK - Button pressed");
-    button = BENCHMARK_BUTTON;
-    break;
-
-  case BSP_EVENT_KEY_3:
-    NRF_LOG_INFO("TEST - Button pressed");
-    button = TEST_BUTTON;
-    break;
+    //  case BSP_EVENT_KEY_1:
+    //    button = LIGHT_SWITCH_BUTTON_OFF;
+    //    break;
+    //
+    //  case BSP_EVENT_KEY_2:
+    //    NRF_LOG_INFO("BENCHMARK - Button pressed");
+    //    button = BENCHMARK_BUTTON;
+    //    break;
+    //
+    //  case BSP_EVENT_KEY_3:
+    //    NRF_LOG_INFO("TEST - Button pressed");
+    //    button = TEST_BUTTON;
+    //    break;
 
   default:
     NRF_LOG_INFO("Unhandled BSP Event received: %d", evt);
@@ -368,55 +358,14 @@ void buttons_handler(bsp_event_t evt) {
 
 /************************************ Benchmark Functions ***********************************************/
 
-/**@brief Function for sending add group request to the local node.
- *
- * @param[in]   bufid   Reference to Zigbee stack buffer used to pass received data.
- */
-static zb_void_t add_group_id(zb_bufid_t bufid) {
-
-  zb_get_long_address(local_node_ieee_addr);
-  local_node_short_addr = zb_address_short_by_ieee(local_node_ieee_addr);
-  local_node_addr_len = ieee_addr_to_str(local_nodel_ieee_addr_buf, sizeof(local_nodel_ieee_addr_buf), local_node_ieee_addr);
-
-  NRF_LOG_INFO("Include device 0x%x, ep %d to the group 0x%x", local_node_short_addr, BENCHMARK_SERVER_ENDPOINT, GROUP_ID);
-
-  ZB_ZCL_GROUPS_SEND_ADD_GROUP_REQ(bufid,
-      local_node_short_addr,
-      ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
-      BENCHMARK_SERVER_ENDPOINT,
-      BENCHMARK_CLIENT_ENDPOINT,
-      ZB_AF_HA_PROFILE_ID,
-      ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
-      NULL,
-      GROUP_ID);
-}
-
-/* Function to send Benchmark Control Message */
-void bm_send_control_message_cb(zb_bufid_t bufid, zb_uint16_t level) {
-  zb_uint16_t group_id = GROUP_ID;
-  zb_nwk_broadcast_address_t broadcast_addr = ZB_NWK_BROADCAST_ALL_DEVICES;
-  NRF_LOG_INFO("Benchmark Control Message send.");
-
-  ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
-      broadcast_addr,
-      ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
-      BENCHMARK_CONTROL_ENDPOINT,
-      BENCHMARK_CLIENT_ENDPOINT,
-      ZB_AF_HA_PROFILE_ID,
-      ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
-      NULL,
-      level,
-      0);
-}
-
 /* Function to send Benchmark Message */
 void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t level) {
-  zb_uint16_t group_id = GROUP_ID;
-  NRF_LOG_INFO("Benchmark Message Callback send.");
+  zb_uint16_t groupID = bm_params.GroupAddress + GROUP_ID;
+  NRF_LOG_INFO("Benchmark Message Callback send to Group Address: %d.", groupID);
 
   /* Send Move to level request. Level value is uint8. */
   ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
-      group_id,
+      groupID,
       ZB_APS_ADDR_MODE_16_GROUP_ENDP_NOT_PRESENT,
       BENCHMARK_SERVER_ENDPOINT,
       BENCHMARK_CLIENT_ENDPOINT,
@@ -483,34 +432,29 @@ void bm_read_message_info(zb_uint16_t timeout) {
   bm_log_append_ram(message);
 }
 
-/* TODO: Description */
-void bm_receive_config(zb_uint8_t bufid) {
-  NRF_LOG_INFO("Received Config-Set command");
-}
-
-void bm_report_data(zb_uint8_t param) {
-  uint16_t bm_msg_flash_cnt = 0;
-  uint16_t bm_cnt = 0;
-  bm_message_info message;
-
-  bm_msg_flash_cnt = bm_log_load_from_flash();
-
-  while (bm_cnt < bm_msg_flash_cnt) {
-    message = message_info[bm_cnt];
-    NRF_LOG_INFO("<REPORT>, %d, %llu, %llu, %d, %d, 0x%x",
-        message.message_id,
-        message.net_time,
-        message.ack_net_time,
-        message.number_of_hops,
-        message.rssi,
-        message.src_addr);
-
-    bm_cnt++;
-  }
-  bm_log_clear_ram();
-  bm_log_clear_flash();
-  NRF_LOG_INFO("<REPORTING FINISHED>");
-}
+//void bm_report_data(zb_uint8_t param) {
+//  uint16_t bm_msg_flash_cnt = 0;
+//  uint16_t bm_cnt = 0;
+//  bm_message_info message;
+//
+//  bm_msg_flash_cnt = bm_log_load_from_flash();
+//
+//  while (bm_cnt < bm_msg_flash_cnt) {
+//    message = message_info[bm_cnt];
+//    NRF_LOG_INFO("<REPORT>, %d, %llu, %llu, %d, %d, 0x%x",
+//        message.message_id,
+//        message.net_time,
+//        message.ack_net_time,
+//        message.number_of_hops,
+//        message.rssi,
+//        message.src_addr);
+//
+//    bm_cnt++;
+//  }
+//  bm_log_clear_ram();
+//  bm_log_clear_flash();
+//  NRF_LOG_INFO("<REPORTING FINISHED>");
+//}
 
 /************************************ Zigbee event handler ***********************************************/
 
@@ -519,25 +463,25 @@ void bm_report_data(zb_uint8_t param) {
  * @param[in]   bufid   Reference to Zigbee stack buffer
  *                      used to pass received data.
  */
-static zb_uint8_t bm_zcl_handler(zb_bufid_t bufid) {
-  zb_zcl_parsed_hdr_t cmd_info;
-
-  ZB_ZCL_COPY_PARSED_HEADER(bufid, &cmd_info);
-  NRF_LOG_INFO("%s with Endpoint ID: %hd, Cluster ID: %d", __func__, cmd_info.addr_data.common_data.dst_endpoint, cmd_info.cluster_id);
-
-  switch (cmd_info.cluster_id) {
-  case ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL:
-    ZB_SCHEDULE_APP_ALARM(bm_receive_config, bufid, 0);
-    break;
-  case ZB_ZCL_CLUSTER_ID_ON_OFF:
-    ZB_SCHEDULE_APP_ALARM(bm_receive_config, bufid, 0);
-    break;
-  default:
-    break;
-  }
-
-  return ZB_FALSE;
-}
+//static zb_uint8_t bm_zcl_handler(zb_bufid_t bufid) {
+//  zb_zcl_parsed_hdr_t cmd_info;
+//
+//  ZB_ZCL_COPY_PARSED_HEADER(bufid, &cmd_info);
+//  NRF_LOG_INFO("%s with Endpoint ID: %hd, Cluster ID: %d", __func__, cmd_info.addr_data.common_data.dst_endpoint, cmd_info.cluster_id);
+//
+//  switch (cmd_info.cluster_id) {
+//  case ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL:
+//    ZB_SCHEDULE_APP_ALARM(bm_receive_config, bufid, 0);
+//    break;
+//  case ZB_ZCL_CLUSTER_ID_ON_OFF:
+//    ZB_SCHEDULE_APP_ALARM(bm_receive_config, bufid, 0);
+//    break;
+//  default:
+//    break;
+//  }
+//
+//  return ZB_FALSE;
+//}
 
 /**@brief Callback function for handling ZCL commands.
  *
@@ -560,7 +504,6 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid) {
     device_cb_param->status = RET_ERROR;
     break;
   }
-  NRF_LOG_INFO("%s status: %hd", __func__, device_cb_param->status);
 }
 
 /************************************ ZBOSS signal handler ***********************************************/
@@ -650,8 +593,8 @@ void bm_zigbee_init(void) {
   ZB_AF_REGISTER_DEVICE_CTX(&bm_client_ctx);
 
   /* Register callback for handling ZCL commands. */
-  ZB_AF_SET_ENDPOINT_HANDLER(BENCHMARK_CLIENT_ENDPOINT, bm_zcl_handler);
-//  ZB_AF_SET_ENDPOINT_HANDLER(BENCHMARK_CONTROL_ENDPOINT, bm_zcl_handler);
+  //  ZB_AF_SET_ENDPOINT_HANDLER(BENCHMARK_CLIENT_ENDPOINT, bm_zcl_handler);
+  //  ZB_AF_SET_ENDPOINT_HANDLER(BENCHMARK_CONTROL_ENDPOINT, bm_zcl_handler);
   ZB_ZCL_REGISTER_DEVICE_CB(zcl_device_cb);
 
   /* Initialzie Cluster Attributes */

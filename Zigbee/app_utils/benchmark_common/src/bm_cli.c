@@ -3,7 +3,9 @@
 #include "bm_config.h"
 
 #ifdef ZEPHYR_BLE_MESH
-
+#include <zephyr.h>
+#include <shell/shell.h>
+#include <stdlib.h>
 #elif defined NRF_SDK_Zigbee
 #include "boards.h"
 #include "nrf_log_default_backends.h"
@@ -46,11 +48,14 @@
 bm_params_t bm_params = {BENCHMARK_DEFAULT_TIME_S, BENCHMARK_DEFAULT_PACKETS_CNT};
 bm_params_t bm_params_buf = {BENCHMARK_DEFAULT_TIME_S, BENCHMARK_DEFAULT_PACKETS_CNT};
 
-#ifdef BENCHMARK_MASTER
 #ifdef ZEPHYR_BLE_MESH
-
+void bm_cli_log(const char *fmt, ...)
+{
+  // Zephyr way to Log info
+  printk(fmt);
+}
 #elif defined NRF_SDK_Zigbee
-
+#ifdef BENCHMARK_MASTER
 #if NRF_LOG_BACKEND_FLASHLOG_ENABLED
 NRF_LOG_BACKEND_FLASHLOG_DEF(m_flash_log_backend);
 #endif
@@ -73,23 +78,25 @@ extern bool m_counter_active;
 
 NRF_CLI_UART_DEF(m_cli_uart_transport, 0, 64, 16);
 NRF_CLI_DEF(m_cli_uart,
-    "uart_cli:~$ ",
-    &m_cli_uart_transport.transport,
-    '\r',
-    CLI_EXAMPLE_LOG_QUEUE_SIZE);
+            "uart_cli:~$ ",
+            &m_cli_uart_transport.transport,
+            '\r',
+            CLI_EXAMPLE_LOG_QUEUE_SIZE);
 
 NRF_CLI_RTT_DEF(m_cli_rtt_transport);
 NRF_CLI_DEF(m_cli_rtt,
-    "rtt_cli:~$ ",
-    &m_cli_rtt_transport.transport,
-    '\n',
-    CLI_EXAMPLE_LOG_QUEUE_SIZE);
+            "rtt_cli:~$ ",
+            &m_cli_rtt_transport.transport,
+            '\n',
+            CLI_EXAMPLE_LOG_QUEUE_SIZE);
 
-static void timer_handle(void *p_context) {
+static void timer_handle(void *p_context)
+{
   UNUSED_PARAMETER(p_context);
 }
 
-static void cli_start(void) {
+static void cli_start(void)
+{
   ret_code_t ret;
 
   ret = nrf_cli_start(&m_cli_uart);
@@ -99,7 +106,8 @@ static void cli_start(void) {
   APP_ERROR_CHECK(ret);
 }
 
-static void cli_init(void) {
+static void cli_init(void)
+{
   ret_code_t ret;
 
   nrf_drv_uart_config_t uart_config = NRF_DRV_UART_DEFAULT_CONFIG;
@@ -113,14 +121,16 @@ static void cli_init(void) {
   APP_ERROR_CHECK(ret);
 }
 
-void bm_cli_process(void) {
+void bm_cli_process(void)
+{
 
   nrf_cli_process(&m_cli_uart);
 
   nrf_cli_process(&m_cli_rtt);
 }
 
-static void flashlog_init(void) {
+static void flashlog_init(void)
+{
   ret_code_t ret;
   int32_t backend_id;
 
@@ -141,16 +151,19 @@ static void flashlog_init(void) {
 #endif
 }
 
-static inline void stack_guard_init(void) {
+static inline void stack_guard_init(void)
+{
   APP_ERROR_CHECK(nrf_mpu_lib_init());
   APP_ERROR_CHECK(nrf_stack_guard_init());
 }
 
-uint32_t cyccnt_get(void) {
+uint32_t cyccnt_get(void)
+{
   return DWT->CYCCNT;
 }
 
-void bm_cli_init(void) {
+void bm_cli_init(void)
+{
   ret_code_t ret;
 
   ret = nrf_drv_clock_init();
@@ -184,15 +197,11 @@ void bm_cli_init(void) {
 }
 
 #endif
-
-#endif
-
-void bm_cli_log_init(void) {
+void bm_cli_log_init(void)
+{
 
   ret_code_t err_code = NRF_LOG_INIT(NULL);
   APP_ERROR_CHECK(err_code);
-
   NRF_LOG_DEFAULT_BACKENDS_INIT();
-
-  //  APP_ERROR_CHECK(NRF_LOG_INIT(app_timer_cnt_get));
 }
+#endif

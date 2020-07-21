@@ -66,11 +66,11 @@ static void buttons_handler(bsp_event_t evt) {
       NRF_LOG_INFO("Top level comissioning hasn't finished yet!");
     }
     break;
-  case BSP_EVENT_KEY_3:
-    button = BENCHMARK_BUTTON;
-    NRF_LOG_INFO("BENCHMARK Button pressed");
-
-    break;
+//  case BSP_EVENT_KEY_3:
+//    button = BENCHMARK_BUTTON;
+//    NRF_LOG_INFO("BENCHMARK Button pressed");
+//
+//    break;
 
   default:
     NRF_LOG_INFO("Unhandled BSP Event received: %d", evt);

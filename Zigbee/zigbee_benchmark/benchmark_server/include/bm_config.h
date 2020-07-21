@@ -41,8 +41,8 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 #define MAX_CHILDREN 10                          /**< The maximum amount of connected devices. Setting this value to 0 disables association to this device.  */
 #define IEEE_CHANNEL_MASK (1l << ZIGBEE_CHANNEL) /**< Scan only one, predefined channel to find the coordinator. */
 //#define IEEE_CHANNEL_MASK                 0x07fff800U
-#define HA_DIMMABLE_LIGHT_ENDPOINT 10    /**< Device endpoint, used to receive light controlling commands. */
-#define ERASE_PERSISTENT_CONFIG ZB_FALSE /**< Do not erase NVRAM to save the network parameters after device reboot or power-off. */
+//#define HA_DIMMABLE_LIGHT_ENDPOINT 10    /**< Device endpoint, used to receive light controlling commands. */
+#define ERASE_PERSISTENT_CONFIG ZB_TRUE /**< Do not erase NVRAM to save the network parameters after device reboot or power-off. */
 #define BULB_PWM_NAME PWM1               /**< PWM instance used to drive dimmable light bulb. */
 #define BULB_PWM_TIMER 2                 /**< Timer number used by PWM. */
 
@@ -62,10 +62,10 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 #define LIGHT_SWITCH_BUTTON_LONG_POLL_TMO ZB_MILLISECONDS_TO_BEACON_INTERVAL(300) /**< Time after which the button state is checked again to detect button hold - the dimm command is sent again. */
 
 #ifdef BOARD_PCA10059                            /**< If it is Dongle */
-#define IDENTIFY_MODE_BSP_EVT BSP_EVENT_KEY_0    /**< Button event used to enter the Bulb into the Identify mode. */
 #define ZIGBEE_NETWORK_STATE_LED BSP_BOARD_LED_0 /**< LED indicating that light switch successfully joind Zigbee network. */
 #define BULB_LED BSP_BOARD_LED_3                 /**< LED immitaing dimmable light bulb. */
-#define BULB_BUTTON BSP_BOARD_BUTTON_0           /**< Button ID used to switch off the light bulb. */
+#define DONGLE_BUTTON BSP_EVENT_KEY_0            /**< Button event used trigger button actions on the dongle hardware */
+#define DONGLE_BUTTON_ON BSP_BOARD_BUTTON_0      /**< Button ID used to switch on the Dongle button */
 #else
 #define IDENTIFY_MODE_BSP_EVT BSP_EVENT_KEY_3    /**< Button event used to enter the Bulb into the Identify mode. */
 #define ZIGBEE_NETWORK_STATE_LED BSP_BOARD_LED_2 /**< LED indicating that light switch successfully joind Zigbee network. */
@@ -79,12 +79,8 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 #endif
 
 /* Benchmark specific Definitions*/
-#define BENCHMARK_CLIENT_ENDPOINT 1     /* ZCL Endpoint of the Benchmark Client */
-#define BENCHMARK_SERVER_ENDPOINT 10    /* ZCL Endpoint of the Benchmark Server */
-#define BENCHMARK_CONTROL_ENDPOINT 11   /* ZCL Endpoint for Benchmark Control */
-#define BENCHMARK_REPORTING_ENDPOINT 12 /* ZCL Endpoint for Benchmark Reporting Message */
-#define GROUP_ID 0xB331                 /* Group ID which will be used to address a specific group of Benchmark Servers */
-
-#define BENCHMARK_CUSTOM_CMD_ID 0x00 /* Custom Benchmark Command ID */
+#define BENCHMARK_CLIENT_ENDPOINT 1  /* ZCL Endpoint of the Benchmark Client */
+#define BENCHMARK_SERVER_ENDPOINT 10 /* ZCL Endpoint of the Benchmark Server */
+#define GROUP_ID 0xB331              /* Group ID which will be used to address a specific group of Benchmark Servers */
 
 #endif //BM_ZIGBEE_H

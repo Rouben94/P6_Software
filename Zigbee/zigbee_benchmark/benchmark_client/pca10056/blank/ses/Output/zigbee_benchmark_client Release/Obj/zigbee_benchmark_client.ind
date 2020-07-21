@@ -57,6 +57,8 @@
 "Output/zigbee_benchmark_client Release/Obj/nrfx_timer.o"
 "Output/zigbee_benchmark_client Release/Obj/nrfx_uart.o"
 "Output/zigbee_benchmark_client Release/Obj/nrfx_uarte.o"
+"Output/zigbee_benchmark_client Release/Obj/nrf_drv_ppi.o"
+"Output/zigbee_benchmark_client Release/Obj/nrfx_ppi.o"
 "Output/zigbee_benchmark_client Release/Obj/bsp.o"
 "Output/zigbee_benchmark_client Release/Obj/main.o"
 "Output/zigbee_benchmark_client Release/Obj/bm_zigbee.o"
