@@ -46,7 +46,7 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 #define MATCH_DESC_REQ_START_DELAY (2 * ZB_TIME_ONE_SECOND)  /**< Delay between the light switch startup and light bulb finding procedure. */
 #define MATCH_DESC_REQ_TIMEOUT (5 * ZB_TIME_ONE_SECOND)      /**< Timeout for finding procedure. */
 #define MATCH_DESC_REQ_ROLE ZB_NWK_BROADCAST_RX_ON_WHEN_IDLE /**< Find only non-sleepy device. */
-#define ERASE_PERSISTENT_CONFIG ZB_TRUE                     /**< Do not erase NVRAM to save the network parameters after device reboot or power-off. NOTE: If this option is set to ZB_TRUE then do full device erase for all network devices before running other samples. */
+#define ERASE_PERSISTENT_CONFIG ZB_FALSE                 /**< Do not erase NVRAM to save the network parameters after device reboot or power-off. NOTE: If this option is set to ZB_TRUE then do full device erase for all network devices before running other samples. */
 
 #define BENCHMARK_INIT_BASIC_APP_VERSION 01                                   /* Version of the application software (1 byte). */
 #define BENCHMARK_INIT_BASIC_STACK_VERSION 10                                 /* Version of the implementation of the Zigbee stack (1 byte). */

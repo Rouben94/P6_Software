@@ -101,7 +101,7 @@ void bm_cli_process(void) {
 
   nrf_cli_process(&m_cli_uart);
 }
-
+#endif
 void bm_cli_init(void) {
 #ifdef BENCHMARK_MASTER
   ret_code_t ret;
@@ -128,7 +128,7 @@ void bm_cli_init(void) {
 #endif
 }
 
-#endif
+
 void bm_cli_log_init(void) {
 
   ret_code_t err_code = NRF_LOG_INIT(NULL);

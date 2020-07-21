@@ -42,7 +42,7 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 #define IEEE_CHANNEL_MASK (1l << ZIGBEE_CHANNEL) /**< Scan only one, predefined channel to find the coordinator. */
 //#define IEEE_CHANNEL_MASK                 0x07fff800U
 //#define HA_DIMMABLE_LIGHT_ENDPOINT 10    /**< Device endpoint, used to receive light controlling commands. */
-#define ERASE_PERSISTENT_CONFIG ZB_TRUE /**< Do not erase NVRAM to save the network parameters after device reboot or power-off. */
+#define ERASE_PERSISTENT_CONFIG ZB_FALSE /**< Do not erase NVRAM to save the network parameters after device reboot or power-off. */
 #define BULB_PWM_NAME PWM1               /**< PWM instance used to drive dimmable light bulb. */
 #define BULB_PWM_TIMER 2                 /**< Timer number used by PWM. */
 

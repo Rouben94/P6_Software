@@ -150,6 +150,7 @@
       <file file_name="../../../../../app_utils/benchmark_common/src/bm_cli_cmds.c" />
       <file file_name="../../../../../app_utils/benchmark_common/src/bm_control.c" />
       <file file_name="../../../../../app_utils/benchmark_common/src/bm_report.c" />
+      <file file_name="../../../../../app_utils/benchmark_common/src/bm_simple_buttons_and_leds.c" />
     </folder>
   </project>
   <configuration

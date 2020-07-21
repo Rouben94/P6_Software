@@ -197,6 +197,9 @@ void ST_CONTROL_fn(void) {
         break;
       }
     }
+#ifdef NRF_SDK_Zigbee
+    UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
+#endif
 #endif
   }
   wait_for_transition = true; // Self trigger Transition
@@ -327,10 +330,12 @@ void ST_SAVE_FLASH_fn(void) {
 
   /* Test read FLASH Data */
   bm_cli_log("First Log Entry: %u %u ...\n", message_info[0].message_id, (uint32_t)message_info[0].net_time);
-  uint32_t restored_cnt = bm_log_load_from_flash(); // Restor Log Data from FLASH
-  bm_cli_log("Restored %u Bytes from Flash\n", restored_cnt);
-  bm_cli_log("First Log Entry: %u %u ...\n", message_info[0].message_id, (uint32_t)message_info[0].net_time);
+  //  uint32_t restored_cnt = bm_log_load_from_flash(); // Restor Log Data from FLASH
+  //  bm_cli_log("Restored %u Bytes from Flash\n", restored_cnt);
+  //  bm_cli_log("First Log Entry: %u %u ...\n", message_info[0].message_id, (uint32_t)message_info[0].net_time);
 
+  bm_sleep(1000);
+  bm_cli_log("Node is restarting");
   /* Do a System Reset */
   NVIC_SystemReset();
   return;

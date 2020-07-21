@@ -562,8 +562,8 @@ void bm_zigbee_init(void) {
 
   /* Initialize timers, loging system and GPIOs. */
   timers_init();
-  leds_buttons_init();
-  bm_log_init();
+//  leds_buttons_init();
+//  bm_log_init();
 
   /* Set Zigbee stack logging level and traffic dump subsystem. */
   ZB_SET_TRACE_LEVEL(ZIGBEE_TRACE_LEVEL);
