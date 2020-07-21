@@ -40,6 +40,10 @@ static void status_handler_onoff_cli(struct bt_mesh_onoff_cli *cli,
 						   struct bt_mesh_msg_ctx *ctx,
 						   const struct bt_mesh_onoff_status *status)
 {
+	#ifdef BM_CLIENT
+	bm_log_append_ram((bm_message_info) {cli->tid,synctimer_getSyncTime(),0,BLE_MESH_TTL-ctx->recv_ttl,ctx->recv_rssi,ctx->addr,ctx->recv_dst,ctx->recv_dst,cli->pub.msg->len});
+	#endif
+	/*
 	printk("Ack Recv TID %u\n",cli->tid);
 	printk("Ack Recv Time %u%u\n",(uint32_t)(synctimer_getSyncTime() >> 32 ),(uint32_t)synctimer_getSyncTime());
 	printk("Ack Recv Hops Took %u\n",BLE_MESH_TTL-ctx->recv_ttl);
@@ -48,6 +52,7 @@ static void status_handler_onoff_cli(struct bt_mesh_onoff_cli *cli,
 	printk("Ack Recv Dst Adr %x\n",ctx->recv_dst);
 	printk("Ack Recv Group Adr %x\n",ctx->recv_dst);
 	printk("Ack Recv Size %u\n",cli->pub.msg->len);
+	*/
 }
 
 struct bt_mesh_onoff_cli on_off_cli = BT_MESH_ONOFF_CLI_INIT(&status_handler_onoff_cli);
@@ -55,10 +60,14 @@ struct bt_mesh_onoff_cli on_off_cli = BT_MESH_ONOFF_CLI_INIT(&status_handler_ono
 static void button0_cb(){
 	int err;
 	struct bt_mesh_onoff_set set = {
-		.on_off = button0_toggle_state_get(),
+		.on_off = bm_button0_toggle_state_get(),
 	};	
 	err = bt_mesh_onoff_cli_set_unack(&on_off_cli, NULL, &set);
 	//err = bt_mesh_onoff_cli_set(&on_off_cli, NULL, &set, NULL);
+	#ifdef BM_CLIENT
+	bm_log_append_ram((bm_message_info) {cli->tid,synctimer_getSyncTime(),0,on_off_cli.model->pub->ttl,0,addr,on_off_cli.model->pub->addr,on_off_cli.model->pub->addr,on_off_cli.pub.msg->len});
+	#endif
+	/*
 	printk("Sent TID %u\n",on_off_cli.tid);
 	printk("Sent Time %u%u\n",(uint32_t)(synctimer_getSyncTime() >> 32 ),(uint32_t)synctimer_getSyncTime());
 	printk("Sent TTL %u\n",on_off_cli.model->pub->ttl);
@@ -67,10 +76,11 @@ static void button0_cb(){
 	printk("Sent Dst Adr %x\n",on_off_cli.model->pub->addr);
 	printk("Sent Group Adr %x\n",on_off_cli.model->pub->addr);
 	printk("Sent Size %u\n",on_off_cli.pub.msg->len);
+	*/
 }
 
 void bm_send_message(){
-	button0_toggle_state_set(!button0_toggle_state_get()); // Simulate toggle of button
+	bm_button0_toggle_state_set(!bm_button0_toggle_state_get()); // Simulate toggle of button
 	button0_cb();
 }
 
@@ -80,10 +90,14 @@ static void led_set(struct bt_mesh_onoff_srv *srv, struct bt_mesh_msg_ctx *ctx,
 		    struct bt_mesh_onoff_status *rsp)
 {
 	// Set DK LED index
-	led0_set(set->on_off);
+	bm_led3_set(set->on_off);
 	// Update Response Status
 	rsp->present_on_off = set->on_off;
 	// Log the Event
+	#ifdef BM_SERVER
+	bm_log_append_ram((bm_message_info) {srv->prev_transaction.tid+1,synctimer_getSyncTime(),0,BLE_MESH_TTL-ctx->recv_ttl,ctx->recv_rssi,ctx->addr,ctx->recv_dst,ctx->recv_dst,srv->model->pub->msg->len});
+	#endif
+	/*
 	printk("Recv TID %u\n",srv->prev_transaction.tid+1);
 	printk("Recv Time %u%u\n",(uint32_t)(synctimer_getSyncTime() >> 32 ),(uint32_t)synctimer_getSyncTime());
 	printk("Recv Hops Took %u\n",BLE_MESH_TTL-ctx->recv_ttl);
@@ -92,13 +106,14 @@ static void led_set(struct bt_mesh_onoff_srv *srv, struct bt_mesh_msg_ctx *ctx,
 	printk("Recv Dst Adr %x\n",ctx->recv_dst);
 	printk("Recv Group Adr %x\n",ctx->recv_dst);
 	printk("Recv Size %u\n",srv->model->pub->msg->len);
+	*/
 }
 
 static void led_get(struct bt_mesh_onoff_srv *srv, struct bt_mesh_msg_ctx *ctx,
 		    struct bt_mesh_onoff_status *rsp)
 {
 	// Send respond Status
-	rsp->present_on_off = led0_get();
+	rsp->present_on_off = bm_led3_get();
 }
 
 static const struct bt_mesh_onoff_srv_handlers onoff_handlers = {
@@ -151,6 +166,6 @@ static const struct bt_mesh_comp comp = {
 
 const struct bt_mesh_comp *bm_blemesh_model_handler_init(void)
 {
-	init_leds_buttons(button0_cb); // Init Buttons and LEDs
+	bm_init_buttons(button0_cb); // Init Buttons and LEDs
 	return &comp;
 }

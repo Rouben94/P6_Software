@@ -13,9 +13,11 @@
 #ifdef ZEPHYR_BLE_MESH
 #include "bm_blemesh.h"
 #include "bm_blemesh_model_handler.h"
+#include "bm_simple_buttons_and_leds.h"
 #include <zephyr.h>
 #elif defined NRF_SDK_Zigbee
 #include "bm_zigbee.h"
+#include "bm_simple_buttons_and_leds.h"
 #endif
 
 #include "bm_statemachine.h"
@@ -59,9 +61,10 @@ uint16_t bm_rand_msg_ts_ind;         // Timewindow for a Benchmarkmessage = Benc
 bm_control_msg_t bm_control_msg;     // Control Message Buffer
 bool transition_to_timesync = false; // Switch Flag for a Transition Request to Timesync
 bool transition_to_report = false;   // Switch Flag for a Transition Request to Report
+bool benchmark_messageing_done = false;   // Switch Flag for signaling that a Benchmark Client has Done all its Messaging
 
 #ifdef BENCHMARK_CLIENT
-static bool ST_BENCHMARK_msg_cb(void);
+static void ST_BENCHMARK_msg_cb(void);
 #endif
 
 static void ST_transition_cb(void) {
@@ -75,18 +78,29 @@ static void ST_transition_cb(void) {
     currentState = ST_REPORT;
   } else if (currentState == ST_REPORT) {
     currentState = ST_CONTROL;
-  } else if ((currentState == ST_TIMESYNC && (bm_state_synced && !isTimeMaster)) || (currentState == ST_TIMESYNC && isTimeMaster)) // Not Synced Slave Nodes stay in Timesync State.
+  } else if (currentState == ST_TIMESYNC) // Not Synced Slave Nodes stay in Timesync State.
   {
+    #ifdef BENCHMARK_MASTER
     currentState = ST_INIT_BENCHMARK;
+    #else
+    if (bm_state_synced){
+      currentState = ST_INIT_BENCHMARK;
+    } else {
+      bm_led1_set(true); // Switch ON the RED LED
+      currentState = ST_CONTROL;
+    }
+    #endif
   } else if (currentState == ST_INIT_BENCHMARK) {
     currentState = ST_BENCHMARK;
   } else if (currentState == ST_BENCHMARK) {
     #ifdef BENCHMARK_CLIENT
-    /* Call the Benchmark send_message callback */
-    if (!ST_BENCHMARK_msg_cb()) {
-      return; // Return only when Benchmark is Done
+    if(!benchmark_messageing_done){
+      /* Call the Benchmark send_message callback */
+      ST_BENCHMARK_msg_cb();
+      return; 
     }
     #endif
+    currentState = ST_SAVE_FLASH;
   }
   if (!wait_for_transition) {
     bm_cli_log("ERROR: Statemachine out of Sync !!!\n");
@@ -98,6 +112,7 @@ static void ST_transition_cb(void) {
 }
 
 void ST_INIT_fn(void) {
+  bm_init_leds();
   synctimer_init();
   synctimer_start();
   bm_rand_init();
@@ -201,16 +216,16 @@ void ST_REPORT_fn(void) {
 void ST_TIMESYNC_fn(void) {
   next_state_ts_us = (synctimer_getSyncTime() + ST_TIMESYNC_TIME_MS * 1000 + ST_MARGIN_TIME_MS * 1000);
   synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb);
-  if (isTimeMaster) {
+#ifdef BENCHMARK_MASTER
     bm_timesync_Publish(ST_TIMESYNC_TIME_MS, next_state_ts_us, false);
-  } else {
+#else
     if (bm_timesync_Subscribe(ST_TIMESYNC_TIME_MS, ST_transition_cb)) {
       while (synctimer_getSyncTimeCompareIntTS() > (synctimer_getSyncTime() + ST_MARGIN_TIME_MS * 1000 + ST_TIMESYNC_BACKOFF_TIME_MS * 1000)) { // Check if there is Time Left for Propagating Timesync further
         bm_sleep(bm_rand_32 % ST_TIMESYNC_BACKOFF_TIME_MS);                                                                                     // Sleep from 0 till Random Backoff Time
         bm_timesync_Publish(0, synctimer_getSyncTimeCompareIntTS(), true);                                                                      // Propagate the Timesync further just once for each Channel
       }
     }
-  }
+#endif
   return;
 }
 
@@ -247,11 +262,17 @@ void ST_INIT_BENCHMARK_fn(void) {
 
 void ST_BENCHMARK_fn(void) {
   bm_rand_msg_ts_ind = 0;                                                            // Init the Random Timestamp Array INdex
+  benchmark_messageing_done = false;
   start_time_ts_us = synctimer_getSyncTime();                                        // Get the current Timestamp
+  #ifdef BENCHMARK_CLIENT
   next_state_ts_us = (start_time_ts_us + bm_rand_msg_ts[bm_rand_msg_ts_ind] + 1000); // Add a satfy margin of 1000us incase Random value was 0
   synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb);               // Shedule the Timestamp event
   bm_cli_log("Sheduled first Message at %u, now is %u, start time was %u\n", (uint32_t)next_state_ts_us, (uint32_t)synctimer_getSyncTime(), (uint32_t)start_time_ts_us);
-
+  #else
+  next_state_ts_us = (start_time_ts_us + bm_params.benchmark_time_s * 1e6 + ST_MARGIN_TIME_MS * 1000);
+  synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb);               // Shedule the Timestamp event
+  benchmark_messageing_done = true;
+  #endif
 #ifdef ZEPHYR_BLE_MESH
 // The Benchmark is Timer Interrupt Driven. do Nothing here and wait for transition
 #elif defined NRF_SDK_Zigbee
@@ -270,7 +291,7 @@ void ST_BENCHMARK_fn(void) {
 
 
 #ifdef BENCHMARK_CLIENT
-bool ST_BENCHMARK_msg_cb(void) {
+void ST_BENCHMARK_msg_cb(void) {
   /* Call the Benchmark send_message function */
   bm_send_message();
   /* Schedule Next Message */
@@ -284,13 +305,14 @@ bool ST_BENCHMARK_msg_cb(void) {
   if (bm_rand_msg_ts_ind < bm_params.benchmark_packet_cnt) {
     next_state_ts_us = start_time_ts_us + bm_rand_msg_ts[bm_rand_msg_ts_ind];
     synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb); // Shedule the next Timestamp event
-    return false;                                                        // Return immidiatly to save time and prevent wait for transition errors
+    return;                                                        // Return immidiatly to save time and prevent wait for transition errors
   } else {
     //Finish Benchmark
-    wait_for_transition = true; // To Prevent Statmachine Error
-    currentState = ST_SAVE_FLASH;
-    return true;
+    next_state_ts_us = (start_time_ts_us + bm_params.benchmark_time_s * 1e6 + ST_MARGIN_TIME_MS * 1000);
+    synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb);               // Shedule the Timestamp event
+    benchmark_messageing_done = true;
   }
+  return;
 }
 #endif
 

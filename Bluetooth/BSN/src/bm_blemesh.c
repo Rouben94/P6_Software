@@ -12,6 +12,7 @@
 #include <drivers/hwinfo.h>
 #include "bm_blemesh_model_handler.h"
 #include "bm_blemesh.h"
+#include "bm_simple_buttons_and_leds.h"
 
 
 
@@ -160,7 +161,7 @@ void bm_blemesh_enable(void)
 	if (err)
 	{
 		printk("Bluetooth init failed (err %d)\n", err);
-		return;
+		return false;
 	} 
 	printk("Bluetooth initialized\n");
 	/* =====================================*/
@@ -178,12 +179,12 @@ void bm_blemesh_enable(void)
 							 BT_MESH_MODEL_ID_GEN_ONOFF_CLI, &stat);
 	printk("Err Code: %d\n", stat);
 	/* Add model subscription */
-	bt_mesh_cfg_mod_sub_add(net_idx, addr, addr, GROUP_ADDR,
+	bt_mesh_cfg_mod_sub_add(net_idx, addr, addr, GROUP_ADDR + bm_params.GroupAddress,
 							BT_MESH_MODEL_ID_GEN_ONOFF_SRV, &stat);
 	printk("Err Code: %d\n", stat);
 	/* Add model publishing */
 	struct bt_mesh_cfg_mod_pub pub = {
-		.addr = GROUP_ADDR,
+		.addr = GROUP_ADDR + bm_params.GroupAddress,
 		.app_idx = app_idx,
 		.ttl = BLE_MESH_TTL
 	};
@@ -192,5 +193,7 @@ void bm_blemesh_enable(void)
 	printk("Err Code: %d\n",stat);
 	
 	printk("Configuring done\n");
+
+	bm_led0_set(true); // Signal that the Configuring was sucessfull
 	/* ===================================*/	
 }
