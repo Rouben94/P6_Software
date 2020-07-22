@@ -142,6 +142,9 @@ bm_cli_log("Error no Role defined. Please define a Role in the bm_config.h (BENC
 }
 void ST_CONTROL_fn(void) {
   bm_cli_log("Ready for Control Message\n");
+  bm_led0_set(true);
+  bm_sleep(200);
+  bm_led0_set(false);
   while (currentState == ST_CONTROL) {
 #ifdef BENCHMARK_MASTER
     // Poll for CLI Commands
@@ -194,16 +197,25 @@ void ST_CONTROL_fn(void) {
         bm_params.benchmark_packet_cnt = bm_control_msg.benchmark_packet_cnt;
         transition_to_timesync = true;
         bm_cli_log("Benchmark Start initiated: Time: %us Packet Count: %u\n", bm_params.benchmark_time_s, bm_params.benchmark_packet_cnt);
+        bm_led3_set(true);
+        bm_sleep(200);
+        bm_led3_set(false);
         break;
       } else if (bm_control_msg.MACAddressDst == LSB_MAC_Address && bm_control_msg.GroupAddress > 0) {
         // DO set Node Settings
         bm_params.GroupAddress = bm_control_msg.GroupAddress;
         bm_cli_log("New Settings Saved Group: %u\n", bm_params.GroupAddress);
         bm_cli_log("Ready for Control Message\n");
+        bm_led3_set(true);
+        bm_sleep(200);
+        bm_led3_set(false);
       } else if (bm_control_msg.MACAddressDst == LSB_MAC_Address && bm_control_msg.NextStateNr == ST_REPORT) {
         // DO get Node Report
         transition_to_report = true;
         bm_cli_log("Node Reporting initiated\n");
+        bm_led3_set(true);
+        bm_sleep(200);
+        bm_led3_set(false);
         break;
       }
     }
