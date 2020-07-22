@@ -39,7 +39,7 @@ void bm_log_append_ram(bm_message_info message)
     return;
   }
   message_info[bm_message_cnt] = message;
-  printk("Log Entry added: %u %u ...\n", message_info[bm_message_cnt].message_id, (uint32_t)message_info[bm_message_cnt].net_time);
+  bm_cli_log("Log Entry added: %u %u ...\n", message_info[bm_message_cnt].message_id, (uint32_t)message_info[bm_message_cnt].net_time);
   bm_message_cnt++;
 }
 
