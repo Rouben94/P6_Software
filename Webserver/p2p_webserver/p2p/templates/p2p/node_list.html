@@ -1,63 +1,24 @@
 {% extends 'p2p/base_p2p.html' %}
 
 {% block content %}
-<h2>Titel 2</h2>
-  <p>Das ist ein Test</p> 
+
+{% if messages %}
+  {% for message in messages %}
+   {% if message.tags %}  <script>alert("{{ message }}")</script> {% endif %}
+  {% endfor %}
+{% endif %}
+
+<h2>Node list</h2>
+  <p>The parameters can be set below:</p> 
   <p>
-    <label for="cars">Start Channel:</label>
-    <select>
-      <option value=""></option>
-      <option value="volvo">Volvo</option>
-      <option value="saab">Saab</option>
-      <option value="mercedes">Mercedes</option>
-      <option value="audi">Audi</option>
-    </select>
-    <label for="cars">Stop Channel:</label>
-    <select>
-      <option value=""></option>
-      <option value="volvo">Volvo</option>
-      <option value="saab">Saab</option>
-      <option value="mercedes">Mercedes</option>
-      <option value="audi">Audi</option>
-    </select>
-    <label for="cars">Mode:</label>
-    <select>
-      <option value=""></option>
-      <option value="volvo">Volvo</option>
-      <option value="saab">Saab</option>
-      <option value="mercedes">Mercedes</option>
-      <option value="audi">Audi</option>
-    </select>
-    <label for="cars">Size:</label>
-    <select>
-      <option value=""></option>
-      <option value="volvo">Volvo</option>
-      <option value="saab">Saab</option>
-      <option value="mercedes">Mercedes</option>
-      <option value="audi">Audi</option>
-    </select>
-    <label for="cars">CCMA_CA:</label>
-    <select>
-      <option value=""></option>
-      <option value="volvo">Volvo</option>
-      <option value="saab">Saab</option>
-      <option value="mercedes">Mercedes</option>
-      <option value="audi">Audi</option>
-    </select>
-    <label for="cars">Transmit Power:</label>
-    <select>
-      <option value=""></option>
-      <option value="volvo">Volvo</option>
-      <option value="saab">Saab</option>
-      <option value="mercedes">Mercedes</option>
-      <option value="audi">Audi</option>
-    </select>
-  </p>
-  <form action="" method="post">{% csrf_token %}
-    <p>
-      <button type="button" id="setParams" class="btn btn-dark navbar-btn">Set Parameters</button>
-    </p> 
+    <form action="/node" method="post">
+      {% csrf_token %}
+      <p> {{ form }} </p>
+      <p>
+        <input type="submit" value="Set Parameters" class="btn btn-dark navbar-btn">
+      </p>
   </form>
+  </p>
   <table class="table table-dark table-striped">
     <thead>
       <tr>
