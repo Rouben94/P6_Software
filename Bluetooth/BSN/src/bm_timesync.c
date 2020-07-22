@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-
 #include <hal/nrf_timer.h>
 #include <nrfx_timer.h>
 
@@ -43,21 +42,26 @@ bool bm_state_synced = false; // Init the Synced State
 k_tid_t wakeup_thread_tid;
 
 /* Zephyr Way */
-ISR_DIRECT_DECLARE(bm_timer_handler) {
+ISR_DIRECT_DECLARE(bm_timer_handler)
+{
   // Overflow Handler
-  if (synctimer->EVENTS_COMPARE[5] == true) {
+  if (synctimer->EVENTS_COMPARE[5] == true)
+  {
     synctimer->EVENTS_COMPARE[5] = false;
     OverflowCNT++;
   }
   // Transistion Handler
-  if (synctimer->EVENTS_COMPARE[4] == true) {
+  if (synctimer->EVENTS_COMPARE[4] == true)
+  {
     synctimer->EVENTS_COMPARE[4] = false;
-    if ((sync_compare_callback != NULL) && (OverflowCNT == OverflowCNT_int_synced_ts)) {
+    if ((sync_compare_callback != NULL) && (OverflowCNT == OverflowCNT_int_synced_ts))
+    {
       sync_compare_callback();
     }
   }
   // Sleep Handler
-  if (synctimer->EVENTS_COMPARE[3] == true) {
+  if (synctimer->EVENTS_COMPARE[3] == true)
+  {
     //bm_cli_log("Interrupt CC3\n");
     bm_synctimer_timeout_compare_int = true;
     synctimer->EVENTS_COMPARE[3] = false;
@@ -71,21 +75,26 @@ ISR_DIRECT_DECLARE(bm_timer_handler) {
 #elif defined NRF_SDK_Zigbee
 
 //NRF SDK WAY
-void TIMER4_IRQHandler(void) {
+void TIMER4_IRQHandler(void)
+{
   // Overflow Handler
-  if (synctimer->EVENTS_COMPARE[5] == true) {
+  if (synctimer->EVENTS_COMPARE[5] == true)
+  {
     synctimer->EVENTS_COMPARE[5] = false;
     OverflowCNT++;
   }
   // Transistion Handler
-  if (synctimer->EVENTS_COMPARE[4] == true) {
+  if (synctimer->EVENTS_COMPARE[4] == true)
+  {
     synctimer->EVENTS_COMPARE[4] = false;
-    if ((sync_compare_callback != NULL) && (OverflowCNT == OverflowCNT_int_synced_ts)) {
+    if ((sync_compare_callback != NULL) && (OverflowCNT == OverflowCNT_int_synced_ts))
+    {
       sync_compare_callback();
     }
   }
   // Sleep Handler
-  if (synctimer->EVENTS_COMPARE[3] == true) {
+  if (synctimer->EVENTS_COMPARE[3] == true)
+  {
     //bm_cli_log("Interrupt CC3\n");
     bm_synctimer_timeout_compare_int = true;
     synctimer->EVENTS_COMPARE[3] = false;
@@ -96,36 +105,39 @@ void TIMER4_IRQHandler(void) {
 #endif
 
 /* Timer init */
-extern void synctimer_init() {
-  
+extern void synctimer_init()
+{
+
   // Takes 4294s / 71min to expire
   nrf_timer_bit_width_set(synctimer, NRF_TIMER_BIT_WIDTH_32);
   nrf_timer_frequency_set(synctimer, NRF_TIMER_FREQ_1MHz);
   nrf_timer_mode_set(synctimer, NRF_TIMER_MODE_TIMER);
-  #ifdef ZEPHYR_BLE_MESH
+#ifdef ZEPHYR_BLE_MESH
   wakeup_thread_tid = k_current_get();
   IRQ_DIRECT_CONNECT(TIMER4_IRQn, 6, bm_timer_handler, 0); // Connect Timer ISR Zephyr WAY
   irq_enable(TIMER4_IRQn);                                 // Enable Timer ISR Zephyr WAY
-  #elif defined NRF_SDK_Zigbee
+#elif defined NRF_SDK_Zigbee
 
-  NVIC_EnableIRQ(TIMER4_IRQn);                                 // Enable Timer ISR NRF SDK WAY
-  #endif
+  NVIC_EnableIRQ(TIMER4_IRQn); // Enable Timer ISR NRF SDK WAY
+#endif
   nrf_timer_task_trigger(synctimer, NRF_TIMER_TASK_CLEAR);
   synctimer->CC[1] = 0;
   synctimer->CC[2] = 0;
-  synctimer->CC[5] = 0xFFFFFFFF; // For Overflow Detection
-  synctimer->INTENSET |= (uint32_t)NRF_TIMER_INT_COMPARE5_MASK;   // Enable Compare Event 5 Interrupt
+  synctimer->CC[5] = 0xFFFFFFFF;                                // For Overflow Detection
+  synctimer->INTENSET |= (uint32_t)NRF_TIMER_INT_COMPARE5_MASK; // Enable Compare Event 5 Interrupt
   OverflowCNT = 0;
 }
 
 /* Timestamp Capture Clear */
-void synctimer_TimeStampCapture_clear() {
+void synctimer_TimeStampCapture_clear()
+{
   synctimer->CC[1] = 0;
   synctimer->CC[2] = 0;
 }
 
 /* Timestamp Capture Enable */
-extern void synctimer_TimeStampCapture_enable() {
+extern void synctimer_TimeStampCapture_enable()
+{
 #if defined(DPPI_PRESENT) || defined(__NRFX_DOXYGEN__)
   /* Setup DPPI for Sending and Receiving Timesync Packet */
   NRF_DPPIC->CHEN |= 1 << 0; // Enable Channel 0 DPPI
@@ -147,7 +159,8 @@ extern void synctimer_TimeStampCapture_enable() {
 }
 
 /* Timestamp Capture Disable */
-extern void synctimer_TimeStampCapture_disable() {
+extern void synctimer_TimeStampCapture_disable()
+{
 #if defined(DPPI_PRESENT) || defined(__NRFX_DOXYGEN__)
   /* Setup DPPI for Sending and Receiving Timesync Packet */
   nrf_timer_subscribe_clear(synctimer, NRF_TIMER_TASK_CAPTURE1);
@@ -169,7 +182,8 @@ extern void synctimer_TimeStampCapture_disable() {
 }
 
 /* Clears and starts the timer */
-extern void synctimer_start() {
+extern void synctimer_start()
+{
   // Start the Synctimer
   nrf_timer_task_trigger(synctimer, NRF_TIMER_TASK_CLEAR);
   nrf_timer_task_trigger(synctimer, NRF_TIMER_TASK_START);
@@ -177,7 +191,8 @@ extern void synctimer_start() {
 }
 
 /* Stops and clears the timer */
-extern void synctimer_stop() {
+extern void synctimer_stop()
+{
   // Stop the Synctimer
   nrf_timer_task_trigger(synctimer, NRF_TIMER_TASK_SHUTDOWN);
   nrf_timer_task_trigger(synctimer, NRF_TIMER_TASK_CLEAR);
@@ -185,66 +200,92 @@ extern void synctimer_stop() {
 }
 
 /* Get previous Tx sync timestamp */
-extern uint64_t synctimer_getTxTimeStamp() {
+extern uint64_t synctimer_getTxTimeStamp()
+{
   return ((uint64_t)OverflowCNT << 32 | synctimer->CC[1]) + Timestamp_Diff;
 }
 
 /* Get previous Tx sync timestamp with respect to Timediff to Master */
-extern uint64_t synctimer_getSyncedTxTimeStamp() {
-  if (Timestamp_Slave > Timestamp_Master) {
+extern uint64_t synctimer_getSyncedTxTimeStamp()
+{
+  if (Timestamp_Slave > Timestamp_Master)
+  {
     //Timestamp_Diff = Timestamp_Slave - Timestamp_Master;
     return ((uint64_t)OverflowCNT << 32 | synctimer->CC[1]) - Timestamp_Diff;
-  } else if ((Timestamp_Master > Timestamp_Slave)) {
+  }
+  else if ((Timestamp_Master > Timestamp_Slave))
+  {
     //Timestamp_Diff = Timestamp_Master - Timestamp_Slave;
     return ((uint64_t)OverflowCNT << 32 | synctimer->CC[1]) + Timestamp_Diff;
-  } else {
+  }
+  else
+  {
     //Timestamp_Diff = 0;
     return ((uint64_t)OverflowCNT << 32 | synctimer->CC[1]);
   }
 }
 
 /* Get previous Rx sync timestamp */
-extern uint64_t synctimer_getRxTimeStamp() {
+extern uint64_t synctimer_getRxTimeStamp()
+{
   return ((uint64_t)OverflowCNT << 32 | synctimer->CC[2]);
 }
 
 /* Synchronise the timer offset with the received offset Timestamp */
-extern void synctimer_setSync(uint64_t TxMasterTimeStamp) {
+extern void synctimer_setSync(uint64_t TxMasterTimeStamp)
+{
   Timestamp_Slave = ((uint64_t)OverflowCNT << 32 | synctimer->CC[2]) - RxChainDelay_us;
   Timestamp_Master = TxMasterTimeStamp;
-  if (Timestamp_Slave > Timestamp_Master) {
+  if (Timestamp_Slave > Timestamp_Master)
+  {
     Timestamp_Diff = Timestamp_Slave - Timestamp_Master;
-  } else if ((Timestamp_Master > Timestamp_Slave)) {
+  }
+  else if ((Timestamp_Master > Timestamp_Slave))
+  {
     Timestamp_Diff = Timestamp_Master - Timestamp_Slave;
-  } else {
+  }
+  else
+  {
     Timestamp_Diff = 0;
   }
 }
 
 /* Get Synchronised Timestamp */
-extern uint64_t synctimer_getSyncTime() {
-  if (Timestamp_Slave > Timestamp_Master) {
+extern uint64_t synctimer_getSyncTime()
+{
+  if (Timestamp_Slave > Timestamp_Master)
+  {
     nrf_timer_task_trigger(synctimer, nrf_timer_capture_task_get(NRF_TIMER_CC_CHANNEL0));
     return (((uint64_t)OverflowCNT << 32 | synctimer->CC[0]) - Timestamp_Diff);
-  } else if ((Timestamp_Master > Timestamp_Slave)) {
+  }
+  else if ((Timestamp_Master > Timestamp_Slave))
+  {
     nrf_timer_task_trigger(synctimer, nrf_timer_capture_task_get(NRF_TIMER_CC_CHANNEL0));
     return (((uint64_t)OverflowCNT << 32 | synctimer->CC[0]) + Timestamp_Diff);
-  } else {
+  }
+  else
+  {
     nrf_timer_task_trigger(synctimer, nrf_timer_capture_task_get(NRF_TIMER_CC_CHANNEL0));
     return ((uint64_t)OverflowCNT << 32 | synctimer->CC[0]);
   }
 }
 
 /* Sets a synced Time Compare Interrupt (with respect of Synced Time) */
-extern void synctimer_setSyncTimeCompareInt(uint64_t ts, void (*cc_cb)()) {
+extern void synctimer_setSyncTimeCompareInt(uint64_t ts, void (*cc_cb)())
+{
   //bm_cli_log("%llu\n",ts- synctimer_getSyncTime());
-  if (Timestamp_Slave > Timestamp_Master) {
+  if (Timestamp_Slave > Timestamp_Master)
+  {
     OverflowCNT_int_synced_ts = (uint32_t)(ts >> 32) + (uint32_t)(Timestamp_Diff >> 32);
     synctimer->CC[4] = (uint32_t)ts + (uint32_t)Timestamp_Diff;
-  } else if ((Timestamp_Master > Timestamp_Slave)) {
+  }
+  else if ((Timestamp_Master > Timestamp_Slave))
+  {
     OverflowCNT_int_synced_ts = (uint32_t)(ts >> 32) - (uint32_t)(Timestamp_Diff >> 32);
     synctimer->CC[4] = (uint32_t)ts - (uint32_t)Timestamp_Diff;
-  } else {
+  }
+  else
+  {
     OverflowCNT_int_synced_ts = (uint32_t)(ts >> 32);
     synctimer->CC[4] = (uint32_t)ts;
   }
@@ -256,20 +297,26 @@ extern void synctimer_setSyncTimeCompareInt(uint64_t ts, void (*cc_cb)()) {
 }
 
 /* Gets a synced Time Compare Interrupt Timestamp (with respect of Synced Time) */
-extern uint64_t synctimer_getSyncTimeCompareIntTS() {
+extern uint64_t synctimer_getSyncTimeCompareIntTS()
+{
   //bm_cli_log("%llu\n",ts- synctimer_getSyncTime());
   uint32_t msb_ts, lsb_ts;
-  if (Timestamp_Slave > Timestamp_Master) {
+  if (Timestamp_Slave > Timestamp_Master)
+  {
     msb_ts = OverflowCNT_int_synced_ts - (uint32_t)(Timestamp_Diff >> 32);
     //OverflowCNT_int_synced_ts = (uint32_t)(ts >> 32) + (uint32_t)(Timestamp_Diff >> 32);
     lsb_ts = synctimer->CC[4] - (uint32_t)Timestamp_Diff;
     //synctimer->CC[4] = (uint32_t)ts + (uint32_t)Timestamp_Diff;
-  } else if ((Timestamp_Master > Timestamp_Slave)) {
+  }
+  else if ((Timestamp_Master > Timestamp_Slave))
+  {
     msb_ts = OverflowCNT_int_synced_ts + (uint32_t)(Timestamp_Diff >> 32);
     //OverflowCNT_int_synced_ts = (uint32_t)(ts >> 32) - (uint32_t)(Timestamp_Diff >> 32);
     lsb_ts = synctimer->CC[4] + (uint32_t)Timestamp_Diff;
     //synctimer->CC[4] = (uint32_t)ts - (uint32_t)Timestamp_Diff;
-  } else {
+  }
+  else
+  {
     msb_ts = OverflowCNT_int_synced_ts;
     //OverflowCNT_int_synced_ts = (uint32_t)(ts >> 32);
     lsb_ts = synctimer->CC[4];
@@ -279,7 +326,8 @@ extern uint64_t synctimer_getSyncTimeCompareIntTS() {
 }
 
 /* Sets a Compare Interrupt which occurs after the specified time in us */
-void synctimer_setCompareInt(uint32_t timeout_ms) {
+void synctimer_setCompareInt(uint32_t timeout_ms)
+{
   synctimer->EVENTS_COMPARE[3] = false;
   nrf_timer_task_trigger(synctimer, nrf_timer_capture_task_get(NRF_TIMER_CC_CHANNEL0));
   synctimer->CC[3] = synctimer->CC[0] + timeout_ms * 1000;
@@ -287,11 +335,13 @@ void synctimer_setCompareInt(uint32_t timeout_ms) {
 }
 
 /* Sleeps for the given Timeout in ms */
-void bm_sleep(uint32_t timeout_ms) {
+void bm_sleep(uint32_t timeout_ms)
+{
   bm_synctimer_timeout_compare_int = false; // Reset Interrupt Flags
   synctimer_setCompareInt(timeout_ms);
-  while (!(bm_synctimer_timeout_compare_int)) {
- #ifdef ZEPHYR_BLE_MESH
+  while (!(bm_synctimer_timeout_compare_int))
+  {
+#ifdef ZEPHYR_BLE_MESH
     k_sleep(K_FOREVER); // Zephyr Way
 #elif defined NRF_SDK_Zigbee
     __SEV();
@@ -303,7 +353,8 @@ void bm_sleep(uint32_t timeout_ms) {
   return;
 }
 
-void config_debug_ppi_and_gpiote_radio_state() {
+void config_debug_ppi_and_gpiote_radio_state()
+{
   NRF_P0->PIN_CNF[14] = NRF_P0->PIN_CNF[15]; // Copy Configuration from LED
   NRF_P0->DIRSET |= 1 << 14;
   NRF_P0->DIR |= 1 << 14;
@@ -351,10 +402,6 @@ void config_debug_ppi_and_gpiote_radio_state() {
 	*/
 }
 
-
-
-
-
 /* ============================ Timesync Process ===============================*/
 
 #define TimesyncAddress 0x9CE74F9A
@@ -368,6 +415,127 @@ void config_debug_ppi_and_gpiote_radio_state() {
 #elif defined(RADIO_TXPOWER_TXPOWER_0dBm) || defined(__NRFX_DOXYGEN__)
 #define CommonTxPower NRF_RADIO_TXPOWER_0DBM // Common Tx Power < 0 dBm
 #endif
+
+#define msg_time_ms 5            // Time needed for one message
+#define msg_cnt 5                // Messages count used to transmit
+#define backoff_time_max_ms 1000 // Calculate with probability of collisions
+
+static RADIO_PACKET Radio_Packet_TX, Radio_Packet_RX;
+
+typedef struct
+{
+  uint64_t LastTxTimestamp;
+  uint64_t NextState_TS_us;
+  uint32_t MAC_Address_LSB;
+  uint8_t seq;
+} __attribute__((packed)) TimesyncPkt;
+
+TimesyncPkt Tsync_pkt_TX, Tsync_pkt_RX, Tsync_pkt_RX_2;
+
+/** Takes ~1500ms if not relayed / Takes ~250ms if relayed*/
+void bm_timesync_msg_publish(bool relaying)
+{
+  bm_radio_init();
+  bm_radio_setMode(CommonMode);
+  bm_radio_setAA(TimesyncAddress);
+  bm_radio_setTxP(CommonTxPower);
+  synctimer_TimeStampCapture_clear();
+  synctimer_TimeStampCapture_enable();
+  Radio_Packet_TX.length = sizeof(Tsync_pkt_TX);
+  Radio_Packet_TX.PDU = (uint8_t *)&Tsync_pkt_TX;
+  for (int ch_rx = CommonStartCH; ch_rx <= CommonEndCH; ch_rx++)
+  {
+    for (int ch = CommonStartCH; ch <= CommonEndCH; ch++)
+    {
+      bm_radio_setCH(ch);
+      for (int i = 0; i < msg_cnt; i++)
+      {
+        Tsync_pkt_TX.LastTxTimestamp = synctimer_getSyncedTxTimeStamp();
+        Tsync_pkt_TX.NextState_TS_us = synctimer_getSyncTimeCompareIntTS;
+        bm_radio_send(Radio_Packet_TX);
+        Tsync_pkt_TX.seq++;
+      }
+    }
+  }
+  if(!relaying){
+    bm_sleep(backoff_time_max_ms + msg_time_ms * msg_cnt * CommonCHCnt * CommonCHCnt); // Sleep till all relays neerby should be done
+  }
+}
+
+/** Takes ~250ms to sync + ~250ms for realying */
+bool bm_timesync_msg_subscribe(void (*transition_cb)())
+{
+  bm_radio_init();
+  bm_radio_setMode(CommonMode);
+  bm_radio_setAA(TimesyncAddress);
+  bm_radio_setTxP(CommonTxPower);
+  bm_state_synced = false;
+  synctimer_TimeStampCapture_clear();
+  synctimer_TimeStampCapture_enable();
+  for (int ch = CommonStartCH; ch <= CommonEndCH; ch++)
+  {
+    bm_radio_setCH(ch);
+    if (bm_radio_receive(&Radio_Packet_RX, msg_time_ms * msg_cnt * CommonCHCnt))
+    {
+      synctimer_TimeStampCapture_disable();
+      Tsync_pkt_RX = *(TimesyncPkt *)Radio_Packet_RX.PDU;      // Bring the sheep to a dry place
+      if (bm_radio_receive(&Radio_Packet_RX, msg_time_ms * 2)) // The Next Timesync Packet should arrive right after the first
+      {
+        Tsync_pkt_RX_2 = *(TimesyncPkt *)Radio_Packet_RX.PDU;
+        if ((Tsync_pkt_RX.MAC_Address_LSB == Tsync_pkt_RX_2.MAC_Address_LSB) && (Tsync_pkt_RX.seq == (Tsync_pkt_RX_2.seq - 1)))
+        {
+          if (Tsync_pkt_RX.MAC_Address_LSB == 0xE4337238 || true) // For Debug (1)
+          {
+            synctimer_setSync(Tsync_pkt_RX_2.LastTxTimestamp);
+            bm_cli_log("Synced Time: %u\n", (uint32_t)synctimer_getSyncTime());
+            if (Tsync_pkt_RX_2.NextState_TS_us > synctimer_getSyncTime() - 5 * 1000)
+            { // Add a minimal gap time of 5ms
+              bm_state_synced = true;
+              synctimer_setSyncTimeCompareInt(Tsync_pkt_RX_2.NextState_TS_us, transition_cb);
+              bm_cli_log("Synced with Time Master: %x\n", Tsync_pkt_RX_2.MAC_Address_LSB);
+              
+              return true;
+            }
+            else
+            {
+              bm_cli_log("TS of next state is in the past (%u < %u)\n", (uint32_t)Tsync_pkt_RX_2.NextState_TS_us, (uint32_t)synctimer_getSyncTime() - 5 * 1000);
+            }
+          }
+        }
+      }
+      synctimer_TimeStampCapture_clear();
+      synctimer_TimeStampCapture_enable();
+    }
+  }
+}
+
+}
+bm_cli_log("Control Message received\n");
+*bm_control_msg = *(bm_control_msg_t *)Radio_Packet_RX.PDU; // Bring the sheep to a dry place
+bm_sleep(bm_rand_32 % backoff_time_max_ms);                 // Sleep from 0 till Random Backoff Time
+/* Relay Message */
+Radio_Packet_TX.length = sizeof(bm_control_msg);
+Radio_Packet_TX.PDU = (uint8_t *)&bm_control_msg;
+for (int ch = CommonStartCH; ch <= CommonEndCH; ch++)
+{
+  bm_radio_setCH(ch);
+  bm_radio_send_burst(Radio_Packet_TX, msg_time_ms * msg_cnt);
+}
+bm_cli_log("Control Message relayed\n");
+if (backoff_time_max_ms - (bm_rand_32 % backoff_time_max_ms) > msg_time_ms)
+{
+  bm_sleep(backoff_time_max_ms - (bm_rand_32 % backoff_time_max_ms)); // Sleep the Rest of the Backoff Time
+}
+bm_sleep(backoff_time_max_ms); // Sleep for satfy to net get a backloop ...
+return true;
+}
+}
+}
+
+return false;
+}
+
+/*
 
 #define CHslice 12 // Dividing for Timeslot for each CHannel (must be a Divisor of the Number of Channels)
 
@@ -482,3 +650,5 @@ bool bm_timesync_Subscribe(uint32_t timeout_ms, void (*cc_cb)()) {
   synctimer_TimeStampCapture_disable();
   return bm_state_synced;
 }
+
+*/

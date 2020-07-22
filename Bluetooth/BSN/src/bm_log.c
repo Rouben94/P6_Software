@@ -77,7 +77,7 @@ void bm_log_save_to_flash()
   ret = flash_write_protection_set(flash_dev, false); 
   for (i = 0U; i < ARRAY_SIZE(message_info); i++)
   {    
-    if (message_info[i].net_time == UINT64_MAX)
+    if (message_info[i].net_time == 0)
     {
       bm_cli_log("Saved %u entries to flash\n", i);
       break;
