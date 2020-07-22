@@ -21,8 +21,7 @@ int main(void) {
 
   bm_cli_log_init(); /* Initialize the Zigbee LOG subsystem */
 
-//  bm_cli_init(); /* Initialize the Zigbee CLI subsystem */
-
+  //  bm_cli_init(); /* Initialize the Zigbee CLI subsystem */
 
 #endif
 
@@ -31,6 +30,7 @@ int main(void) {
   bm_cli_log("Preprogrammed Randomly Static MAC-Address (LSB): %x\n", LSB_MAC_Address);
 
   // Start Benchmark
-  bm_cli_log("Starting Benchmark...\n");
+  //  bm_cli_log("Starting Benchmark...\n");
+  bm_cli_log("Starting Benchmark MASTER");
   bm_statemachine();
 }
