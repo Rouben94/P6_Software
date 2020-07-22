@@ -12,6 +12,7 @@
 #include "bm_cli.h"
 #include "bm_radio.h"
 #include "bm_timesync.h"
+#include "bm_rand.h"
 
 #ifdef ZEPHYR_BLE_MESH
 #include <zephyr.h>
@@ -297,7 +298,7 @@ extern void synctimer_setSyncTimeCompareInt(uint64_t ts, void (*cc_cb)())
 }
 
 /* Gets a synced Time Compare Interrupt Timestamp (with respect of Synced Time) */
-extern uint64_t synctimer_getSyncTimeCompareIntTS()
+uint64_t synctimer_getSyncTimeCompareIntTS()
 {
   //bm_cli_log("%llu\n",ts- synctimer_getSyncTime());
   uint32_t msb_ts, lsb_ts;
@@ -418,7 +419,8 @@ void config_debug_ppi_and_gpiote_radio_state()
 
 #define msg_time_ms 5            // Time needed for one message
 #define msg_cnt 5                // Messages count used to transmit
-#define backoff_time_max_ms 1000 // Calculate with probability of collisions
+#define backoff_time_timessync_max_ms 1000 // Calculate with probability of collisions
+
 
 static RADIO_PACKET Radio_Packet_TX, Radio_Packet_RX;
 
@@ -451,14 +453,14 @@ void bm_timesync_msg_publish(bool relaying)
       for (int i = 0; i < msg_cnt; i++)
       {
         Tsync_pkt_TX.LastTxTimestamp = synctimer_getSyncedTxTimeStamp();
-        Tsync_pkt_TX.NextState_TS_us = synctimer_getSyncTimeCompareIntTS;
+        Tsync_pkt_TX.NextState_TS_us = synctimer_getSyncTimeCompareIntTS();
         bm_radio_send(Radio_Packet_TX);
         Tsync_pkt_TX.seq++;
       }
     }
   }
   if(!relaying){
-    bm_sleep(backoff_time_max_ms + msg_time_ms * msg_cnt * CommonCHCnt * CommonCHCnt); // Sleep till all relays neerby should be done
+    bm_sleep(backoff_time_timessync_max_ms + msg_time_ms * msg_cnt * CommonCHCnt * CommonCHCnt); // Sleep till all relays neerby should be done
   }
 }
 
@@ -493,7 +495,9 @@ bool bm_timesync_msg_subscribe(void (*transition_cb)())
               bm_state_synced = true;
               synctimer_setSyncTimeCompareInt(Tsync_pkt_RX_2.NextState_TS_us, transition_cb);
               bm_cli_log("Synced with Time Master: %x\n", Tsync_pkt_RX_2.MAC_Address_LSB);
-              
+              if (Tsync_pkt_RX_2.NextState_TS_us > synctimer_getSyncTime() - 250 * 1000 - bm_rand_32 % backoff_time_timessync_max_ms * 1000){ // Relay if enough time is left ~250ms + random backoff time
+                bm_timesync_msg_publish(true);
+              }
               return true;
             }
             else
@@ -507,33 +511,9 @@ bool bm_timesync_msg_subscribe(void (*transition_cb)())
       synctimer_TimeStampCapture_enable();
     }
   }
+  return false;
 }
 
-}
-bm_cli_log("Control Message received\n");
-*bm_control_msg = *(bm_control_msg_t *)Radio_Packet_RX.PDU; // Bring the sheep to a dry place
-bm_sleep(bm_rand_32 % backoff_time_max_ms);                 // Sleep from 0 till Random Backoff Time
-/* Relay Message */
-Radio_Packet_TX.length = sizeof(bm_control_msg);
-Radio_Packet_TX.PDU = (uint8_t *)&bm_control_msg;
-for (int ch = CommonStartCH; ch <= CommonEndCH; ch++)
-{
-  bm_radio_setCH(ch);
-  bm_radio_send_burst(Radio_Packet_TX, msg_time_ms * msg_cnt);
-}
-bm_cli_log("Control Message relayed\n");
-if (backoff_time_max_ms - (bm_rand_32 % backoff_time_max_ms) > msg_time_ms)
-{
-  bm_sleep(backoff_time_max_ms - (bm_rand_32 % backoff_time_max_ms)); // Sleep the Rest of the Backoff Time
-}
-bm_sleep(backoff_time_max_ms); // Sleep for satfy to net get a backloop ...
-return true;
-}
-}
-}
-
-return false;
-}
 
 /*
 
