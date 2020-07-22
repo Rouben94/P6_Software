@@ -607,8 +607,6 @@
 // </e>
 
 // <q> CRC16_ENABLED  - crc16 - CRC16 calculation routines
- 
-
 #ifndef CRC16_ENABLED
 #define CRC16_ENABLED 1
 #endif
