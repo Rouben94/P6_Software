@@ -230,14 +230,17 @@ void ST_TIMESYNC_fn(void) {
   next_state_ts_us = (synctimer_getSyncTime() + ST_TIMESYNC_TIME_MS * 1000 + ST_MARGIN_TIME_MS * 1000);
   synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb);
 #ifdef BENCHMARK_MASTER
-    bm_timesync_Publish(ST_TIMESYNC_TIME_MS, next_state_ts_us, false);
+  while(next_state_ts_us > synctimer_getSyncTime() + ST_MARGIN_TIME_MS * 1000 + 1500 * 1000) // Do Publishing while ther is enough time left
+  {
+    bm_timesync_msg_publish(false);
+  }
 #else
-    if (bm_timesync_Subscribe(ST_TIMESYNC_TIME_MS, ST_transition_cb)) {
-      while (synctimer_getSyncTimeCompareIntTS() > (synctimer_getSyncTime() + ST_MARGIN_TIME_MS * 1000 + ST_TIMESYNC_BACKOFF_TIME_MS * 1000)) { // Check if there is Time Left for Propagating Timesync further
-        bm_sleep(bm_rand_32 % ST_TIMESYNC_BACKOFF_TIME_MS);                                                                                     // Sleep from 0 till Random Backoff Time
-        bm_timesync_Publish(0, synctimer_getSyncTimeCompareIntTS(), true);                                                                      // Propagate the Timesync further just once for each Channel
-      }
+  while(next_state_ts_us > synctimer_getSyncTime() + ST_MARGIN_TIME_MS * 1000 + 250 * 1000 && !bm_state_synced) // Do Subscribing while ther is enough time and not already synced
+  {
+    if (bm_timesync_msg_subscribe(ST_transition_cb)) {
+      break; // Only relay once and wait for next State if synced
     }
+  }
 #endif
   return;
 }
