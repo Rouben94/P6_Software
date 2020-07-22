@@ -762,11 +762,12 @@ void ST_PUBLISH_fn(void)
 	if (isMaster && !(masrep.nodrep.size() == 0))
 	{
 		// Do Reporting of Nodes
+		printk("<NODE_REPORT_BEGIN>\r\n");
 		for (const auto &node : masrep.nodrep)
 		{
 			for (const auto &ch : node.chrep)
 			{
-				printk("<NODE_REPORT_BEGIN> %x %d %d %d %d %d %d \r\n",LSB_MAC_Address, ch.CHRepPkt.CH, ch.TxPkt_CNT, ch.CHRepPkt.CRCOK_CNT, ch.CHRepPkt.CRCERR_CNT, ch.CHRepPkt.Avg_SIG_RSSI, ch.CHRepPkt.Avg_NOISE_RSSI);
+				printk("<NODE_REPORT> %x %d %d %d %d %d %d \r\n",LSB_MAC_Address, ch.CHRepPkt.CH, ch.TxPkt_CNT, ch.CHRepPkt.CRCOK_CNT, ch.CHRepPkt.CRCERR_CNT, ch.CHRepPkt.Avg_SIG_RSSI, ch.CHRepPkt.Avg_NOISE_RSSI);
 				/*
 				printk("<NODE_REPORT_BEGIN>\r\n");
 				// <MACAddress> <CH> <PktCnt> <CRCOKCnt> <CRCERRCnt> <AvgSigRSSI> <AvgNoiseRSSI>
