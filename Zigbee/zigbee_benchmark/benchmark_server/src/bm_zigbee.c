@@ -193,12 +193,12 @@ static void timer_init(void) {
 
 /**@brief Function for initializing the nrf log module.
  */
-static void log_init(void) {
-  ret_code_t err_code = NRF_LOG_INIT(NULL);
-  APP_ERROR_CHECK(err_code);
-
-  NRF_LOG_DEFAULT_BACKENDS_INIT();
-}
+//static void log_init(void) {
+//  ret_code_t err_code = NRF_LOG_INIT(NULL);
+//  APP_ERROR_CHECK(err_code);
+//
+//  NRF_LOG_DEFAULT_BACKENDS_INIT();
+//}
 
 /**@brief Function for initializing LEDs and a single PWM channel.
  */
@@ -422,8 +422,6 @@ void bm_receive_message(zb_bufid_t bufid) {
   zb_zcl_parsed_hdr_t cmd_info;
   ZB_ZCL_COPY_PARSED_HEADER(bufid, &cmd_info);
 
-  NRF_LOG_INFO("Receiving message");
-
   message.net_time = synctimer_getSyncTime();
   message.ack_net_time = 0;
 
@@ -610,7 +608,7 @@ void bm_zigbee_init(void) {
   timer_init();
   //  leds_buttons_init();
   leds_pwm_init();
-//  bm_log_init();
+  //  bm_log_init();
 
   /* Set Zigbee stack logging level and traffic dump subsystem. */
   ZB_SET_TRACE_LEVEL(ZIGBEE_TRACE_LEVEL);

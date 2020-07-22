@@ -160,9 +160,7 @@ void zboss_signal_handler(zb_bufid_t bufid) {
       zb_err_code = ZB_SCHEDULE_APP_ALARM(steering_finished, 0, ZB_TIME_ONE_SECOND * ZB_ZGP_DEFAULT_COMMISSIONING_WINDOW);
       ZB_ERROR_CHECK(zb_err_code);
     }
-#ifndef ZB_ED_ROLE
-    zb_enable_auto_pan_id_conflict_resolution(ZB_FALSE);
-#endif
+
     break;
 
   case ZB_ZDO_SIGNAL_DEVICE_ANNCE: {
@@ -185,11 +183,9 @@ void zboss_signal_handler(zb_bufid_t bufid) {
 
   /* Update network status LED */
   if (ZB_JOINED() && (ZB_SCHEDULE_GET_ALARM_TIME(steering_finished, ZB_ALARM_ANY_PARAM, &timeout_bi) == RET_OK)) {
-    //    bsp_board_led_on(ZIGBEE_NETWORK_STATE_LED);
     bm_led2_set(true);
 
   } else {
-    //    bsp_board_led_off(ZIGBEE_NETWORK_STATE_LED);
     bm_led2_set(false);
   }
 
@@ -205,7 +201,7 @@ void bm_zigbee_init(void) {
   zb_ret_t zb_err_code;
   zb_ieee_addr_t ieee_addr;
 
-  bm_log_init();
+  //  bm_log_init();
 
   /* Set Zigbee stack logging level and traffic dump subsystem. */
   ZB_SET_TRACE_LEVEL(ZIGBEE_TRACE_LEVEL);
@@ -230,9 +226,6 @@ void bm_zigbee_init(void) {
 void bm_zigbee_enable(void) {
   zb_ret_t zb_err_code;
   zb_ieee_addr_t ieee_addr;
-
-  /* Start Zigbee CLI subsystem. */
-  //  bm_cli_start();
 
   /** Start Zigbee Stack. */
   zb_err_code = zboss_start_no_autostart();
