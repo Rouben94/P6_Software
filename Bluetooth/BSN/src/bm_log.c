@@ -50,14 +50,11 @@ void bm_log_clear_flash()
   bm_cli_log("Flash Data deleted\n");
 #elif defined ZEPHYR_BLE_MESH
   flash_write_protection_set(flash_dev, false);
-  if (flash_erase(flash_dev, FLASH_OFFSET, FLASH_PAGE_SIZE * FLASH_PAGES) != 0)
+  for (int i = 0; i < FLASH_PAGES; i++)
   {
-    bm_cli_log("Flash erase failed!\n");
-  }
-  else
-  {
-    bm_cli_log("Flash erase succeeded!\n");
-  }
+    flash_erase(flash_dev, FLASH_OFFSET + FLASH_PAGE_SIZE * i, FLASH_PAGE_SIZE);
+  } 
+  bm_cli_log("Flash erase succeeded!\n");
   flash_write_protection_set(flash_dev, true); // enable is recommended
 #endif
 }
@@ -76,11 +73,11 @@ void bm_log_save_to_flash()
 #elif defined ZEPHYR_BLE_MESH
   int ret;
   uint32_t i, offset;
-  bm_log_clear_flash();
+  //bm_log_clear_flash();
   ret = flash_write_protection_set(flash_dev, false); 
   for (i = 0U; i < ARRAY_SIZE(message_info); i++)
-  {
-    if (message_info[i].net_time == 0)
+  {    
+    if (message_info[i].net_time == UINT64_MAX)
     {
       bm_cli_log("Saved %u entries to flash\n", i);
       break;
@@ -116,16 +113,12 @@ uint32_t bm_log_load_from_flash()
   for (i = 0U; i < ARRAY_SIZE(message_info); i++)
   {
       offset = FLASH_OFFSET + i * sizeof(message_info[i]) ;
-      if (flash_read(flash_dev, offset, &message_info[i] ,
-                      sizeof(message_info[i])) != 0)
-      {
-        printf("Flash read failed!\n");
-        return i;
-      }
+      flash_read(flash_dev, offset, &message_info[i] , sizeof(message_info[i]));
       bm_cli_log("Net Time: %u\n",message_info[i].net_time);
-    if (message_info[i].net_time == 0)
+    if (message_info[i].net_time == UINT64_MAX)
     {
       bm_cli_log("Read %u entries from flash\n", i);
+      memset(&message_info[i],0,sizeof(message_info[i])); // Delete Last entry
       break;
     }
   }

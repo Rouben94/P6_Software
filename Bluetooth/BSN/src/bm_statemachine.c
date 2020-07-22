@@ -122,6 +122,16 @@ void ST_INIT_fn(void) {
   bm_cli_init();
 #endif
 
+#ifdef BENCHMARK_MASTER
+bm_cli_log("Master Started\n");
+#elif defined BENCHMARK_CLIENT
+bm_cli_log("Client Started\n");
+#elif defined BENCHMARK_SERVER
+bm_cli_log("Server Started\n");
+#else
+bm_cli_log("Error no Role defined. Please define a Role in the bm_config.h (BENCHMARK_MASTER - CLIENT - SERVER)\n");
+#endif
+
   /* Test read FLASH Data */
   uint32_t restored_cnt = bm_log_load_from_flash(); // Restor Log Data from FLASH
   bm_cli_log("Restored %u Bytes from Flash\n", restored_cnt);
@@ -243,6 +253,7 @@ void ST_INIT_BENCHMARK_fn(void) {
 
   bm_rand_init_message_ts();
   bm_log_clear_ram();
+  bm_log_clear_flash();
 
 #ifdef ZEPHYR_BLE_MESH
   bm_blemesh_enable(); // Will return faster than the Stack is realy ready... keep on waiting in the transition.
