@@ -39,12 +39,15 @@ void bm_control_msg_publish(bm_control_msg_t bm_control_msg)
     bm_radio_setTxP(CommonTxPower);
     Radio_Packet_TX.length = sizeof(bm_control_msg);
     Radio_Packet_TX.PDU = (uint8_t *)&bm_control_msg;
-    for (int ch = CommonStartCH; ch <= CommonEndCH; ch++)
+    for (int ch_rx = CommonStartCH; ch_rx <= CommonEndCH; ch_rx++)
     {
-        bm_radio_setCH(ch);
-        bm_radio_send_burst(Radio_Packet_TX, msg_time_ms * msg_cnt);
+        for (int ch = CommonStartCH; ch <= CommonEndCH; ch++)
+        {
+            bm_radio_setCH(ch);
+            bm_radio_send_burst(Radio_Packet_TX, msg_time_ms * msg_cnt);
+        }
     }
-    bm_sleep(backoff_time_max_ms + msg_time_ms * msg_cnt * CommonCHCnt); // Sleep till all relays neerby should be done
+    bm_sleep(2*backoff_time_max_ms + msg_time_ms * msg_cnt * CommonCHCnt * CommonCHCnt); // Sleep till all relays neerby should be done
 }
 
 bool bm_control_msg_subscribe(bm_control_msg_t *bm_control_msg)
@@ -75,6 +78,7 @@ bool bm_control_msg_subscribe(bm_control_msg_t *bm_control_msg)
                 if (backoff_time_max_ms - (bm_rand_32 % backoff_time_max_ms) > msg_time_ms){
                     bm_sleep(backoff_time_max_ms - (bm_rand_32 % backoff_time_max_ms));                 // Sleep the Rest of the Backoff Time
                 }
+                bm_sleep(backoff_time_max_ms); // Sleep for satfy to net get a backloop ... 
                 return true;
             }
         }

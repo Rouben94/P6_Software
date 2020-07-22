@@ -8,6 +8,8 @@ extern "C" {
 extern bool bm_state_synced; // Signal the Synced State of the Timesync
 extern bool bm_synctimer_timeout_compare_int; // Signal that a Timeout Compare Interrupt on Synctimer is Occured
 
+
+
 /**
 * Init the Sync Timer
 *
@@ -76,7 +78,7 @@ extern uint64_t synctimer_getSyncTime();
 extern void synctimer_setSyncTimeCompareInt(uint64_t ts ,void (*cc_cb)());
 
 /* Gets a synced Time Compare Interrupt Timestamp (with respect of Synced Time) */
-extern uint64_t synctimer_getSyncTimeCompareIntTS();
+uint64_t synctimer_getSyncTimeCompareIntTS();
 
 /* Sets a Compare Interrupt which occurs after the specified time in us */
 void synctimer_setCompareInt(uint32_t timeout_ms);
@@ -87,10 +89,16 @@ void bm_sleep(uint32_t timeout_ms);
 extern void config_debug_ppi_and_gpiote_radio_state();
 
 
-
-void bm_timesync_Publish(uint32_t timeout_ms, uint64_t ST_INIT_MESH_STACK_TS, bool Just_Once);
-
-bool bm_timesync_Subscribe(uint32_t timeout_ms, void (*cc_cb)());
+/** Publush a Timesync Message 
+ * @param relaying Is the publish called from a relaying event or not (sleeps longer)
+ * 
+*/
+void bm_timesync_msg_publish(bool relaying);
+/** Subscribe to a Timesync Message 
+ * @param transition_cb transition Callback for registring the next State
+ * 
+*/
+bool bm_timesync_msg_subscribe(void (*transition_cb)());
 
 #endif
 
