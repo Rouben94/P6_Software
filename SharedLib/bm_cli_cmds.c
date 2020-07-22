@@ -77,14 +77,9 @@ NRF_CLI_CMD_REGISTER(getNodeReport, NULL, "Get the Node Report", cmd_getNodeRepo
 
 static void cmd_setNodeSettings(nrf_cli_t const *p_cli, size_t argc, char **argv) { // Todo: Add error check for validating the Params are valid
   if (argc == 3) {
-    //    bm_cli_cmd_setNodeSettings.MAC = atoi(argv[1]);                // MAC Adress in integer value format
     bm_cli_cmd_setNodeSettings.MAC = strtoul(argv[1], NULL, NULL); // MAC Adress in integer value format
-    bm_cli_cmd_setNodeSettings.GroupAddress = atoi(argv[2]); // Group Address Number (0-25)
+    bm_cli_cmd_setNodeSettings.GroupAddress = atoi(argv[2]);       // Group Address Number (0-25)
     bm_cli_cmd_setNodeSettings.req = true;
-//    nrf_cli_print(p_cli, "Input arguments %s, %s", argv[1], argv[2]);
-
-    nrf_cli_print(p_cli, "Input arguments %x, %s", strtoul(argv[1], NULL, NULL), argv[2]);
-
     nrf_cli_print(p_cli, "Set node settings request scheduled for MAC: %x", bm_cli_cmd_setNodeSettings.MAC);
   } else {
     nrf_cli_error(p_cli, "Number of Arguments incorrect! expected:\n setNodeSettings <MAC in Integer format> <GroupNumber>\n");
