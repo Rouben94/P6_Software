@@ -23,5 +23,7 @@ FILE(GLOB shared_sources_cpp ../../SharedLib/*.cpp)
 
 target_sources(app PRIVATE
 	${app_sources_c}
-	${app_sources_cpp})
+	${app_sources_cpp}
+	${shared_sources_c}
+	${shared_sources_cpp})
 target_include_directories(app PRIVATE include ../../SharedLib)

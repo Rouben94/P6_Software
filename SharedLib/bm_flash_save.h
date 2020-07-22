@@ -1,3 +1,5 @@
+#ifdef NRF_SDK_Zigbee
+
 #include "fds.h"
 #include "zboss_api.h"
 
@@ -62,3 +64,5 @@ void flash_delete(void);
  * @note 
  */
 void flash_save_init(flash_cb_t evt_handler);
+
+#endif
