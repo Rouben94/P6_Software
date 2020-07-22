@@ -114,6 +114,7 @@ uint32_t bm_log_load_from_flash()
   {
       offset = FLASH_OFFSET + i * sizeof(message_info[i]) ;
       flash_read(flash_dev, offset, &message_info[i] , sizeof(message_info[i]));
+      bm_cli_log("Net Time: %u\n",message_info[i].net_time);
     if (message_info[i].net_time == UINT64_MAX)
     {
       bm_cli_log("Read %u entries from flash\n", i);
@@ -121,8 +122,6 @@ uint32_t bm_log_load_from_flash()
       break;
     }
   }
-  bm_cli_log("Net Time: %u\n",(uint32_t)message_info[0].net_time);
-  bm_cli_log("Net Time: %u\n",(uint32_t)message_info[0].net_time);
   bm_message_cnt = i;
 #endif
   bm_cli_log("Read data from Flash done\n");
