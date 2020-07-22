@@ -56,6 +56,9 @@ void bm_cli_process(void);
 #endif
 #endif
 #ifdef NRF_SDK_Zigbee
+
+void bm_cli_init(void);
+
 void bm_cli_log_init(void); /* Initialize the Zigbee LOG subsystem */
 
 #endif
