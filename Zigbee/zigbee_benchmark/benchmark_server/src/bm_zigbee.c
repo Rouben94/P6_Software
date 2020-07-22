@@ -559,14 +559,16 @@ void zboss_signal_handler(zb_bufid_t bufid) {
   zb_ret_t status = ZB_GET_APP_SIGNAL_STATUS(bufid);
   zb_ret_t zb_err_code;
 
+  NRF_LOG_INFO("Signal Received, %d", sig);
+
   /* Update network status LED */
   zigbee_led_status_update(bufid, ZIGBEE_NETWORK_STATE_LED);
 
   switch (sig) {
   case ZB_BDB_SIGNAL_STEERING:
-    ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
+    NRF_LOG_INFO("Zigbee Network Steering");
+    ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid)); /* Call default signal handler. */
     if (status == RET_OK) {
-
       /* Schedule Add Group ID request */
       zb_err_code = ZB_SCHEDULE_APP_ALARM(add_group_id, bufid, 2 * ZB_TIME_ONE_SECOND);
       ZB_ERROR_CHECK(zb_err_code);
@@ -578,19 +580,17 @@ void zboss_signal_handler(zb_bufid_t bufid) {
       NRF_LOG_INFO("Network Steering finished with Local Node Address: Short: 0x%x, IEEE/Long: 0x%s", local_node_short_addr, local_nodel_ieee_addr_buf);
       bufid = 0; // Do not free buffer - it will be reused by find_light_bulb callback.
     }
-  case ZB_BDB_SIGNAL_DEVICE_REBOOT:
-    ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
-    if (status == RET_OK) {
-
-      /* Read local node address */
-      zb_get_long_address(local_node_ieee_addr);
-      local_node_short_addr = zb_address_short_by_ieee(local_node_ieee_addr);
-      local_node_addr_len = ieee_addr_to_str(local_nodel_ieee_addr_buf, sizeof(local_nodel_ieee_addr_buf), local_node_ieee_addr);
-      NRF_LOG_INFO("Node restarted with Local Node Address: Short: 0x%x, IEEE/Long: 0x%s", local_node_short_addr, local_nodel_ieee_addr_buf);
-    }
-    break;
+//  case ZB_BDB_SIGNAL_DEVICE_REBOOT:
+//    ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid)); /* Call default signal handler. */
+//    if (status == RET_OK) {
+//      /* Read local node address */
+//      zb_get_long_address(local_node_ieee_addr);
+//      local_node_short_addr = zb_address_short_by_ieee(local_node_ieee_addr);
+//      local_node_addr_len = ieee_addr_to_str(local_nodel_ieee_addr_buf, sizeof(local_nodel_ieee_addr_buf), local_node_ieee_addr);
+//      NRF_LOG_INFO("Node restarted with Local Node Address: Short: 0x%x, IEEE/Long: 0x%s", local_node_short_addr, local_nodel_ieee_addr_buf);
+//    }
+//    break;
   default:
-
     /* No application-specific behavior is required. Call default signal handler. */
     ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
     break;

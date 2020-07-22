@@ -361,7 +361,7 @@ void buttons_handler(bsp_event_t evt) {
 /* Function to send Benchmark Message */
 void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t level) {
   zb_uint16_t groupID = bm_params.GroupAddress + GROUP_ID;
-  NRF_LOG_INFO("Benchmark Message Callback send to Group Address: %d.", groupID);
+  NRF_LOG_INFO("Benchmark Message Callback send to Group Address: 0x%x, ID: %x", groupID, bm_params.GroupAddress);
 
   /* Send Move to level request. Level value is uint8. */
   ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
@@ -524,7 +524,6 @@ void zboss_signal_handler(zb_bufid_t bufid) {
   case ZB_BDB_SIGNAL_STEERING:
     /* Call default signal handler. */
     ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
-
     if (status == RET_OK) {
 
       /* Read local node address */
@@ -534,8 +533,9 @@ void zboss_signal_handler(zb_bufid_t bufid) {
       NRF_LOG_INFO("Network Steering finished with Local Node Address: Short: 0x%x, IEEE/Long: 0x%s", local_node_short_addr, local_nodel_ieee_addr_buf);
     }
     break;
-
   case ZB_BDB_SIGNAL_DEVICE_REBOOT:
+    /* Call default signal handler. */
+    ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
     if (status == RET_OK) {
       /* Read local node address */
       zb_get_long_address(local_node_ieee_addr);
@@ -544,7 +544,6 @@ void zboss_signal_handler(zb_bufid_t bufid) {
       NRF_LOG_INFO("Node restarted with Local Node Address: Short: 0x%x, IEEE/Long: 0x%s", local_node_short_addr, local_nodel_ieee_addr_buf);
     }
     break;
-
   default:
     /* Call default signal handler. */
     ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
@@ -562,8 +561,8 @@ void bm_zigbee_init(void) {
 
   /* Initialize timers, loging system and GPIOs. */
   timers_init();
-//  leds_buttons_init();
-//  bm_log_init();
+  //  leds_buttons_init();
+  //  bm_log_init();
 
   /* Set Zigbee stack logging level and traffic dump subsystem. */
   ZB_SET_TRACE_LEVEL(ZIGBEE_TRACE_LEVEL);
