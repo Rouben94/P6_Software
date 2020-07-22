@@ -1,0 +1,86 @@
+<!DOCTYPE CrossStudio_Session_File>
+<session>
+ <Bookmarks/>
+ <Breakpoints groups="Breakpoints" active_group="Breakpoints"/>
+ <ExecutionProfileWindow/>
+ <FrameBufferWindow>
+  <FrameBufferWindow bufferHeight="-1" addressSpace="" addressText="" bufferWidth="-1"/>
+ </FrameBufferWindow>
+ <Memory1>
+  <MemoryWindow addressSpace="" dataSize="1" autoEvaluate="0" viewMode="0" addressOrder="0" columnsText="" refreshPeriod="0" name="zigbee_benchmark_server" radix="16" sizeText="" addressText=""/>
+ </Memory1>
+ <Memory2>
+  <MemoryWindow addressSpace="" dataSize="1" autoEvaluate="0" viewMode="0" addressOrder="0" columnsText="" refreshPeriod="0" name="zigbee_benchmark_server" radix="16" sizeText="" addressText=""/>
+ </Memory2>
+ <Memory3>
+  <MemoryWindow addressSpace="" dataSize="1" autoEvaluate="0" viewMode="0" addressOrder="0" columnsText="" refreshPeriod="0" name="zigbee_benchmark_server" radix="16" sizeText="" addressText=""/>
+ </Memory3>
+ <Memory4>
+  <MemoryWindow addressSpace="" dataSize="1" autoEvaluate="0" viewMode="0" addressOrder="0" columnsText="" refreshPeriod="0" name="zigbee_benchmark_server" radix="16" sizeText="" addressText=""/>
+ </Memory4>
+ <Project>
+  <ProjectSessionItem path="zigbee_benchmark_server"/>
+  <ProjectSessionItem path="zigbee_benchmark_server;zigbee_benchmark_server"/>
+  <ProjectSessionItem path="zigbee_benchmark_server;zigbee_benchmark_server;Application"/>
+  <ProjectSessionItem path="zigbee_benchmark_server;zigbee_benchmark_server;Board Definition"/>
+  <ProjectSessionItem path="zigbee_benchmark_server;zigbee_benchmark_server;Board Support"/>
+  <ProjectSessionItem path="zigbee_benchmark_server;zigbee_benchmark_server;nRF_Libraries"/>
+  <ProjectSessionItem path="zigbee_benchmark_server;zigbee_benchmark_server;nRF_Log"/>
+  <ProjectSessionItem path="zigbee_benchmark_server;zigbee_benchmark_server;nRF_Segger_RTT"/>
+  <ProjectSessionItem path="zigbee_benchmark_server;zigbee_benchmark_server;nRF_Zigbee"/>
+  <ProjectSessionItem path="zigbee_benchmark_server;zigbee_benchmark_server;Segger Startup Files"/>
+  <ProjectSessionItem path="zigbee_benchmark_server;zigbee_benchmark_server;Zigbee"/>
+ </Project>
+ <Register1>
+  <RegisterWindow visibleNodes="CPU - Current Context/r0;CPU - Current Context/r1;CPU - Current Context/r2;CPU - Current Context/r3;CPU - Current Context/r4;CPU - Current Context/r5;CPU - Current Context/r6;CPU - Current Context/r7;CPU - Current Context/r8;CPU - Current Context/r9;CPU - Current Context/r10;CPU - Current Context/r11;CPU - Current Context/r12;CPU - Current Context/sp(r13);CPU - Current Context/lr(r14);CPU - Current Context/pc(r15);CPU - Current Context/apsr;CPU/r0;CPU/r1;CPU/r2;CPU/r3;CPU/r4;CPU/r5;CPU/r6;CPU/r7;CPU/r8;CPU/r9;CPU/r10;CPU/r11;CPU/r12;CPU/sp(r13);CPU/lr(r14);CPU/pc(r15);CPU/xpsr;CPU/msp;CPU/psp;CPU/cfbp;CPU/internal" binaryNodes="" asciiNodes="" openNodes="CPU - Current Context" name="zigbee_benchmark_server" decimalNodes="" octalNodes="" unsignedNodes=""/>
+ </Register1>
+ <Register2>
+  <RegisterWindow visibleNodes="CPU - Current Context/r0;CPU - Current Context/r1;CPU - Current Context/r2;CPU - Current Context/r3;CPU - Current Context/r4;CPU - Current Context/r5;CPU - Current Context/r6;CPU - Current Context/r7;CPU - Current Context/r8;CPU - Current Context/r9;CPU - Current Context/r10;CPU - Current Context/r11;CPU - Current Context/r12;CPU - Current Context/sp(r13);CPU - Current Context/lr(r14);CPU - Current Context/pc(r15);CPU - Current Context/apsr;CPU/r0;CPU/r1;CPU/r2;CPU/r3;CPU/r4;CPU/r5;CPU/r6;CPU/r7;CPU/r8;CPU/r9;CPU/r10;CPU/r11;CPU/r12;CPU/sp(r13);CPU/lr(r14);CPU/pc(r15);CPU/xpsr;CPU/msp;CPU/psp;CPU/cfbp;CPU/internal" binaryNodes="" asciiNodes="" openNodes="CPU - Current Context" name="zigbee_benchmark_server" decimalNodes="" octalNodes="" unsignedNodes=""/>
+ </Register2>
+ <Register3>
+  <RegisterWindow visibleNodes="CPU - Current Context/r0;CPU - Current Context/r1;CPU - Current Context/r2;CPU - Current Context/r3;CPU - Current Context/r4;CPU - Current Context/r5;CPU - Current Context/r6;CPU - Current Context/r7;CPU - Current Context/r8;CPU - Current Context/r9;CPU - Current Context/r10;CPU - Current Context/r11;CPU - Current Context/r12;CPU - Current Context/sp(r13);CPU - Current Context/lr(r14);CPU - Current Context/pc(r15);CPU - Current Context/apsr;CPU/r0;CPU/r1;CPU/r2;CPU/r3;CPU/r4;CPU/r5;CPU/r6;CPU/r7;CPU/r8;CPU/r9;CPU/r10;CPU/r11;CPU/r12;CPU/sp(r13);CPU/lr(r14);CPU/pc(r15);CPU/xpsr;CPU/msp;CPU/psp;CPU/cfbp;CPU/internal" binaryNodes="" asciiNodes="" openNodes="CPU - Current Context" name="zigbee_benchmark_server" decimalNodes="" octalNodes="" unsignedNodes=""/>
+ </Register3>
+ <Register4>
+  <RegisterWindow visibleNodes="CPU - Current Context/r0;CPU - Current Context/r1;CPU - Current Context/r2;CPU - Current Context/r3;CPU - Current Context/r4;CPU - Current Context/r5;CPU - Current Context/r6;CPU - Current Context/r7;CPU - Current Context/r8;CPU - Current Context/r9;CPU - Current Context/r10;CPU - Current Context/r11;CPU - Current Context/r12;CPU - Current Context/sp(r13);CPU - Current Context/lr(r14);CPU - Current Context/pc(r15);CPU - Current Context/apsr;CPU/r0;CPU/r1;CPU/r2;CPU/r3;CPU/r4;CPU/r5;CPU/r6;CPU/r7;CPU/r8;CPU/r9;CPU/r10;CPU/r11;CPU/r12;CPU/sp(r13);CPU/lr(r14);CPU/pc(r15);CPU/xpsr;CPU/msp;CPU/psp;CPU/cfbp;CPU/internal" binaryNodes="" asciiNodes="" openNodes="CPU - Current Context" name="zigbee_benchmark_server" decimalNodes="" octalNodes="" unsignedNodes=""/>
+ </Register4>
+ <Threads>
+  <ThreadsWindow showLists=""/>
+ </Threads>
+ <TraceWindow>
+  <Trace enabled="Yes"/>
+ </TraceWindow>
+ <Watch1>
+  <Watches active="1" update="Never"/>
+ </Watch1>
+ <Watch2>
+  <Watches active="0" update="Never"/>
+ </Watch2>
+ <Watch3>
+  <Watches active="0" update="Never"/>
+ </Watch3>
+ <Watch4>
+  <Watches active="0" update="Never"/>
+ </Watch4>
+ <Files>
+  <SessionOpenFile windowGroup="DockEditLeft" x="7" y="43" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../main.c" selected="0" top="18" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="77" y="513" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../src/bm_zigbee.c" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="22" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../include/bm_zigbee.h" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="36" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../include/bm_config.h" selected="0" top="18" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="2158" useTextEdit="1" useBinaryEdit="0" left="0" path="../config/sdk_config.h" selected="0" top="2152" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="84" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/log/src/nrf_log_backend_uart.c" selected="0" top="61" codecName=""/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="957" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../modules/nrfx/hal/nrf_radio.h" selected="0" top="922" codecName=""/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="6" y="11" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../src/bm_cli.c" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="331" useTextEdit="1" useBinaryEdit="0" left="0" path="C:/arm_segger_embedded_studio_v442a_win_x64_nordic/source/thumb_crt0.s" selected="0" top="308" codecName=""/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="9" y="913" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/log/src/nrf_log_frontend.c" selected="0" top="891" codecName=""/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="89" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/memobj/nrf_memobj.c" selected="0" top="66" codecName=""/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="287" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/balloc/nrf_balloc.c" selected="0" top="242" codecName=""/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="244" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/log/nrf_log_backend_interface.h" selected="0" top="222" codecName=""/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="68" useTextEdit="1" useBinaryEdit="0" left="0" path="C:/arm_segger_embedded_studio_v442a_win_x64_nordic/include/stdarg.h" selected="0" top="47" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="20" y="14" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../include/bm_cli.h" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="112" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/log/nrf_log.h" selected="0" top="91" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="136" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/log/src/nrf_log_internal.h" selected="0" top="116" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="115" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../../../../../components/libraries/util/nordic_common.h" selected="0" top="94" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="24" y="97" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../src/bm_statemachine.c" selected="1" top="78" codecName="Default"/>
+ </Files>
+ <ARMCrossStudioWindow activeProject="zigbee_benchmark_server" fileDialogDefaultFilter="*.c" autoConnectTarget="J-Link" buildConfiguration="Release" sessionSettings="" debugSearchFileMap="" fileDialogInitialDirectory="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/external/segger_rtt" debugSearchPath="" autoConnectCapabilities="3711"/>
+</session>
