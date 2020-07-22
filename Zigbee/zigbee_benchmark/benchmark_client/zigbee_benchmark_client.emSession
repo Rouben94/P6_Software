@@ -65,7 +65,12 @@
   <Watches active="0" update="Never"/>
  </Watch4>
  <Files>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" useBinaryEdit="0" left="0" path="main.c" selected="1" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" useBinaryEdit="0" left="0" path="main.c" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" useBinaryEdit="0" left="0" path="include/bm_zigbee.h" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="549" useTextEdit="1" useBinaryEdit="0" left="0" path="src/bm_zigbee.c" selected="0" top="523" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="240" useTextEdit="1" useBinaryEdit="0" left="0" path="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/external/zboss/include/zboss_api_zdo.h" selected="0" top="225" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="575" useTextEdit="1" useBinaryEdit="0" left="0" path="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/components/zigbee/common/zigbee_helpers.c" selected="0" top="531" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" useBinaryEdit="0" left="0" path="include/bm_config.h" selected="1" top="27" codecName="Default"/>
  </Files>
- <ARMCrossStudioWindow activeProject="zigbee_benchmark_client" fileDialogDefaultFilter="" autoConnectTarget="J-Link" buildConfiguration="Release" sessionSettings="" debugSearchFileMap="" fileDialogInitialDirectory="C:/Users/cyril/Documents/GitHub/P6_Software/Zigbee/zigbee_benchmark/benchmark_client/src" debugSearchPath="" autoConnectCapabilities="3199"/>
+ <ARMCrossStudioWindow activeProject="zigbee_benchmark_client" fileDialogDefaultFilter="*.c" autoConnectTarget="J-Link" buildConfiguration="Release" sessionSettings="" debugSearchFileMap="" fileDialogInitialDirectory="C:/Users/cyril/Documents/GitHub/P6_Software/Zigbee/zigbee_benchmark/benchmark_client/src" debugSearchPath="" autoConnectCapabilities="3711"/>
 </session>

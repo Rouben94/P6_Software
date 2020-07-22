@@ -59,14 +59,17 @@
   <Watches active="0" update="Never"/>
  </Watch4>
  <Files>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="5" useTextEdit="1" useBinaryEdit="0" left="0" path="main.c" selected="0" top="0" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="8" useTextEdit="1" useBinaryEdit="0" left="0" path="src/bm_zigbee.c" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="9" y="34" useTextEdit="1" useBinaryEdit="0" left="0" path="main.c" selected="0" top="6" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="27" y="227" useTextEdit="1" useBinaryEdit="0" left="0" path="src/bm_zigbee.c" selected="1" top="124" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="15" useTextEdit="1" useBinaryEdit="0" left="0" path="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/components/zigbee/common/zigbee_helpers.c" selected="0" top="0" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="55" useTextEdit="1" useBinaryEdit="0" left="0" path="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/components/libraries/util/sdk_common.h" selected="0" top="29" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="11" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../SharedLib/bm_cli.h" selected="0" top="0" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" useBinaryEdit="0" left="0" path="include/bm_config.h" selected="0" top="0" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="41" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../SharedLib/bm_log.c" selected="1" top="22" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="51" useTextEdit="1" useBinaryEdit="0" left="0" path="include/bm_config.h" selected="0" top="43" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="5" y="132" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../SharedLib/bm_log.c" selected="0" top="117" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="127" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../SharedLib/bm_simple_buttons_and_leds.c" selected="0" top="98" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="79" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../SharedLib/bm_cli_cmds.c" selected="0" top="66" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="119" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../SharedLib/bm_statemachine.c" selected="0" top="98" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="1530" useTextEdit="1" useBinaryEdit="0" left="0" path="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/external/zboss/include/zboss_api_zcl.h" selected="0" top="1515" codecName="Default"/>
  </Files>
- <ARMCrossStudioWindow activeProject="zigbee_benchmark_master" fileDialogDefaultFilter="*.c" autoConnectTarget="J-Link" buildConfiguration="Release" sessionSettings="" debugSearchFileMap="" fileDialogInitialDirectory="C:/Users/cyril/Documents/GitHub/P6_Software/SharedLib" debugSearchPath="" autoConnectCapabilities="3199"/>
+ <ARMCrossStudioWindow activeProject="zigbee_benchmark_master" fileDialogDefaultFilter="*.c" autoConnectTarget="J-Link" buildConfiguration="Release" sessionSettings="" debugSearchFileMap="" fileDialogInitialDirectory="C:/Users/cyril/Documents/GitHub/P6_Software/SharedLib" debugSearchPath="" autoConnectCapabilities="3711"/>
 </session>
