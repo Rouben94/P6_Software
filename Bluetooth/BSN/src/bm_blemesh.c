@@ -161,7 +161,7 @@ void bm_blemesh_enable(void)
 	if (err)
 	{
 		printk("Bluetooth init failed (err %d)\n", err);
-		return false;
+		return;
 	} 
 	printk("Bluetooth initialized\n");
 	/* =====================================*/

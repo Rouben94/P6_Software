@@ -118,6 +118,9 @@ void ST_INIT_fn(void) {
   bm_rand_init();
   bm_radio_init();
   bm_log_init();
+#ifdef NRF_SDK_Zigbee
+  bm_cli_init();
+#endif
 
   /* Test read FLASH Data */
   uint32_t restored_cnt = bm_log_load_from_flash(); // Restor Log Data from FLASH
@@ -239,6 +242,7 @@ void ST_INIT_BENCHMARK_fn(void) {
   start_time_ts_us = synctimer_getSyncTime(); // Get the current Timestamp
 
   bm_rand_init_message_ts();
+  bm_log_clear_ram();
 
 #ifdef ZEPHYR_BLE_MESH
   bm_blemesh_enable(); // Will return faster than the Stack is realy ready... keep on waiting in the transition.
@@ -322,6 +326,13 @@ void ST_SAVE_FLASH_fn(void) {
   synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb); // Shedule the Timestamp event
   start_time_ts_us = synctimer_getSyncTime();                          // Get the current Timestamp
   bm_log_save_to_flash();                                              // Save the log to FLASH;
+
+  
+  /* Test read FLASH Data 
+  uint32_t restored_cnt = bm_log_load_from_flash(); // Restor Log Data from FLASH
+  bm_cli_log("Restored %u Bytes from Flash\n", restored_cnt);
+  bm_cli_log("First Log Entry: %u %u ...\n", message_info[0].message_id, (uint32_t)message_info[0].net_time);
+*/
   /* Do a System Reset */
   NVIC_SystemReset();
   return;

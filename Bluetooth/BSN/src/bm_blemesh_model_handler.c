@@ -40,8 +40,8 @@ static void status_handler_onoff_cli(struct bt_mesh_onoff_cli *cli,
 						   struct bt_mesh_msg_ctx *ctx,
 						   const struct bt_mesh_onoff_status *status)
 {
-	#ifdef BM_CLIENT
-	bm_log_append_ram((bm_message_info) {cli->tid,synctimer_getSyncTime(),0,BLE_MESH_TTL-ctx->recv_ttl,ctx->recv_rssi,ctx->addr,ctx->recv_dst,ctx->recv_dst,cli->pub.msg->len});
+	#ifdef BENCHMARK_CLIENT
+	bm_log_append_ram((bm_message_info) {cli->tid,10,synctimer_getSyncTime(),BLE_MESH_TTL-ctx->recv_ttl,ctx->recv_rssi,ctx->addr,ctx->recv_dst,ctx->recv_dst,cli->pub.msg->len});
 	#endif
 	/*
 	printk("Ack Recv TID %u\n",cli->tid);
@@ -64,8 +64,8 @@ static void button0_cb(){
 	};	
 	err = bt_mesh_onoff_cli_set_unack(&on_off_cli, NULL, &set);
 	//err = bt_mesh_onoff_cli_set(&on_off_cli, NULL, &set, NULL);
-	#ifdef BM_CLIENT
-	bm_log_append_ram((bm_message_info) {cli->tid,synctimer_getSyncTime(),0,on_off_cli.model->pub->ttl,0,addr,on_off_cli.model->pub->addr,on_off_cli.model->pub->addr,on_off_cli.pub.msg->len});
+	#ifdef BENCHMARK_CLIENT
+	bm_log_append_ram((bm_message_info) {on_off_cli.tid,synctimer_getSyncTime(),0,on_off_cli.model->pub->ttl,0,addr,on_off_cli.model->pub->addr,on_off_cli.model->pub->addr,on_off_cli.pub.msg->len});
 	#endif
 	/*
 	printk("Sent TID %u\n",on_off_cli.tid);
