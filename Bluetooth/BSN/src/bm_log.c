@@ -122,7 +122,7 @@ uint32_t bm_log_load_from_flash()
     }
   }
   bm_cli_log("Net Time: %u\n",(uint32_t)message_info[0].net_time);
-  bm_cli_log("Net Time: %u\n",(uint32_t)message_info[0].net_time);
+  bm_cli_log("Net Time: %u\n",(uint32_t)message_info[1].net_time);
   bm_message_cnt = i;
 #endif
   bm_cli_log("Read data from Flash done\n");
