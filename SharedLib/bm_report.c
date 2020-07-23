@@ -68,7 +68,7 @@ bool bm_report_msg_subscribe(bm_message_info *message_info)
         return true;
       }
       // Publish the report
-      bm_cli_log("<report> %u %u%u %u %u %d %x %x %x\r\n",message_info[bm_message_info_entry_ind].message_id,message_info[bm_message_info_entry_ind].net_time,(uint32_t)message_info[bm_message_info_entry_ind].net_time,message_info[bm_message_info_entry_ind].ack_net_time,message_info[bm_message_info_entry_ind].number_of_hops,message_info[bm_message_info_entry_ind].rssi,message_info[bm_message_info_entry_ind].src_addr,message_info[bm_message_info_entry_ind].dst_addr,message_info[bm_message_info_entry_ind].group_addr);
+      bm_cli_log("<report> %u %u%u %u%u %u %d %x %x %x\r\n",message_info[bm_message_info_entry_ind].message_id,(uint32_t)message_info[bm_message_info_entry_ind].net_time,message_info[bm_message_info_entry_ind].net_time,(uint32_t)message_info[bm_message_info_entry_ind].ack_net_time,message_info[bm_message_info_entry_ind].ack_net_time,message_info[bm_message_info_entry_ind].number_of_hops,message_info[bm_message_info_entry_ind].rssi,message_info[bm_message_info_entry_ind].src_addr,message_info[bm_message_info_entry_ind].dst_addr,message_info[bm_message_info_entry_ind].group_addr);
       // Next Report Entry
       bm_message_info_entry_ind++;
       bm_report_req_msg.ReportEntry = bm_message_info_entry_ind;
