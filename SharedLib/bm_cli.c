@@ -40,6 +40,7 @@
 #include "nrf_mpu_lib.h"
 #include "nrf_stack_guard.h"
 
+#include "nrf_cli_libuarte.h"
 #include "nrf_cli_uart.h"
 #endif
 #endif
@@ -68,12 +69,19 @@ APP_TIMER_DEF(m_timer_0);
  * */
 #define CLI_EXAMPLE_LOG_QUEUE_SIZE (4)
 
-NRF_CLI_UART_DEF(m_cli_uart_transport, 0, 64, 16);
-NRF_CLI_DEF(m_cli_uart,
-    "uart_cli:~$ ",
-    &m_cli_uart_transport.transport,
-    '\r',
-    CLI_EXAMPLE_LOG_QUEUE_SIZE);
+NRF_CLI_LIBUARTE_DEF(m_cli_libuarte_transport, 256, 256);
+NRF_CLI_DEF(m_cli_libuarte,
+            "libuarte_cli:~$ ",
+            &m_cli_libuarte_transport.transport,
+            '\r',
+            CLI_EXAMPLE_LOG_QUEUE_SIZE);
+
+//NRF_CLI_UART_DEF(m_cli_uart_transport, 0, 64, 16);
+//NRF_CLI_DEF(m_cli_uart,
+//    "uart_cli:~$ ",
+//    &m_cli_uart_transport.transport,
+//    '\r',
+//    CLI_EXAMPLE_LOG_QUEUE_SIZE);
 
 static void timer_handle(void *p_context) {
   UNUSED_PARAMETER(p_context);
@@ -82,24 +90,36 @@ static void timer_handle(void *p_context) {
 static void cli_start(void) {
   ret_code_t ret;
 
-  ret = nrf_cli_start(&m_cli_uart);
+  ret = nrf_cli_start(&m_cli_libuarte);
   APP_ERROR_CHECK(ret);
+  //  ret = nrf_cli_start(&m_cli_uart);
+  //  APP_ERROR_CHECK(ret);
 }
 
 static void cli_init(void) {
   ret_code_t ret;
 
-  nrf_drv_uart_config_t uart_config = NRF_DRV_UART_DEFAULT_CONFIG;
-  uart_config.pseltxd = TX_PIN_NUMBER;
-  uart_config.pselrxd = RX_PIN_NUMBER;
-  uart_config.hwfc = NRF_UART_HWFC_DISABLED;
-  ret = nrf_cli_init(&m_cli_uart, &uart_config, true, true, NRF_LOG_SEVERITY_INFO);
+  //  nrf_drv_uart_config_t uart_config = NRF_DRV_UART_DEFAULT_CONFIG;
+  //  uart_config.pseltxd = TX_PIN_NUMBER;
+  //  uart_config.pselrxd = RX_PIN_NUMBER;
+  //  uart_config.hwfc = NRF_UART_HWFC_DISABLED;
+  //  ret = nrf_cli_init(&m_cli_uart, &uart_config, true, true, NRF_LOG_SEVERITY_INFO);
+
+  cli_libuarte_config_t libuarte_config;
+  libuarte_config.tx_pin = TX_PIN_NUMBER;
+  libuarte_config.rx_pin = RX_PIN_NUMBER;
+  libuarte_config.baudrate = NRF_UARTE_BAUDRATE_115200;
+  libuarte_config.parity = NRF_UARTE_PARITY_EXCLUDED;
+  libuarte_config.hwfc = NRF_UARTE_HWFC_DISABLED;
+  ret = nrf_cli_init(&m_cli_libuarte, &libuarte_config, true, true, NRF_LOG_SEVERITY_INFO);
+  APP_ERROR_CHECK(ret);
+
   APP_ERROR_CHECK(ret);
 }
 
 void bm_cli_process(void) {
-
-  nrf_cli_process(&m_cli_uart);
+    nrf_cli_process(&m_cli_libuarte);
+    //  nrf_cli_process(&m_cli_uart);
 }
 #endif
 void bm_cli_init(void) {
@@ -128,11 +148,13 @@ void bm_cli_init(void) {
 #endif
 }
 
-
 void bm_cli_log_init(void) {
+#ifdef BENCHMARK_MASTER
+  APP_ERROR_CHECK(NRF_LOG_INIT(app_timer_cnt_get));
+#else
+  APP_ERROR_CHECK(NRF_LOG_INIT(NULL));
+#endif
 
-  ret_code_t err_code = NRF_LOG_INIT(NULL);
-  APP_ERROR_CHECK(err_code);
   NRF_LOG_DEFAULT_BACKENDS_INIT();
 }
 #endif
