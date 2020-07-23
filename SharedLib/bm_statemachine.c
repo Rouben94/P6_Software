@@ -15,7 +15,7 @@
 #include "bm_blemesh_model_handler.h"
 #include "bm_simple_buttons_and_leds.h"
 #include <zephyr.h>
-#elif defined NRF_SDK_Zigbee
+#elif defined NRF_SDK_ZIGBEE
 #include "bm_simple_buttons_and_leds.h"
 #include "bm_zigbee.h"
 #endif
@@ -125,7 +125,7 @@ void ST_INIT_fn(void) {
   bm_rand_init();
   bm_radio_init();
   bm_log_init();
-#ifdef NRF_SDK_Zigbee
+#ifdef NRF_SDK_ZIGBEE
   bm_cli_init();
 #endif
 
@@ -191,7 +191,7 @@ void ST_CONTROL_fn(void) {
       bm_cli_log("Benchmark Start initiatet\n");
       break;
     }
-#ifdef NRF_SDK_Zigbee
+#ifdef NRF_SDK_ZIGBEE
     bm_cli_process();
     UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
 #endif
@@ -267,7 +267,7 @@ void ST_TIMESYNC_fn(void) {
 void ST_INIT_BENCHMARK_fn(void) {
 #ifdef ZEPHYR_BLE_MESH
   next_state_ts_us = (synctimer_getSyncTime() + ST_INIT_BENCHMARK_TIME_MS * 1000 + ST_MARGIN_TIME_MS * 1000);
-#elif defined NRF_SDK_Zigbee
+#elif defined NRF_SDK_ZIGBEE
   uint64_t next_state_ts_us = (synctimer_getSyncTime() + ST_INIT_BENCHMARK_TIME_MS * 1000 + ST_MARGIN_TIME_MS * 1000 + ZBOSS_MAIN_LOOP_ITERATION_TIME_MARGIN_MS * 1000);
 #endif
   synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb);
@@ -279,7 +279,7 @@ void ST_INIT_BENCHMARK_fn(void) {
 
 #ifdef ZEPHYR_BLE_MESH
   bm_blemesh_enable(); // Will return faster than the Stack is realy ready... keep on waiting in the transition.
-#elif defined NRF_SDK_Zigbee
+#elif defined NRF_SDK_ZIGBEE
   /* Initialize Zigbee stack. */
   bm_zigbee_init();
   /** Start Zigbee Stack. */
@@ -312,7 +312,7 @@ void ST_BENCHMARK_fn(void) {
 #endif
 #ifdef ZEPHYR_BLE_MESH
 // The Benchmark is Timer Interrupt Driven. do Nothing here and wait for transition
-#elif defined NRF_SDK_Zigbee
+#elif defined NRF_SDK_ZIGBEE
   /* Zigbee or Zboss has its own RTOS Scheduler. He owns all the CPU so we let him work while we wait. 
   Note that the check forcurrent slows down the Zboss stack a bit... this shouldnt be a big deal. */
   while (currentState == ST_BENCHMARK) {
@@ -368,7 +368,7 @@ void ST_WAIT_FOR_TRANSITION_fn() {
   while (!(transition)) {
 #ifdef ZEPHYR_BLE_MESH
     k_sleep(K_FOREVER); // Zephyr Way
-#elif defined NRF_SDK_Zigbee
+#elif defined NRF_SDK_ZIGBEE
     __SEV();
     __WFE();
     __WFE(); // Wait for Timer Interrupt nRF5SDK Way

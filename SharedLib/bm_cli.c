@@ -6,7 +6,7 @@
 #include <shell/shell.h>
 #include <stdlib.h>
 #include <zephyr.h>
-#elif defined NRF_SDK_Zigbee
+#elif defined NRF_SDK_ZIGBEE
 #include "boards.h"
 #include "nrf_log_default_backends.h"
 
@@ -54,7 +54,7 @@ void bm_cli_log(const char *fmt, ...) {
   // Zephyr way to Log info
   printk(fmt);
 }
-#elif defined NRF_SDK_Zigbee
+#elif defined NRF_SDK_ZIGBEE
 #ifdef BENCHMARK_MASTER
 
 #if NRF_LOG_BACKEND_CRASHLOG_ENABLED
@@ -71,10 +71,10 @@ APP_TIMER_DEF(m_timer_0);
 
 NRF_CLI_LIBUARTE_DEF(m_cli_libuarte_transport, 256, 256);
 NRF_CLI_DEF(m_cli_libuarte,
-            "libuarte_cli:~$ ",
-            &m_cli_libuarte_transport.transport,
-            '\r',
-            CLI_EXAMPLE_LOG_QUEUE_SIZE);
+    "libuarte_cli:~$ ",
+    &m_cli_libuarte_transport.transport,
+    '\r',
+    CLI_EXAMPLE_LOG_QUEUE_SIZE);
 
 //NRF_CLI_UART_DEF(m_cli_uart_transport, 0, 64, 16);
 //NRF_CLI_DEF(m_cli_uart,
@@ -116,12 +116,13 @@ static void cli_init(void) {
 
   APP_ERROR_CHECK(ret);
 }
-
-void bm_cli_process(void) {
-    nrf_cli_process(&m_cli_libuarte);
-    //  nrf_cli_process(&m_cli_uart);
-}
 #endif
+void bm_cli_process(void) {
+#ifdef BENCHMARK_MASTER
+  nrf_cli_process(&m_cli_libuarte);
+//  nrf_cli_process(&m_cli_uart);
+#endif
+}
 void bm_cli_init(void) {
 #ifdef BENCHMARK_MASTER
   ret_code_t ret;

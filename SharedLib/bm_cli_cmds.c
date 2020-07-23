@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <zephyr.h>
 
-#elif defined NRF_SDK_Zigbee
+#elif defined NRF_SDK_ZIGBEE
 // function is Define in header file
 #include "nrf_cli.h"
 #include "nrf_log.h"
@@ -62,7 +62,7 @@ static int cmd_startBM(const struct shell *shell, size_t argc, char **argv) { //
 }
 SHELL_CMD_REGISTER(startBM, NULL, "Start the Benchmark", cmd_startBM);
 
-#elif defined NRF_SDK_Zigbee
+#elif defined NRF_SDK_ZIGBEE
 
 static void cmd_getNodeReport(nrf_cli_t const *p_cli, size_t argc, char **argv) { // Todo: Add error check for validating the Params are valid
   if (argc == 2) {

@@ -14,6 +14,7 @@
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
 
+#include "bm_cli.h"
 #include "bm_config.h"
 #include "bm_log.h"
 #include "bm_timesync.h"
@@ -227,7 +228,7 @@ static zb_void_t light_switch_send_on_off(zb_bufid_t bufid, zb_uint16_t on_off) 
     cmd_id = ZB_ZCL_CMD_ON_OFF_OFF_ID;
   }
 
-  NRF_LOG_INFO("Send ON/OFF command: %d to group id: %d\n", on_off, group_id);
+  bm_cli_log("Send ON/OFF command: %d to group id: %d\n", on_off, group_id);
 
   ZB_ZCL_ON_OFF_SEND_REQ(bufid,
       group_id,
@@ -253,7 +254,7 @@ zb_void_t bm_button_handler(zb_uint8_t button) {
   zb_ret_t zb_err_code;
   zb_uint8_t random_level_value;
 
-  NRF_LOG_INFO("Button pressed: %d\n", button);
+  bm_cli_log("Button pressed: %d\n", button);
 
   current_time = ZB_TIMER_GET();
 
@@ -264,7 +265,7 @@ zb_void_t bm_button_handler(zb_uint8_t button) {
     //    /* Allocate output buffer and send on/off command. */
     //    zb_err_code = zb_buf_get_out_delayed_ext(light_switch_send_on_off, on_off, 0);
     //    ZB_ERROR_CHECK(zb_err_code);
-    //    NRF_LOG_INFO("Light Switch BUTTON_ON pressed");
+    //    bm_cli_log("Light Switch BUTTON_ON pressed");
     //    break;
     //  case LIGHT_SWITCH_BUTTON_OFF:
     //    on_off = ZB_FALSE;
@@ -272,7 +273,7 @@ zb_void_t bm_button_handler(zb_uint8_t button) {
     //    /* Allocate output buffer and send on/off command. */
     //    zb_err_code = zb_buf_get_out_delayed_ext(light_switch_send_on_off, on_off, 0);
     //    ZB_ERROR_CHECK(zb_err_code);
-    //    NRF_LOG_INFO("Light Switch BUTTON_OFF pressed");
+    //    bm_cli_log("Light Switch BUTTON_OFF pressed");
     //
     //    break;
 
@@ -281,7 +282,7 @@ zb_void_t bm_button_handler(zb_uint8_t button) {
     break;
 
   default:
-    NRF_LOG_INFO("Unhandled BSP Event received: %d\n", button);
+    bm_cli_log("Unhandled BSP Event received: %d\n", button);
     return;
   }
 
@@ -313,17 +314,17 @@ void buttons_handler(bsp_event_t evt) {
     //    break;
     //
     //  case BSP_EVENT_KEY_2:
-    //    NRF_LOG_INFO("BENCHMARK - Button pressed");
+    //    bm_cli_log("BENCHMARK - Button pressed");
     //    button = BENCHMARK_BUTTON;
     //    break;
     //
     //  case BSP_EVENT_KEY_3:
-    //    NRF_LOG_INFO("TEST - Button pressed");
+    //    bm_cli_log("TEST - Button pressed");
     //    button = TEST_BUTTON;
     //    break;
 
   default:
-    NRF_LOG_INFO("Unhandled BSP Event received: %d\n", evt);
+    bm_cli_log("Unhandled BSP Event received: %d\n", evt);
     return;
   }
 
@@ -346,7 +347,7 @@ void buttons_handler(bsp_event_t evt) {
 /* Function to send Benchmark Message */
 void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t level) {
   zb_uint16_t groupID = bm_params.GroupAddress + GROUP_ID;
-  NRF_LOG_INFO("Benchmark Message Callback send to Group Address: 0x%x, ID: %x\n", groupID, bm_params.GroupAddress);
+  bm_cli_log("Benchmark Message Callback send to Group Address: 0x%x, ID: %x\n", groupID, bm_params.GroupAddress);
 
   /* Send Move to level request. Level value is uint8. */
   ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
@@ -392,7 +393,7 @@ void bm_read_message_info(zb_uint16_t timeout) {
 
   message.message_id = ZB_ZCL_GET_SEQ_NUM() + 1;
 
-  NRF_LOG_INFO("Benchmark Message send, TimeStamp: %lld, MessageID: %d, TimeOut: %u\n", message.net_time, message.message_id, timeout);
+  bm_cli_log("Benchmark Message send, TimeStamp: %lld, MessageID: %d, TimeOut: %u\n", message.net_time, message.message_id, timeout);
 
   bm_log_append_ram(message);
 }
@@ -409,7 +410,7 @@ void bm_read_message_info(zb_uint16_t timeout) {
 //  zb_zcl_parsed_hdr_t cmd_info;
 //
 //  ZB_ZCL_COPY_PARSED_HEADER(bufid, &cmd_info);
-//  NRF_LOG_INFO("%s with Endpoint ID: %hd, Cluster ID: %d", __func__, cmd_info.addr_data.common_data.dst_endpoint, cmd_info.cluster_id);
+//  bm_cli_log("%s with Endpoint ID: %hd, Cluster ID: %d", __func__, cmd_info.addr_data.common_data.dst_endpoint, cmd_info.cluster_id);
 //
 //  switch (cmd_info.cluster_id) {
 //  case ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL:
@@ -432,14 +433,14 @@ void bm_read_message_info(zb_uint16_t timeout) {
  */
 static zb_void_t zcl_device_cb(zb_bufid_t bufid) {
   zb_zcl_device_callback_param_t *device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
-  NRF_LOG_INFO("%s id %hd\n", __func__, device_cb_param->device_cb_id);
+  bm_cli_log("%s id %hd\n", __func__, device_cb_param->device_cb_id);
 
   /* Set default response value. */
   device_cb_param->status = RET_OK;
 
   switch (device_cb_param->device_cb_id) {
   case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
-    NRF_LOG_INFO("Level control setting to %d\n", device_cb_param->cb_param.level_control_set_value_param.new_value);
+    bm_cli_log("Level control setting to %d\n", device_cb_param->cb_param.level_control_set_value_param.new_value);
 
     break;
   default:
@@ -474,7 +475,7 @@ void zboss_signal_handler(zb_bufid_t bufid) {
       zb_get_long_address(local_node_ieee_addr);
       local_node_short_addr = zb_address_short_by_ieee(local_node_ieee_addr);
       local_node_addr_len = ieee_addr_to_str(local_nodel_ieee_addr_buf, sizeof(local_nodel_ieee_addr_buf), local_node_ieee_addr);
-      NRF_LOG_INFO("Network Steering finished with Local Node Address: Short: 0x%x, IEEE/Long: 0x%s\n", local_node_short_addr, local_nodel_ieee_addr_buf);
+      bm_cli_log("Network Steering finished with Local Node Address: Short: 0x%x, IEEE/Long: 0x%s\n", local_node_short_addr, local_nodel_ieee_addr_buf);
     }
     break;
     //  case ZB_BDB_SIGNAL_DEVICE_REBOOT:
@@ -485,7 +486,7 @@ void zboss_signal_handler(zb_bufid_t bufid) {
     //      zb_get_long_address(local_node_ieee_addr);
     //      local_node_short_addr = zb_address_short_by_ieee(local_node_ieee_addr);
     //      local_node_addr_len = ieee_addr_to_str(local_nodel_ieee_addr_buf, sizeof(local_nodel_ieee_addr_buf), local_node_ieee_addr);
-    //      NRF_LOG_INFO("Node restarted with Local Node Address: Short: 0x%x, IEEE/Long: 0x%s", local_node_short_addr, local_nodel_ieee_addr_buf);
+    //      bm_cli_log("Node restarted with Local Node Address: Short: 0x%x, IEEE/Long: 0x%s", local_node_short_addr, local_nodel_ieee_addr_buf);
     //    }
     //    break;
   default:
