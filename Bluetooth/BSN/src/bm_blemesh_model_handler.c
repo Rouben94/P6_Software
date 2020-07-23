@@ -6,6 +6,7 @@
 
 #include "bm_config.h"
 #include "bm_log.h"
+#include "bm_cli.h"
 #include "bm_simple_buttons_and_leds.h"
 #include "bm_timesync.h"
 #include "bm_blemesh.h"
@@ -15,7 +16,8 @@
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/mesh/models.h>
 
-
+// Message for Save the Data
+bm_message_info msg;
 
 /** Configuration server definition */
 static struct bt_mesh_cfg_srv cfg_srv = {
@@ -65,7 +67,16 @@ static void button0_cb(){
 	err = bt_mesh_onoff_cli_set_unack(&on_off_cli, NULL, &set);
 	//err = bt_mesh_onoff_cli_set(&on_off_cli, NULL, &set, NULL);
 	#ifdef BENCHMARK_CLIENT
-	bm_log_append_ram((bm_message_info) {(uint16_t)on_off_cli.tid,synctimer_getSyncTime(),(uint64_t)0,on_off_cli.model->pub->ttl,0,addr,on_off_cli.model->pub->addr,on_off_cli.model->pub->addr,on_off_cli.pub.msg->len});
+	msg.message_id = (uint16_t)on_off_cli.tid;
+	msg.net_time = synctimer_getSyncTime();
+	msg.ack_net_time = 0;
+	msg.number_of_hops = on_off_cli.model->pub->ttl;
+	msg.rssi = 0;
+	msg.src_addr = addr;
+	msg.dst_addr = on_off_cli.model->pub->addr;
+	msg.group_addr = on_off_cli.model->pub->addr;
+	msg.data_size = on_off_cli.pub.msg->len;
+	bm_log_append_ram(msg);
 	#endif
 	/*
 	printk("Sent TID %u\n",on_off_cli.tid);
@@ -95,7 +106,16 @@ static void led_set(struct bt_mesh_onoff_srv *srv, struct bt_mesh_msg_ctx *ctx,
 	rsp->present_on_off = set->on_off;
 	// Log the Event
 	#ifdef BENCHMARK_SERVER
-	bm_log_append_ram((bm_message_info) {(uint16_t)srv->prev_transaction.tid+1,synctimer_getSyncTime(),0,(uint8_t)BLE_MESH_TTL-ctx->recv_ttl,(uint8_t)ctx->recv_rssi,ctx->addr,ctx->recv_dst,ctx->recv_dst,srv->model->pub->msg->len});
+	msg.message_id = (uint16_t)srv->prev_transaction.tid+1;
+	msg.net_time = synctimer_getSyncTime();
+	msg.ack_net_time = 0;
+	msg.number_of_hops = (uint8_t)BLE_MESH_TTL-ctx->recv_ttl;
+	msg.rssi = (uint8_t)ctx->recv_rssi;
+	msg.src_addr = ctx->addr;
+	msg.dst_addr = ctx->recv_dst;
+	msg.group_addr = ctx->recv_dst;
+	msg.data_size = srv->model->pub->msg->len;
+	bm_log_append_ram(msg);
 	#endif
 	/*
 	printk("Recv TID %u\n",srv->prev_transaction.tid+1);
