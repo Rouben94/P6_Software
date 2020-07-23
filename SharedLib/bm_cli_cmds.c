@@ -66,7 +66,7 @@ SHELL_CMD_REGISTER(startBM, NULL, "Start the Benchmark", cmd_startBM);
 
 static void cmd_getNodeReport(nrf_cli_t const *p_cli, size_t argc, char **argv) { // Todo: Add error check for validating the Params are valid
   if (argc == 2) {
-    bm_cli_cmd_getNodeReport.MAC = atoi(argv[1]); // MAC Adress in integer value format
+    bm_cli_cmd_getNodeReport.MAC = strtoul(argv[1], NULL, NULL); // MAC Adress in integer value format
     bm_cli_cmd_getNodeReport.req = true;
     nrf_cli_print(p_cli, "Report request scheduled for MAC: %x", bm_cli_cmd_getNodeReport.MAC);
   } else {
