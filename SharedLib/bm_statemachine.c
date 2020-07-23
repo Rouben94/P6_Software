@@ -143,7 +143,7 @@ bm_cli_log("Error no Role defined. Please define a Role in the bm_config.h (BENC
   uint32_t restored_cnt = bm_log_load_from_flash(); // Restor Log Data from FLASH
   bm_cli_log("Restored %u entries from Flash\n", restored_cnt);
   bm_cli_log("First Log Entry: %u %u ...\n", message_info[0].message_id, (uint32_t)message_info[0].net_time);
-  bm_cli_log("<report> %u %u%u %u%u %u %d %x %x %x\r\n",message_info[0].message_id,(uint32_t)message_info[0].net_time,message_info[0].net_time,(uint32_t)message_info[0].ack_net_time,message_info[0].ack_net_time,message_info[0].number_of_hops,message_info[0].rssi,message_info[0].src_addr,message_info[0].dst_addr,message_info[0].group_addr);
+  bm_cli_log("<report> %u %u%u %u%u %u %d %x %x %x\r\n",message_info[0].message_id,message_info[0].net_time,(uint32_t)message_info[0].net_time,(uint32_t)message_info[0].ack_net_time,message_info[0].ack_net_time,message_info[0].number_of_hops,message_info[0].rssi,message_info[0].src_addr,message_info[0].dst_addr,message_info[0].group_addr);
 
   wait_for_transition = true; // Self trigger Transition
   ST_transition_cb();
