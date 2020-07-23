@@ -147,7 +147,7 @@ struct MasterReport
 
 /* ------------------- Variables -----------------*/
 Simple_nrf_radio simple_nrf_radio;
-u32_t LSB_MAC_Address = NRF_FICR->DEVICEADDR[1];
+u32_t LSB_MAC_Address = NRF_FICR->DEVICEADDR[0];
 RADIO_PACKET radio_pkt_Rx, radio_pkt_Tx = {};
 u8_t CHidx;
 
@@ -159,6 +159,7 @@ bool Synced = false;
 MockupPkt Mockup_pkt_RX, Mockup_pkt_TX = {};
 uint32_t rand_32 = sys_rand32_get(); //Takes Long Time so do once in init
 bool GotReportReq = false;
+bool GotReportReqNow = false;
 
 ParamPkt Param_pkt_RX, Param_pkt_TX = {};
 ParamPkt ParamLocal, ParamLocalBuf = {CommonStartCH, CommonEndCH, 20, CommonMode, 0, CommonTxPower, 0};
@@ -586,6 +587,7 @@ void ST_REPORT_REQ_fn(u8_t CH, u8_t NodeIdx)
 	radio_pkt_Tx.PDU = (u8_t *)&RepoReq_pkt_TX;
 	radio_pkt_Rx.length = sizeof(RepoReq_pkt_RX);
 	radio_pkt_Rx.PDU = (u8_t *)&RepoReq_pkt_RX;
+	GotReportReqNow = false;
 	// Set Request MAC Address
 	if (NodeIdx < masrep.nodrep.size() && isMaster)
 	{
@@ -611,8 +613,9 @@ void ST_REPORT_REQ_fn(u8_t CH, u8_t NodeIdx)
 				if (((ReportsReqPkt *)radio_pkt_Rx.PDU)->LSB_MAC_Address == LSB_MAC_Address)
 				{
 					GotReportReq = true; // Set Flag that a Report Req for this Node was received
+					GotReportReqNow = true;
 					break;
-				}
+				} 
 				else if (((ReportsReqPkt *)radio_pkt_Rx.PDU)->LSB_MAC_Address == ReportsDoneMACAddress)
 				{
 					ReportingDone = true; // Set Flag that the Reporting is Done
@@ -670,7 +673,7 @@ void ST_REPORT_fn(u8_t CH, u8_t NodeIdx)
 	else
 	{
 		k_sleep(K_MSEC(1)); // Let Master Prepare Reception
-		if (GotReportReq && k_timer_remaining_get(&state_timer) > 0)
+		if (GotReportReqNow && k_timer_remaining_get(&state_timer) > 0)
 		{
 			for (u8_t i = 0; i < chrep_local.size(); i++)
 			{
@@ -678,6 +681,7 @@ void ST_REPORT_fn(u8_t CH, u8_t NodeIdx)
 				//printk("TIME in CH: %d : %u sent Pckt CH: %d\n",CH,(u32_t)synctimer_getSyncTime(),chrep_local[i].CHRepPkt.CH);
 				simple_nrf_radio.Send(radio_pkt_Tx); // Burst Reports
 			}
+			GotReportReqNow = false;
 		}
 	}
 	//printk("TIME Done in CH: %d : %u\n", CH, (u32_t)synctimer_getSyncTime());
@@ -768,7 +772,7 @@ void ST_PUBLISH_fn(void)
 			printk("<NEW_NODE>\r\n");
 			for (const auto &ch : node.chrep)
 			{
-				printk("<NODE_REPORT> %x %d %d %d %d %d %d \r\n",LSB_MAC_Address, ch.CHRepPkt.CH, ch.TxPkt_CNT, ch.CHRepPkt.CRCOK_CNT, ch.CHRepPkt.CRCERR_CNT, ch.CHRepPkt.Avg_SIG_RSSI, ch.CHRepPkt.Avg_NOISE_RSSI);
+				printk("<NODE_REPORT> %x %d %d %d %d %d %d \r\n",node.LSB_MAC_Address, ch.CHRepPkt.CH, ch.TxPkt_CNT, ch.CHRepPkt.CRCOK_CNT, ch.CHRepPkt.CRCERR_CNT, ch.CHRepPkt.Avg_SIG_RSSI, ch.CHRepPkt.Avg_NOISE_RSSI);
 				/*
 				printk("<NODE_REPORT_BEGIN>\r\n");
 				// <MACAddress> <CH> <PktCnt> <CRCOKCnt> <CRCERRCnt> <AvgSigRSSI> <AvgNoiseRSSI>
