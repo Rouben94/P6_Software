@@ -1,61 +1,56 @@
 {% extends 'p2p/base_p2p.html' %}
 {% block content %}
 
-<h2>Titel 2</h2>
-<p>Test</p>
-<div id='myDiv'></div>
+<meta http-equiv="refresh" content="1">
 
-<script>
-/* var mac =  */
-var xValue = ['Node 1', 'Node 2', 'Node 3', 'Node 4'];
+<h2>Bar Chart</h2>
+  <p>Bar chart of the nodes and the channels</p>
 
-var yValue = [12, 16, 29, 36];
-var yValue2 = [12, 16, 29, 36];
-var yValue3 = [12, 16, 29, 36];
+  {% for node in nodes %}
+  <h4>Node MAC Address: {{ node.mac }}</h4>
+  <div id={{ node.mac }}></div>
+    <script type="text/javascript">
+      var mac = '{{ node.mac }}'
+      var xValue = [];
+      var yValue = [];
 
-var trace1 = {
-  x: xValue,
-  y: yValue,
-  name: "Channel 1",
-  type: 'bar',
-  text: yValue.map(String),
-  textposition: 'auto',
-  hoverinfo: 'none',
-  opacity: 0.75,
-};
-
-var trace2 = {
-  x: xValue,
-  y: yValue2,
-  name: "Channel 2",
-  type: 'bar',
-  text: yValue2.map(String),
-  textposition: 'auto',
-  hoverinfo: 'none',
-  opacity: 0.75,
-};
-
-var trace3 = {
-  x: xValue,
-  y: yValue3,
-  name: "Channel 3",
-  type: 'bar',
-  text: yValue2.map(String),
-  textposition: 'auto',
-  hoverinfo: 'none',
-  opacity: 0.75,
-};
-
-var data = [trace1, trace2, trace3];
-
-var layout = {yaxis: {
-    title: 'Packet loss [%]',
-    titlefont: {
-      size: 16,
-      color: 'rgb(107, 107, 107)'
-    }, barmode: 'group'}};
-
-Plotly.newPlot('myDiv', data, layout);
-</script>
+      {% for channel in node.channel_set.all %}
+        xValue.push('Channel ' + '{{ channel.ch }}');
+        yValue.push(parseInt('{{ channel.signal_to_noise_ratio }}', 10));
+      {% endfor %}
+      
+      var trace1 = {
+        x: xValue,
+        y: yValue,
+        name: "Node 1",
+        type: 'bar',
+        text: yValue.map(String),
+        textposition: 'auto',
+        hoverinfo: 'none',
+        opacity: 0.75,
+      };
+      
+      var data = [trace1]; 
+      
+      var layout = {
+        xaxis: {
+          title: ('MAC[' + '{{ node.mac }}' + ']'),
+          titlefont: {
+            size: 16,
+            color: 'rgb(107, 107, 107)'
+          }, barmode: 'group'
+        },
+        yaxis: {
+          title: 'Packet loss [%]',
+          titlefont: {
+            size: 16,
+            color: 'rgb(107, 107, 107)'
+          }, barmode: 'group'
+        }
+      };
+      
+      Plotly.newPlot(mac, data, layout);
+    </script>
+  {% endfor %}
 
 {% endblock %}
