@@ -95,7 +95,7 @@ static void led_set(struct bt_mesh_onoff_srv *srv, struct bt_mesh_msg_ctx *ctx,
 	rsp->present_on_off = set->on_off;
 	// Log the Event
 	#ifdef BENCHMARK_SERVER
-	bm_log_append_ram((bm_message_info) {srv->prev_transaction.tid+1,synctimer_getSyncTime(),0,BLE_MESH_TTL-ctx->recv_ttl,ctx->recv_rssi,ctx->addr,ctx->recv_dst,ctx->recv_dst,srv->model->pub->msg->len});
+	bm_log_append_ram((bm_message_info) {srv->prev_transaction.tid+1,synctimer_getSyncTime(),0,(uint8_t)BLE_MESH_TTL-ctx->recv_ttl,ctx->recv_rssi,ctx->addr,ctx->recv_dst,ctx->recv_dst,srv->model->pub->msg->len});
 	#endif
 	/*
 	printk("Recv TID %u\n",srv->prev_transaction.tid+1);
