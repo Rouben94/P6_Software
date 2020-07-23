@@ -18,8 +18,8 @@ extern uint32_t LSB_MAC_Address; // LSB of Randomly Static Assigned MAC Address
 #define BENCHMARK_SERVER /* Node is Benchmark Server */
 //#define BENCHMARK_CLIENT                 /* Node is Benchmark Client */
 //#define BENCHMARK_MASTER                 /* Node is Benchmark Master */
-#define BENCHMARK_DEFAULT_TIME_S 10      // Default Benchmark Time (used when no Parameter available)
-#define BENCHMARK_DEFAULT_PACKETS_CNT 10 // Default Benchmark Packet Count (used when no Parameter available)
+#define BENCHMARK_DEFAULT_TIME_S 10      /* Default Benchmark Time (used when no Parameter available)*/
+#define BENCHMARK_DEFAULT_PACKETS_CNT 10 /* Default Benchmark Packet Count (used when no Parameter available)*/
 
 typedef struct
 {

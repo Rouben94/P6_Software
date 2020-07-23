@@ -172,21 +172,6 @@ static void bm_client_clusters_attr_init(void) {
   dev_ctx.level_control_attr.remaining_time =
       ZB_ZCL_LEVEL_CONTROL_REMAINING_TIME_DEFAULT_VALUE;
 
-  //  ZB_ZCL_SET_ATTRIBUTE(
-  //      BENCHMARK_CONTROL_ENDPOINT,
-  //      ZB_ZCL_CLUSTER_ID_ON_OFF,
-  //      ZB_ZCL_CLUSTER_SERVER_ROLE,
-  //      ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID,
-  //      (zb_uint8_t *)&dev_ctx.on_off_attr.on_off,
-  //      ZB_FALSE);
-  //
-  //  ZB_ZCL_SET_ATTRIBUTE(
-  //      BENCHMARK_CONTROL_ENDPOINT,
-  //      ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL,
-  //      ZB_ZCL_CLUSTER_SERVER_ROLE,
-  //      ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID,
-  //      (zb_uint8_t *)&dev_ctx.level_control_attr.current_level,
-  //      ZB_FALSE);
 }
 
 /************************************ General Init Functions ***********************************************/
@@ -242,7 +227,7 @@ static zb_void_t light_switch_send_on_off(zb_bufid_t bufid, zb_uint16_t on_off) 
     cmd_id = ZB_ZCL_CMD_ON_OFF_OFF_ID;
   }
 
-  NRF_LOG_INFO("Send ON/OFF command: %d to group id: %d", on_off, group_id);
+  NRF_LOG_INFO("Send ON/OFF command: %d to group id: %d\n", on_off, group_id);
 
   ZB_ZCL_ON_OFF_SEND_REQ(bufid,
       group_id,
@@ -268,7 +253,7 @@ zb_void_t bm_button_handler(zb_uint8_t button) {
   zb_ret_t zb_err_code;
   zb_uint8_t random_level_value;
 
-  NRF_LOG_INFO("Button pressed: %d", button);
+  NRF_LOG_INFO("Button pressed: %d\n", button);
 
   current_time = ZB_TIMER_GET();
 
@@ -296,7 +281,7 @@ zb_void_t bm_button_handler(zb_uint8_t button) {
     break;
 
   default:
-    NRF_LOG_INFO("Unhandled BSP Event received: %d", button);
+    NRF_LOG_INFO("Unhandled BSP Event received: %d\n", button);
     return;
   }
 
@@ -338,7 +323,7 @@ void buttons_handler(bsp_event_t evt) {
     //    break;
 
   default:
-    NRF_LOG_INFO("Unhandled BSP Event received: %d", evt);
+    NRF_LOG_INFO("Unhandled BSP Event received: %d\n", evt);
     return;
   }
 
@@ -361,7 +346,7 @@ void buttons_handler(bsp_event_t evt) {
 /* Function to send Benchmark Message */
 void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t level) {
   zb_uint16_t groupID = bm_params.GroupAddress + GROUP_ID;
-  NRF_LOG_INFO("Benchmark Message Callback send to Group Address: 0x%x, ID: %x", groupID, bm_params.GroupAddress);
+  NRF_LOG_INFO("Benchmark Message Callback send to Group Address: 0x%x, ID: %x\n", groupID, bm_params.GroupAddress);
 
   /* Send Move to level request. Level value is uint8. */
   ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
@@ -386,26 +371,6 @@ void bm_send_message(void) {
   zb_err_code = zb_buf_get_out_delayed_ext(bm_send_message_cb, random_level_value, 0);
   ZB_ERROR_CHECK(zb_err_code);
 
-  //  if (bm_msg_cnt_sent < bm_msg_cnt) {
-  //    random_level_value = ZB_RANDOM_VALUE(256);
-  //
-  //    time_random = ZB_RANDOM_VALUE(timeslot);
-  //    timeout = time_random;
-  //
-  //    bm_read_message_info(timeout);
-  //    zb_err_code = zb_buf_get_out_delayed_ext(bm_send_message_cb, random_level_value, 0);
-  //    ZB_ERROR_CHECK(zb_err_code);
-  //
-  //    zb_err_code = ZB_SCHEDULE_APP_ALARM(bm_send_message, 0, ZB_MILLISECONDS_TO_BEACON_INTERVAL(timeout));
-  //    ZB_ERROR_CHECK(zb_err_code);
-  //
-  //    bm_msg_cnt_sent++;
-  //
-  //  } else {
-  //    NRF_LOG_INFO("BENCHMARK finished. %d packets sent.", bm_msg_cnt_sent);
-  //    //bm_write_flash_data();
-  //    bm_log_save_to_flash();
-  //  }
 }
 
 /* TODO: Description */
@@ -427,34 +392,11 @@ void bm_read_message_info(zb_uint16_t timeout) {
 
   message.message_id = ZB_ZCL_GET_SEQ_NUM() + 1;
 
-  NRF_LOG_INFO("Benchmark Message send, TimeStamp: %lld, MessageID: %d, TimeOut: %u", message.net_time, message.message_id, timeout);
+  NRF_LOG_INFO("Benchmark Message send, TimeStamp: %lld, MessageID: %d, TimeOut: %u\n", message.net_time, message.message_id, timeout);
 
   bm_log_append_ram(message);
 }
 
-//void bm_report_data(zb_uint8_t param) {
-//  uint16_t bm_msg_flash_cnt = 0;
-//  uint16_t bm_cnt = 0;
-//  bm_message_info message;
-//
-//  bm_msg_flash_cnt = bm_log_load_from_flash();
-//
-//  while (bm_cnt < bm_msg_flash_cnt) {
-//    message = message_info[bm_cnt];
-//    NRF_LOG_INFO("<REPORT>, %d, %llu, %llu, %d, %d, 0x%x",
-//        message.message_id,
-//        message.net_time,
-//        message.ack_net_time,
-//        message.number_of_hops,
-//        message.rssi,
-//        message.src_addr);
-//
-//    bm_cnt++;
-//  }
-//  bm_log_clear_ram();
-//  bm_log_clear_flash();
-//  NRF_LOG_INFO("<REPORTING FINISHED>");
-//}
 
 /************************************ Zigbee event handler ***********************************************/
 
@@ -490,14 +432,14 @@ void bm_read_message_info(zb_uint16_t timeout) {
  */
 static zb_void_t zcl_device_cb(zb_bufid_t bufid) {
   zb_zcl_device_callback_param_t *device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
-  NRF_LOG_INFO("%s id %hd", __func__, device_cb_param->device_cb_id);
+  NRF_LOG_INFO("%s id %hd\n", __func__, device_cb_param->device_cb_id);
 
   /* Set default response value. */
   device_cb_param->status = RET_OK;
 
   switch (device_cb_param->device_cb_id) {
   case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
-    NRF_LOG_INFO("Level control setting to %d", device_cb_param->cb_param.level_control_set_value_param.new_value);
+    NRF_LOG_INFO("Level control setting to %d\n", device_cb_param->cb_param.level_control_set_value_param.new_value);
 
     break;
   default:
@@ -532,7 +474,7 @@ void zboss_signal_handler(zb_bufid_t bufid) {
       zb_get_long_address(local_node_ieee_addr);
       local_node_short_addr = zb_address_short_by_ieee(local_node_ieee_addr);
       local_node_addr_len = ieee_addr_to_str(local_nodel_ieee_addr_buf, sizeof(local_nodel_ieee_addr_buf), local_node_ieee_addr);
-      NRF_LOG_INFO("Network Steering finished with Local Node Address: Short: 0x%x, IEEE/Long: 0x%s", local_node_short_addr, local_nodel_ieee_addr_buf);
+      NRF_LOG_INFO("Network Steering finished with Local Node Address: Short: 0x%x, IEEE/Long: 0x%s\n", local_node_short_addr, local_nodel_ieee_addr_buf);
     }
     break;
     //  case ZB_BDB_SIGNAL_DEVICE_REBOOT:

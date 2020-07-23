@@ -14,7 +14,7 @@ void bm_cli_log(const char *fmt, ...);
 #elif defined NRF_SDK_Zigbee
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
-#define bm_cli_log(...) NRF_LOG_INFO(__VA_ARGS__)
+#define bm_cli_log(...) NRF_LOG_RAW_INFO(__VA_ARGS__)
 #endif
 
 // Init th CLI Commands for the Master
