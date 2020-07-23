@@ -38,6 +38,19 @@ void bm_log_append_ram(bm_message_info message)
     bm_cli_log("Log Buffer Overflow... Ignoring Data\n");
     return;
   }
+  //bm_cli_log("Debug Msg ID: %u \n %u%u \n %u%u \n %u \n %d \n%x \n%x\n %x\r\n",message.message_id,(uint32_t)(message.net_time>>32),(uint32_t)message.net_time,(uint32_t)(message.ack_net_time>>32),(uint32_t)message.ack_net_time,message.number_of_hops,message.rssi,message.src_addr,message.dst_addr,message.group_addr);
+  /*bm_cli_log("%u\n%u %u\n%u %u\n%u\n%d\n%x\n%x\n%x\r\n",
+  message.message_id,
+  (uint32_t)(message.net_time>>32),
+  (uint32_t)message.net_time,
+  (uint32_t)(message.ack_net_time>>32),
+  (uint32_t)message.ack_net_time,
+  message.number_of_hops,
+  message.rssi,
+  message.src_addr,
+  message.dst_addr,
+  message.group_addr);
+  */
   message_info[bm_message_cnt] = message;
   bm_cli_log("Log Entry added: %u %u ...\n", message_info[bm_message_cnt].message_id, (uint32_t)message_info[bm_message_cnt].net_time);
   bm_message_cnt++;

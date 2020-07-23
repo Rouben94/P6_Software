@@ -64,22 +64,19 @@ bool bm_report_msg_subscribe(bm_message_info *message_info) {
         bm_cli_log("All reports received\n");
         return true;
       }
-// Publish the report
-#ifdef ZEPHYR_BLE_MESH
-      bm_cli_log("<report> %u %u%u %u%u %u %d %x %x %x\r\n", message_info[bm_message_info_entry_ind].message_id, (uint32_t)message_info[bm_message_info_entry_ind].net_time, message_info[bm_message_info_entry_ind].net_time, (uint32_t)message_info[bm_message_info_entry_ind].ack_net_time, message_info[bm_message_info_entry_ind].ack_net_time, message_info[bm_message_info_entry_ind].number_of_hops, message_info[bm_message_info_entry_ind].rssi, message_info[bm_message_info_entry_ind].src_addr, message_info[bm_message_info_entry_ind].dst_addr, message_info[bm_message_info_entry_ind].group_addr);
-#elif defined NRF_SDK_Zigbee
-      bm_cli_log("<report> %u %u%u %u%u\r\n", message_info[bm_message_info_entry_ind].message_id,
-          (uint32_t)message_info[bm_message_info_entry_ind].net_time,
-          message_info[bm_message_info_entry_ind].net_time,
-          (uint32_t)message_info[bm_message_info_entry_ind].ack_net_time,
-          message_info[bm_message_info_entry_ind].ack_net_time);
-      NRF_LOG_RAW_INFO("<report_ext> %u %d %x %x %x\r\n", message_info[bm_message_info_entry_ind].number_of_hops,
-          message_info[bm_message_info_entry_ind].rssi,
-          message_info[bm_message_info_entry_ind].src_addr,
-          message_info[bm_message_info_entry_ind].dst_addr,
-          message_info[bm_message_info_entry_ind].group_addr);
-
-#endif
+      // Publish the report
+      bm_cli_log("<report> ");
+      bm_cli_log("%u ",message_info[bm_message_info_entry_ind].message_id);
+      bm_cli_log("%u",(uint32_t)(message_info[bm_message_info_entry_ind].net_time>>32));
+      bm_cli_log("%u ",(uint32_t)message_info[bm_message_info_entry_ind].net_time);
+      bm_cli_log("%u",(uint32_t)(message_info[bm_message_info_entry_ind].ack_net_time>>32));
+      bm_cli_log("%u ",(uint32_t)message_info[bm_message_info_entry_ind].ack_net_time);
+      bm_cli_log("%u ",message_info[bm_message_info_entry_ind].number_of_hops);
+      bm_cli_log("%d ",message_info[bm_message_info_entry_ind].rssi);
+      bm_cli_log("%x ",message_info[bm_message_info_entry_ind].src_addr);
+      bm_cli_log("%x ",message_info[bm_message_info_entry_ind].dst_addr);
+      bm_cli_log("%x ",message_info[bm_message_info_entry_ind].group_addr);
+      bm_cli_log("\r\n");
       // Next Report Entry
       bm_message_info_entry_ind++;
       bm_report_req_msg.ReportEntry = bm_message_info_entry_ind;
