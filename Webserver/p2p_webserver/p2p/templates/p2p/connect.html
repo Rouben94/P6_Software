@@ -7,8 +7,7 @@
     <form action="/connect" method="post">
       {% csrf_token %}
       <p>
-        {{ form }}
-        <input type="submit" value="Connect" class="btn btn-dark navbar-btn">
+        <h4>Port Selection</h4> <p><b>Port:  {{ form.port }} </b><input type="submit" value="Connect" class="btn btn-dark navbar-btn"></p> 
       </p>
   </form>
   </p>

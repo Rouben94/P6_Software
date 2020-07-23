@@ -1,20 +1,21 @@
 from django import forms
 
 MODE_CHOICES= [
-    ('0', '1 Mbit/s Nordic proprietary radio mode'),
-    ('1', '2 Mbit/s Nordic proprietary radio mode'),
+    ('0', '1 Mbit/s Nordic radio mode'),
+    ('1', '2 Mbit/s Nordic radio mode'),
     ('3', '1 Mbit/s BLE'),
     ('4', '2 Mbit/s BLE'),
-    ('5', 'Long range 125 kbit/s TX, 125 kbit/s and 500 kbit/s RX'),
-    ('6', 'Long range 500 kbit/s TX, 125 kbit/s and 500 kbit/s RX'),
+    ('5', 'Long range 125 kbit/s TX'),
+    ('6', 'Long range 500 kbit/s TX'),
     ('15', 'IEEE 802.15.4-2006 250 kbit/s')
     ]
 
 CCA_CA_CHOICES= [
-    ('0', 'EdMode'),
-    ('1', 'CarrierMode'),
-    ('2', 'CarrierAndEdMode'),
-    ('3', 'CarrierOrEdMode')
+    ('0', 'Off'),
+    ('1', 'Ed Mode'),
+    ('2', 'Carrier Mode'),
+    ('3', 'Carrier and Ed Mode'),
+    ('4', 'Carrier or Ed Mode')
     ]
 
 TX_CHOICES= [
@@ -83,12 +84,12 @@ PORT_CHOICES= [
     ]
 
 class ParamForm(forms.Form):
-    start_channel = forms.IntegerField(label='Start Channel:  ', label_suffix='' , min_value=1, max_value=40)
-    stop_channel = forms.IntegerField(label='Stop Channel: ' , label_suffix='', min_value=1, max_value=40)
-    mode = forms.CharField(label='Mode:  ', label_suffix='' , widget=forms.Select(choices=MODE_CHOICES))
-    size = forms.IntegerField(label='Payload: ', label_suffix='' , min_value=1, max_value=250) # 1 - 250
-    ccma_ca = forms.CharField(label='CCMA_CA:  ', label_suffix='' , widget=forms.Select(choices=CCA_CA_CHOICES))
-    tx_power = forms.CharField(label='Transmit Power:  ', label_suffix='' , widget=forms.Select(choices=TX_CHOICES))
+    start_channel = forms.IntegerField(label_suffix='' , min_value=1, max_value=40)
+    stop_channel = forms.IntegerField(label_suffix='', min_value=1, max_value=40)
+    mode = forms.CharField(label_suffix='' , widget=forms.Select(choices=MODE_CHOICES))
+    size = forms.IntegerField(label_suffix='' , min_value=1, max_value=250) # 1 - 250
+    ccma_ca = forms.CharField(label_suffix='' , widget=forms.Select(choices=CCA_CA_CHOICES))
+    tx_power = forms.CharField(label_suffix='' , widget=forms.Select(choices=TX_CHOICES))
 
 class PortForm(forms.Form):
     port = forms.CharField(label='Port: ', label_suffix='', widget=forms.Select(choices=PORT_CHOICES))

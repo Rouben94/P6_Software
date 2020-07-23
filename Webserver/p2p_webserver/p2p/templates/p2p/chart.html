@@ -3,5 +3,59 @@
 
 <h2>Titel 2</h2>
 <p>Test</p>
+<div id='myDiv'></div>
+
+<script>
+/* var mac =  */
+var xValue = ['Node 1', 'Node 2', 'Node 3', 'Node 4'];
+
+var yValue = [12, 16, 29, 36];
+var yValue2 = [12, 16, 29, 36];
+var yValue3 = [12, 16, 29, 36];
+
+var trace1 = {
+  x: xValue,
+  y: yValue,
+  name: "Channel 1",
+  type: 'bar',
+  text: yValue.map(String),
+  textposition: 'auto',
+  hoverinfo: 'none',
+  opacity: 0.75,
+};
+
+var trace2 = {
+  x: xValue,
+  y: yValue2,
+  name: "Channel 2",
+  type: 'bar',
+  text: yValue2.map(String),
+  textposition: 'auto',
+  hoverinfo: 'none',
+  opacity: 0.75,
+};
+
+var trace3 = {
+  x: xValue,
+  y: yValue3,
+  name: "Channel 3",
+  type: 'bar',
+  text: yValue2.map(String),
+  textposition: 'auto',
+  hoverinfo: 'none',
+  opacity: 0.75,
+};
+
+var data = [trace1, trace2, trace3];
+
+var layout = {yaxis: {
+    title: 'Packet loss [%]',
+    titlefont: {
+      size: 16,
+      color: 'rgb(107, 107, 107)'
+    }, barmode: 'group'}};
+
+Plotly.newPlot('myDiv', data, layout);
+</script>
 
 {% endblock %}

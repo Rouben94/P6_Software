@@ -17,19 +17,20 @@ from django.db import models
         self.ch_array.append([CH, TxPKT_CNT, CRCOK_CNT, CRCERR_CNT, Avg_SIG_RSSI, AVG_NOISE_RSSI]) """
 
 class Node(models.Model):
-    number = mac = models.CharField(max_length=100, unique=True)
-    mac = models.CharField(max_length=100, unique=True)
+    mac = models.CharField(max_length=255, unique=False)
 
-    class Meta:
-        ordering = ["mac"]
+    def __str__(self):
+        return self.mac
 
 
 class Channel(models.Model):
-    ch = models.CharField(max_length=255, unique=True)
-    capital = models.CharField(max_length=255)
-    code = models.CharField(max_length=2, unique=True, primary_key=False)
-    continent = models.ForeignKey('Continent', related_name='countries')
-    population = models.PositiveIntegerField()
-    area = PositiveIntegerField()
+    ch = models.CharField(max_length=255, unique=False)
+    signal_to_noise_ratio = models.CharField(max_length=255)
+    packetloss = models.CharField(max_length=255)
+    node = models.ForeignKey(Node, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.ch
+
     class Meta:
-        ordering = ["mac"]
+        ordering = ['ch']
