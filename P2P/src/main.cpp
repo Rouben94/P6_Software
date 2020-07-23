@@ -27,7 +27,7 @@ along with P2P-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 #include "Timer_sync.h"
 
 /* ------------- Definitions --------------*/
-#define isMaster 0									// Node is the Master (1) or Slave (0)
+#define isMaster 1									// Node is the Master (1) or Slave (0)
 #define CommonMode NRF_RADIO_MODE_BLE_1MBIT		// Common Mode
 #define CommonStartCH 37							// Common Start Channel
 #define CommonEndCH 39								// Common End Channel
@@ -765,6 +765,7 @@ void ST_PUBLISH_fn(void)
 		printk("<NODE_REPORT_BEGIN>\r\n");
 		for (const auto &node : masrep.nodrep)
 		{
+			printk("<NEW_NODE>\r\n");
 			for (const auto &ch : node.chrep)
 			{
 				printk("<NODE_REPORT> %x %d %d %d %d %d %d \r\n",LSB_MAC_Address, ch.CHRepPkt.CH, ch.TxPkt_CNT, ch.CHRepPkt.CRCOK_CNT, ch.CHRepPkt.CRCERR_CNT, ch.CHRepPkt.Avg_SIG_RSSI, ch.CHRepPkt.Avg_NOISE_RSSI);
