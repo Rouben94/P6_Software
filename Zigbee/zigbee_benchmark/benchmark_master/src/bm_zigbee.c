@@ -201,8 +201,6 @@ void bm_zigbee_init(void) {
   zb_ret_t zb_err_code;
   zb_ieee_addr_t ieee_addr;
 
-  //  bm_log_init();
-
   /* Set Zigbee stack logging level and traffic dump subsystem. */
   ZB_SET_TRACE_LEVEL(ZIGBEE_TRACE_LEVEL);
   ZB_SET_TRACE_MASK(ZIGBEE_TRACE_MASK);

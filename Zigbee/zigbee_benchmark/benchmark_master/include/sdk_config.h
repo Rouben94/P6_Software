@@ -121,10 +121,9 @@
 // </e>
 
 // <q> NRF_CLI_UART_ENABLED  - nrf_cli_uart - UART command line interface transport
- 
 
 #ifndef NRF_CLI_UART_ENABLED
-#define NRF_CLI_UART_ENABLED 1
+#define NRF_CLI_UART_ENABLED 0
 #endif
 //==========================================================
 
@@ -409,7 +408,7 @@
 
 // <o> NRF_CLI_CMD_BUFF_SIZE - Maximum buffer size for a single command.
 #ifndef NRF_CLI_CMD_BUFF_SIZE
-#define NRF_CLI_CMD_BUFF_SIZE 384
+#define NRF_CLI_CMD_BUFF_SIZE 512
 #endif
 
 // <q> NRF_CLI_ECHO_STATUS  - CLI echo status. If set, echo is ON.
@@ -1083,7 +1082,6 @@
 #define NRF_MPU_LIB_ENABLED 1
 #endif
 // <q> NRF_MPU_LIB_CLI_CMDS  - Enable CLI commands specific to the module.
- 
 
 #ifndef NRF_MPU_LIB_CLI_CMDS
 #define NRF_MPU_LIB_CLI_CMDS 0
@@ -1097,15 +1095,15 @@
 #define NRF_STACK_GUARD_ENABLED 1
 #endif
 // <o> NRF_STACK_GUARD_CONFIG_SIZE  - Size of the stack guard.
- 
-// <5=> 32 bytes 
-// <6=> 64 bytes 
-// <7=> 128 bytes 
-// <8=> 256 bytes 
-// <9=> 512 bytes 
-// <10=> 1024 bytes 
-// <11=> 2048 bytes 
-// <12=> 4096 bytes 
+
+// <5=> 32 bytes
+// <6=> 64 bytes
+// <7=> 128 bytes
+// <8=> 256 bytes
+// <9=> 512 bytes
+// <10=> 1024 bytes
+// <11=> 2048 bytes
+// <12=> 4096 bytes
 
 #ifndef NRF_STACK_GUARD_CONFIG_SIZE
 #define NRF_STACK_GUARD_CONFIG_SIZE 7
@@ -1113,9 +1111,8 @@
 
 // </e>
 
-// </h> 
+// </h>
 //==========================================================
-
 
 // <h> nRF_Drivers
 
@@ -1144,6 +1141,62 @@
 
 #ifndef GPIOTE_CONFIG_IRQ_PRIORITY
 #define GPIOTE_CONFIG_IRQ_PRIORITY 6
+#endif
+
+// </e>
+
+// <e> NRFX_PPI_ENABLED - nrfx_ppi - PPI peripheral allocator
+//==========================================================
+#ifndef NRFX_PPI_ENABLED
+#define NRFX_PPI_ENABLED 1
+#endif
+// <e> NRFX_PPI_CONFIG_LOG_ENABLED - Enables logging in the module.
+//==========================================================
+#ifndef NRFX_PPI_CONFIG_LOG_ENABLED
+#define NRFX_PPI_CONFIG_LOG_ENABLED 0
+#endif
+// <o> NRFX_PPI_CONFIG_LOG_LEVEL  - Default Severity level
+
+// <0=> Off
+// <1=> Error
+// <2=> Warning
+// <3=> Info
+// <4=> Debug
+
+#ifndef NRFX_PPI_CONFIG_LOG_LEVEL
+#define NRFX_PPI_CONFIG_LOG_LEVEL 3
+#endif
+
+// <o> NRFX_PPI_CONFIG_INFO_COLOR  - ANSI escape code prefix.
+
+// <0=> Default
+// <1=> Black
+// <2=> Red
+// <3=> Green
+// <4=> Yellow
+// <5=> Blue
+// <6=> Magenta
+// <7=> Cyan
+// <8=> White
+
+#ifndef NRFX_PPI_CONFIG_INFO_COLOR
+#define NRFX_PPI_CONFIG_INFO_COLOR 0
+#endif
+
+// <o> NRFX_PPI_CONFIG_DEBUG_COLOR  - ANSI escape code prefix.
+
+// <0=> Default
+// <1=> Black
+// <2=> Red
+// <3=> Green
+// <4=> Yellow
+// <5=> Blue
+// <6=> Magenta
+// <7=> Cyan
+// <8=> White
+
+#ifndef NRFX_PPI_CONFIG_DEBUG_COLOR
+#define NRFX_PPI_CONFIG_DEBUG_COLOR 0
 #endif
 
 // </e>
@@ -1492,7 +1545,7 @@
 // <q> NRFX_TIMER0_ENABLED  - Enable TIMER0 instance
 
 #ifndef NRFX_TIMER0_ENABLED
-#define NRFX_TIMER0_ENABLED 0
+#define NRFX_TIMER0_ENABLED 1
 #endif
 
 // <q> NRFX_TIMER1_ENABLED  - Enable TIMER1 instance
@@ -1504,19 +1557,19 @@
 // <q> NRFX_TIMER2_ENABLED  - Enable TIMER2 instance
 
 #ifndef NRFX_TIMER2_ENABLED
-#define NRFX_TIMER2_ENABLED 0
+#define NRFX_TIMER2_ENABLED 1
 #endif
 
 // <q> NRFX_TIMER3_ENABLED  - Enable TIMER3 instance
 
 #ifndef NRFX_TIMER3_ENABLED
-#define NRFX_TIMER3_ENABLED 0
+#define NRFX_TIMER3_ENABLED 1
 #endif
 
 // <q> NRFX_TIMER4_ENABLED  - Enable TIMER4 instance
 
 #ifndef NRFX_TIMER4_ENABLED
-#define NRFX_TIMER4_ENABLED 0
+#define NRFX_TIMER4_ENABLED 1
 #endif
 
 // <o> NRFX_TIMER_DEFAULT_CONFIG_FREQUENCY  - Timer frequency if in Timer mode
@@ -2065,7 +2118,7 @@
 // <q> TIMER0_ENABLED  - Enable TIMER0 instance
 
 #ifndef TIMER0_ENABLED
-#define TIMER0_ENABLED 0
+#define TIMER0_ENABLED 1
 #endif
 
 // <q> TIMER1_ENABLED  - Enable TIMER1 instance
@@ -2077,7 +2130,7 @@
 // <q> TIMER2_ENABLED  - Enable TIMER2 instance
 
 #ifndef TIMER2_ENABLED
-#define TIMER2_ENABLED 0
+#define TIMER2_ENABLED 1
 #endif
 
 // <q> TIMER3_ENABLED  - Enable TIMER3 instance
@@ -2612,10 +2665,10 @@
 // </h>
 //==========================================================
 
-// </h> 
+// </h>
 //==========================================================
 
-// <h> nRF_Log 
+// <h> nRF_Log
 
 //==========================================================
 // <e> NRF_LOG_BACKEND_FLASH_ENABLED - nrf_log_backend_flash - Log flash backend
@@ -2624,7 +2677,6 @@
 #define NRF_LOG_BACKEND_FLASH_ENABLED 1
 #endif
 // <q> NRF_LOG_BACKEND_FLASH_CLI_CMDS  - Enable CLI commands for this module.
- 
 
 #ifndef NRF_LOG_BACKEND_FLASH_CLI_CMDS
 #define NRF_LOG_BACKEND_FLASH_CLI_CMDS 0
@@ -2635,7 +2687,7 @@
 #ifndef NRF_LOG_BACKEND_FLASHLOG_ENABLED
 #define NRF_LOG_BACKEND_FLASHLOG_ENABLED 0
 #endif
-// <o> NRF_LOG_BACKEND_FLASHLOG_QUEUE_SIZE - Logger messages queue size. 
+// <o> NRF_LOG_BACKEND_FLASHLOG_QUEUE_SIZE - Logger messages queue size.
 // <i> Queue holds log messages pending to be written to flash.
 // <i> Note that the queue holds logger messages and thus the queue size determines
 // <i> increasing the pool of logger messages (see log message pool configuration).
@@ -2651,7 +2703,7 @@
 #ifndef NRF_LOG_BACKEND_CRASHLOG_ENABLED
 #define NRF_LOG_BACKEND_CRASHLOG_ENABLED 1
 #endif
-// <o> NRF_LOG_BACKEND_CRASHLOG_FIFO_SIZE - Number of log messages held to be flushed in panic. 
+// <o> NRF_LOG_BACKEND_CRASHLOG_FIFO_SIZE - Number of log messages held to be flushed in panic.
 // <i> Crashlog FIFO always keeps a defined number of the most
 // <i> recent logs (severity level is set on runtime).
 // <i> Note that the FIFO holds logger messages and thus the FIFO size determines
@@ -2663,8 +2715,8 @@
 
 // </e>
 
-// <o> NRF_LOG_BACKEND_FLASH_SER_BUFFER_SIZE - Size of the buffer used for serialize log message. 
-// <i> Message is trimmed if it is longer. It may happen in case of 
+// <o> NRF_LOG_BACKEND_FLASH_SER_BUFFER_SIZE - Size of the buffer used for serialize log message.
+// <i> Message is trimmed if it is longer. It may happen in case of
 // <i> hexdump message. Buffer size must be multiple of 4.
 
 #ifndef NRF_LOG_BACKEND_FLASH_SER_BUFFER_SIZE
@@ -2674,19 +2726,19 @@
 // <h> Flash log location - Configuration of flash area used for storing the logs.
 
 //==========================================================
-// <o> NRF_LOG_BACKEND_FLASH_START_PAGE - Starting page.  
+// <o> NRF_LOG_BACKEND_FLASH_START_PAGE - Starting page.
 // <i> If 0, then pages directly after the application are used.
 
 #ifndef NRF_LOG_BACKEND_FLASH_START_PAGE
 #define NRF_LOG_BACKEND_FLASH_START_PAGE 0
 #endif
 
-// <o> NRF_LOG_BACKEND_PAGES - Number of pages. 
+// <o> NRF_LOG_BACKEND_PAGES - Number of pages.
 #ifndef NRF_LOG_BACKEND_PAGES
 #define NRF_LOG_BACKEND_PAGES 1
 #endif
 
-// </h> 
+// </h>
 //==========================================================
 
 // </e>
@@ -2696,7 +2748,7 @@
 #ifndef NRF_LOG_BACKEND_RTT_ENABLED
 #define NRF_LOG_BACKEND_RTT_ENABLED 0
 #endif
-// <o> NRF_LOG_BACKEND_RTT_TEMP_BUFFER_SIZE - Size of buffer for partially processed strings. 
+// <o> NRF_LOG_BACKEND_RTT_TEMP_BUFFER_SIZE - Size of buffer for partially processed strings.
 // <i> Size of the buffer is a trade-off between RAM usage and processing.
 // <i> if buffer is smaller then strings will often be fragmented.
 // <i> It is recommended to use size which will fit typical log and only the
@@ -2706,12 +2758,12 @@
 #define NRF_LOG_BACKEND_RTT_TEMP_BUFFER_SIZE 64
 #endif
 
-// <o> NRF_LOG_BACKEND_RTT_TX_RETRY_DELAY_MS - Period before retrying writing to RTT 
+// <o> NRF_LOG_BACKEND_RTT_TX_RETRY_DELAY_MS - Period before retrying writing to RTT
 #ifndef NRF_LOG_BACKEND_RTT_TX_RETRY_DELAY_MS
 #define NRF_LOG_BACKEND_RTT_TX_RETRY_DELAY_MS 1
 #endif
 
-// <o> NRF_LOG_BACKEND_RTT_TX_RETRY_CNT - Writing to RTT retries. 
+// <o> NRF_LOG_BACKEND_RTT_TX_RETRY_CNT - Writing to RTT retries.
 // <i> If RTT fails to accept any new data after retries
 // <i> module assumes that host is not active and on next
 // <i> request it will perform only one write attempt.
@@ -2723,7 +2775,6 @@
 #endif
 
 // </e>
-
 
 // <h> nRF_Log
 
@@ -3749,6 +3800,114 @@
 #ifndef RTC_CONFIG_DEBUG_COLOR
 #define RTC_CONFIG_DEBUG_COLOR 0
 #endif
+
+// </e>
+
+// <e> NRFX_RTC_ENABLED - nrfx_rtc - RTC peripheral driver
+//==========================================================
+#ifndef NRFX_RTC_ENABLED
+#define NRFX_RTC_ENABLED 1
+#endif
+// <q> NRFX_RTC0_ENABLED  - Enable RTC0 instance
+
+#ifndef NRFX_RTC0_ENABLED
+#define NRFX_RTC0_ENABLED 1
+#endif
+
+// <q> NRFX_RTC1_ENABLED  - Enable RTC1 instance
+
+#ifndef NRFX_RTC1_ENABLED
+#define NRFX_RTC1_ENABLED 0
+#endif
+
+// <q> NRFX_RTC2_ENABLED  - Enable RTC2 instance
+
+#ifndef NRFX_RTC2_ENABLED
+#define NRFX_RTC2_ENABLED 0
+#endif
+
+// <o> NRFX_RTC_MAXIMUM_LATENCY_US - Maximum possible time[us] in highest priority interrupt
+#ifndef NRFX_RTC_MAXIMUM_LATENCY_US
+#define NRFX_RTC_MAXIMUM_LATENCY_US 2000
+#endif
+
+// <o> NRFX_RTC_DEFAULT_CONFIG_FREQUENCY - Frequency  <16-32768>
+
+#ifndef NRFX_RTC_DEFAULT_CONFIG_FREQUENCY
+#define NRFX_RTC_DEFAULT_CONFIG_FREQUENCY 32768
+#endif
+
+// <q> NRFX_RTC_DEFAULT_CONFIG_RELIABLE  - Ensures safe compare event triggering
+
+#ifndef NRFX_RTC_DEFAULT_CONFIG_RELIABLE
+#define NRFX_RTC_DEFAULT_CONFIG_RELIABLE 0
+#endif
+
+// <o> NRFX_RTC_DEFAULT_CONFIG_IRQ_PRIORITY  - Interrupt priority
+
+// <0=> 0 (highest)
+// <1=> 1
+// <2=> 2
+// <3=> 3
+// <4=> 4
+// <5=> 5
+// <6=> 6
+// <7=> 7
+
+#ifndef NRFX_RTC_DEFAULT_CONFIG_IRQ_PRIORITY
+#define NRFX_RTC_DEFAULT_CONFIG_IRQ_PRIORITY 6
+#endif
+
+// <e> NRFX_RTC_CONFIG_LOG_ENABLED - Enables logging in the module.
+//==========================================================
+#ifndef NRFX_RTC_CONFIG_LOG_ENABLED
+#define NRFX_RTC_CONFIG_LOG_ENABLED 0
+#endif
+// <o> NRFX_RTC_CONFIG_LOG_LEVEL  - Default Severity level
+
+// <0=> Off
+// <1=> Error
+// <2=> Warning
+// <3=> Info
+// <4=> Debug
+
+#ifndef NRFX_RTC_CONFIG_LOG_LEVEL
+#define NRFX_RTC_CONFIG_LOG_LEVEL 3
+#endif
+
+// <o> NRFX_RTC_CONFIG_INFO_COLOR  - ANSI escape code prefix.
+
+// <0=> Default
+// <1=> Black
+// <2=> Red
+// <3=> Green
+// <4=> Yellow
+// <5=> Blue
+// <6=> Magenta
+// <7=> Cyan
+// <8=> White
+
+#ifndef NRFX_RTC_CONFIG_INFO_COLOR
+#define NRFX_RTC_CONFIG_INFO_COLOR 0
+#endif
+
+// <o> NRFX_RTC_CONFIG_DEBUG_COLOR  - ANSI escape code prefix.
+
+// <0=> Default
+// <1=> Black
+// <2=> Red
+// <3=> Green
+// <4=> Yellow
+// <5=> Blue
+// <6=> Magenta
+// <7=> Cyan
+// <8=> White
+
+#ifndef NRFX_RTC_CONFIG_DEBUG_COLOR
+#define NRFX_RTC_CONFIG_DEBUG_COLOR 0
+#endif
+
+// </e>
 
 // </e>
 
@@ -4972,6 +5131,11 @@
 #endif
 
 // </e>
+// <q> NRF_LIBUARTE_ASYNC_WITH_APP_TIMER  - nrf_libuarte_async - libUARTE_async library
+
+#ifndef NRF_LIBUARTE_ASYNC_WITH_APP_TIMER
+#define NRF_LIBUARTE_ASYNC_WITH_APP_TIMER 1
+#endif
 
 // <e> NRF_CLI_LIBUARTE_CONFIG_LOG_ENABLED - Enables logging in the module.
 //==========================================================
@@ -5023,6 +5187,87 @@
 #endif
 
 // </e>
+
+// <h> nrf_cli_libuarte - libUARTE command line interface transport
+
+//==========================================================
+// <q> NRF_CLI_LIBUARTE_ENABLED  - Enable/disable the CLI libUARTE module.
+
+#ifndef NRF_CLI_LIBUARTE_ENABLED
+#define NRF_CLI_LIBUARTE_ENABLED 1
+#endif
+
+// <o> NRF_CLI_LIBUARTE_UARTE_INSTANCE  - UARTE instance
+
+// <0=> UARTE0
+// <1=> UARTE1
+
+#ifndef NRF_CLI_LIBUARTE_UARTE_INSTANCE
+#define NRF_CLI_LIBUARTE_UARTE_INSTANCE 0
+#endif
+
+// <o> NRF_CLI_LIBUARTE_TIMER_INSTANCE  - UARTE TIMER instance
+
+// <0=> TIMER0
+// <1=> TIMER1
+// <2=> TIMER2
+// <3=> TIMER3
+// <4=> TIMER4
+
+#ifndef NRF_CLI_LIBUARTE_TIMER_INSTANCE
+#define NRF_CLI_LIBUARTE_TIMER_INSTANCE 0
+#endif
+
+// <o> NRF_CLI_LIBUARTE_TIMEOUT_TIMER_INSTANCE  - UARTE timeout TIMER instance
+
+// <0=> TIMER0
+// <1=> TIMER1
+// <2=> TIMER2
+// <3=> TIMER3
+// <4=> TIMER4
+// <255=> RTC used
+
+#ifndef NRF_CLI_LIBUARTE_TIMEOUT_TIMER_INSTANCE
+#define NRF_CLI_LIBUARTE_TIMEOUT_TIMER_INSTANCE 255
+#endif
+
+// <o> NRF_CLI_LIBUARTE_TIMEOUT_RTC_INSTANCE  - UARTE timeout RTC instance
+
+// <0=> RTC0
+// <1=> RTC1
+// <2=> RTC2
+// <255=> TIMER used
+
+#ifndef NRF_CLI_LIBUARTE_TIMEOUT_RTC_INSTANCE
+#define NRF_CLI_LIBUARTE_TIMEOUT_RTC_INSTANCE 0
+#endif
+
+// </h>
+//==========================================================
+
+// <h> nrf_libuarte_drv - libUARTE library
+
+//==========================================================
+// <q> NRF_LIBUARTE_DRV_HWFC_ENABLED  - Enable HWFC support in the driver
+
+#ifndef NRF_LIBUARTE_DRV_HWFC_ENABLED
+#define NRF_LIBUARTE_DRV_HWFC_ENABLED 0
+#endif
+
+// <q> NRF_LIBUARTE_DRV_UARTE0  - UARTE0 instance
+
+#ifndef NRF_LIBUARTE_DRV_UARTE0
+#define NRF_LIBUARTE_DRV_UARTE0 1
+#endif
+
+// <q> NRF_LIBUARTE_DRV_UARTE1  - UARTE1 instance
+
+#ifndef NRF_LIBUARTE_DRV_UARTE1
+#define NRF_LIBUARTE_DRV_UARTE1 0
+#endif
+
+// </h>
+//==========================================================
 
 // <e> NRF_CLI_UART_CONFIG_LOG_ENABLED - Enables logging in the module.
 //==========================================================

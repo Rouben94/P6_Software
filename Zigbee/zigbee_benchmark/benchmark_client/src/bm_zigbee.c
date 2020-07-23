@@ -521,6 +521,8 @@ void zboss_signal_handler(zb_bufid_t bufid) {
   zigbee_led_status_update(bufid, ZIGBEE_NETWORK_STATE_LED);
 
   switch (sig) {
+  case ZB_BDB_SIGNAL_DEVICE_REBOOT:
+    /* fall-through */
   case ZB_BDB_SIGNAL_STEERING:
     /* Call default signal handler. */
     ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
@@ -533,17 +535,17 @@ void zboss_signal_handler(zb_bufid_t bufid) {
       NRF_LOG_INFO("Network Steering finished with Local Node Address: Short: 0x%x, IEEE/Long: 0x%s", local_node_short_addr, local_nodel_ieee_addr_buf);
     }
     break;
-  case ZB_BDB_SIGNAL_DEVICE_REBOOT:
-    /* Call default signal handler. */
-    ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
-    if (status == RET_OK) {
-      /* Read local node address */
-      zb_get_long_address(local_node_ieee_addr);
-      local_node_short_addr = zb_address_short_by_ieee(local_node_ieee_addr);
-      local_node_addr_len = ieee_addr_to_str(local_nodel_ieee_addr_buf, sizeof(local_nodel_ieee_addr_buf), local_node_ieee_addr);
-      NRF_LOG_INFO("Node restarted with Local Node Address: Short: 0x%x, IEEE/Long: 0x%s", local_node_short_addr, local_nodel_ieee_addr_buf);
-    }
-    break;
+    //  case ZB_BDB_SIGNAL_DEVICE_REBOOT:
+    //    /* Call default signal handler. */
+    //    ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
+    //    if (status == RET_OK) {
+    //      /* Read local node address */
+    //      zb_get_long_address(local_node_ieee_addr);
+    //      local_node_short_addr = zb_address_short_by_ieee(local_node_ieee_addr);
+    //      local_node_addr_len = ieee_addr_to_str(local_nodel_ieee_addr_buf, sizeof(local_nodel_ieee_addr_buf), local_node_ieee_addr);
+    //      NRF_LOG_INFO("Node restarted with Local Node Address: Short: 0x%x, IEEE/Long: 0x%s", local_node_short_addr, local_nodel_ieee_addr_buf);
+    //    }
+    //    break;
   default:
     /* Call default signal handler. */
     ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
@@ -561,8 +563,6 @@ void bm_zigbee_init(void) {
 
   /* Initialize timers, loging system and GPIOs. */
   timers_init();
-  //  leds_buttons_init();
-  //  bm_log_init();
 
   /* Set Zigbee stack logging level and traffic dump subsystem. */
   ZB_SET_TRACE_LEVEL(ZIGBEE_TRACE_LEVEL);
@@ -592,8 +592,6 @@ void bm_zigbee_init(void) {
   ZB_AF_REGISTER_DEVICE_CTX(&bm_client_ctx);
 
   /* Register callback for handling ZCL commands. */
-  //  ZB_AF_SET_ENDPOINT_HANDLER(BENCHMARK_CLIENT_ENDPOINT, bm_zcl_handler);
-  //  ZB_AF_SET_ENDPOINT_HANDLER(BENCHMARK_CONTROL_ENDPOINT, bm_zcl_handler);
   ZB_ZCL_REGISTER_DEVICE_CB(zcl_device_cb);
 
   /* Initialzie Cluster Attributes */
