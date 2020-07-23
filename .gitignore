@@ -344,3 +344,5 @@ TAGS
 tags
 
 .idea
+*.emSession
+Zigbee/zigbee_benchmark/benchmark_master/zigbee_benchmark_master.emSession
