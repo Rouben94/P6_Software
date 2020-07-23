@@ -445,6 +445,7 @@ void bm_timesync_msg_publish(bool relaying)
   synctimer_TimeStampCapture_enable();
   Radio_Packet_TX.length = sizeof(Tsync_pkt_TX);
   Radio_Packet_TX.PDU = (uint8_t *)&Tsync_pkt_TX;
+  Tsync_pkt_TX.MAC_Address_LSB = LSB_MAC_Address;
   for (int ch_rx = CommonStartCH; ch_rx <= CommonEndCH; ch_rx++)
   {
     for (int ch = CommonStartCH; ch <= CommonEndCH; ch++)
@@ -483,7 +484,7 @@ bool bm_timesync_msg_subscribe(void (*transition_cb)())
       Tsync_pkt_RX = *(TimesyncPkt *)Radio_Packet_RX.PDU;      // Bring the sheep to a dry place
       if (bm_radio_receive(&Radio_Packet_RX, msg_time_ms * 2)) // The Next Timesync Packet should arrive right after the first
       {
-        Tsync_pkt_RX_2 = *(TimesyncPkt *)Radio_Packet_RX.PDU;
+        Tsync_pkt_RX_2 = *(TimesyncPkt *)Radio_Packet_RX.PDU; // Bring the sheep to a dry place
         if ((Tsync_pkt_RX.MAC_Address_LSB == Tsync_pkt_RX_2.MAC_Address_LSB) && (Tsync_pkt_RX.seq == (Tsync_pkt_RX_2.seq - 1)))
         {
           if (Tsync_pkt_RX.MAC_Address_LSB == 0xE4337238 || true) // For Debug (1)

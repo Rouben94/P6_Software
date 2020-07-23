@@ -52,6 +52,7 @@ IV.    if yess -> change to next state*/
 #define ST_MARGIN_TIME_MS 5            // Margin for State Transition (Let the State Terminate)
 #define ST_TIMESYNC_BACKOFF_TIME_MS 30 // Backoff time maximal for retransmitt the Timesync Packet -> Should be in good relation to Timesync Timeslot
 
+uint32_t LSB_MAC_Address;            // Preprogrammed Randomly Static MAC-Address (LSB)
 uint8_t currentState = ST_INIT;      // Init the Statemachine in the Timesync State
 uint64_t start_time_ts_us;           // Start Timestamp of a State
 uint64_t next_state_ts_us;           // Next Timestamp for sheduled transition
@@ -112,6 +113,12 @@ static void ST_transition_cb(void) {
 }
 
 void ST_INIT_fn(void) {
+
+    // Init MAC Address
+  LSB_MAC_Address = NRF_FICR->DEVICEADDR[0];
+  bm_cli_log("Preprogrammed Randomly Static MAC-Address (LSB): %x\n", LSB_MAC_Address);
+ 
+
   bm_init_leds();
   synctimer_init();
   synctimer_start();
@@ -134,7 +141,7 @@ bm_cli_log("Error no Role defined. Please define a Role in the bm_config.h (BENC
 
   /* Test read FLASH Data */
   uint32_t restored_cnt = bm_log_load_from_flash(); // Restor Log Data from FLASH
-  bm_cli_log("Restored %u Bytes from Flash\n", restored_cnt);
+  bm_cli_log("Restored %u entries from Flash\n", restored_cnt);
   bm_cli_log("First Log Entry: %u %u ...\n", message_info[0].message_id, (uint32_t)message_info[0].net_time);
 
   wait_for_transition = true; // Self trigger Transition
