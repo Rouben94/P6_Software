@@ -9,8 +9,6 @@
 #include "nrf_log_default_backends.h"
 #endif
 
-uint32_t LSB_MAC_Address;
-
 /**@brief Function for application main entry.
  */
 void main(void) {
@@ -19,13 +17,7 @@ void main(void) {
   // Init the LOG Modul
   // To Enable Loging before the Mesh stack is run change in sdk_config -> NRF_LOG_DEFERRED = 0 (Performance is worse but logging is possibel)
   bm_cli_log_init(); /* Initialize the Zigbee LOG subsystem */
- #endif
-
-
-  // Init MAC Address
-  LSB_MAC_Address = NRF_FICR->DEVICEADDR[1];
-  bm_cli_log("Preprogrammed Randomly Static MAC-Address (LSB): %x\n", LSB_MAC_Address);
-  
+ #endif  
 
   // Start Benchmark
   bm_cli_log("Starting Benchmark...\n");

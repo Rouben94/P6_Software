@@ -9,6 +9,8 @@
  *
  */
 
+#ifdef NRF_SDK_Zigbee
+
 #include "bm_flash_save.h"
 
 #include "fds.h"
@@ -150,3 +152,5 @@ void flash_save_init(flash_cb_t evt_handler)
 
     cb = evt_handler;
 }
+
+#endif

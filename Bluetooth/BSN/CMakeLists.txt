@@ -18,7 +18,12 @@ project(NONE)
 FILE(GLOB app_sources_c src/*.c)
 FILE(GLOB app_sources_cpp src/*.cpp)
 
+FILE(GLOB shared_sources_c ../../SharedLib/*.c)
+FILE(GLOB shared_sources_cpp ../../SharedLib/*.cpp)
+
 target_sources(app PRIVATE
 	${app_sources_c}
-	${app_sources_cpp})
-target_include_directories(app PRIVATE include)
+	${app_sources_cpp}
+	${shared_sources_c}
+	${shared_sources_cpp})
+target_include_directories(app PRIVATE include ../../SharedLib)

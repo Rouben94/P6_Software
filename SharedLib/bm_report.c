@@ -46,6 +46,7 @@ bool bm_report_msg_subscribe(bm_message_info *message_info)
   bm_radio_setAA(ReportAddress);
   bm_radio_setTxP(CommonTxPower);
   uint16_t bm_message_info_entry_ind = 0;
+  uint16_t synced_dely_ms = 0;
   bm_report_req_msg.ReportEntry = bm_message_info_entry_ind;
   Radio_Packet_TX.length = sizeof(bm_report_req_msg);
   Radio_Packet_TX.PDU = (uint8_t *)&bm_report_req_msg;
@@ -55,21 +56,24 @@ bool bm_report_msg_subscribe(bm_message_info *message_info)
     bm_cli_log("Sent report req %u\n",(uint32_t)synctimer_getSyncTime());
     bm_radio_send_burst(Radio_Packet_TX, msg_time_ms); // Send out Report Requests
     bm_cli_log("Wait for report %u\n",(uint32_t)synctimer_getSyncTime());
-    if (bm_radio_receive(&Radio_Packet_RX, msg_time_ms))
+    if (bm_radio_receive(&Radio_Packet_RX, msg_time_ms + synced_dely_ms))
     {
       rec_cnt++; // For Safty exit
+      //synced_dely_ms = 50; // Wait additionial 50ms if last message was received
       // Save Report Entry
       message_info[bm_message_info_entry_ind] = *(bm_message_info *)Radio_Packet_RX.PDU; // Bring the sheep to a dry place
+      if (message_info[bm_message_info_entry_ind].net_time == 0)
+      {
+        bm_cli_log("All reports received\n");
+        return true;
+      }
+      // Publish the report
+      bm_cli_log("<report> %u %u%u %u%u %u %d %x %x %x\r\n",message_info[bm_message_info_entry_ind].message_id,(uint32_t)message_info[bm_message_info_entry_ind].net_time,message_info[bm_message_info_entry_ind].net_time,(uint32_t)message_info[bm_message_info_entry_ind].ack_net_time,message_info[bm_message_info_entry_ind].ack_net_time,message_info[bm_message_info_entry_ind].number_of_hops,message_info[bm_message_info_entry_ind].rssi,message_info[bm_message_info_entry_ind].src_addr,message_info[bm_message_info_entry_ind].dst_addr,message_info[bm_message_info_entry_ind].group_addr);
       // Next Report Entry
       bm_message_info_entry_ind++;
       bm_report_req_msg.ReportEntry = bm_message_info_entry_ind;
       // Decrease channel index to keep chanel the same
       i--;
-      if (message_info[bm_message_info_entry_ind -1].net_time == 0)
-      {
-        bm_cli_log("All reports received\n");
-        return true;
-      }
     } else if (bm_message_info_entry_ind > 0){
       bm_cli_log("Warning Sending and Request out of sync...\n");
     }
@@ -89,6 +93,7 @@ bool bm_report_msg_publish(bm_message_info *message_info)
   bm_radio_setAA(ReportAddress);
   bm_radio_setTxP(CommonTxPower);
   uint16_t bm_message_info_entry_ind = 0;
+  uint16_t synced_dely_ms = 0;
   Radio_Packet_TX.length = sizeof(bm_message_info);  
   for (int i = 0; i < CommonCHCnt * NUMBER_OF_BENCHMARK_REPORT_MESSAGES; i++) // There is only one trie to transmitt the Report for a Channel
   {
@@ -100,7 +105,7 @@ bool bm_report_msg_publish(bm_message_info *message_info)
       bm_message_info_entry_ind = (*(bm_report_req_msg_t *)Radio_Packet_RX.PDU).ReportEntry; // Bring the sheep to a dry place
       Radio_Packet_TX.PDU = (uint8_t *)&(message_info[bm_message_info_entry_ind]); // Prepare Sending
       bm_cli_log("Time before sending report %u\n",(uint32_t)synctimer_getSyncTime());
-      bm_radio_send_burst(Radio_Packet_TX, msg_time_ms); // Send out Report
+      bm_radio_send_burst(Radio_Packet_TX, msg_time_ms + synced_dely_ms); // Send out Report
       // Decrease channel index to keep channel the same
       i--;
       // Chek if it was the last Report
