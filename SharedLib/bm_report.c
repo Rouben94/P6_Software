@@ -59,27 +59,32 @@ bool bm_report_msg_subscribe(bm_message_info *message_info)
     if (bm_radio_receive(&Radio_Packet_RX, msg_time_ms + synced_dely_ms))
     {
       rec_cnt++; // For Safty exit
-      //synced_dely_ms = 50; // Wait additionial 50ms if last message was received
+      synced_dely_ms = 50; // Wait additionial 50ms if last message was received
       // Save Report Entry
       message_info[bm_message_info_entry_ind] = *(bm_message_info *)Radio_Packet_RX.PDU; // Bring the sheep to a dry place
       if (message_info[bm_message_info_entry_ind].net_time == 0)
       {
         bm_cli_log("All reports received\n");
-        return true;
+        // Publish the reports
+        for (int i = 0; i < bm_message_info_entry_ind; i++)
+        {
+          bm_cli_log("<report> ");
+          bm_cli_log("%u ",message_info[i].message_id);
+          bm_cli_log("%u",(uint32_t)(message_info[i].net_time>>32));
+          bm_cli_log("%u ",(uint32_t)message_info[i].net_time);
+          bm_cli_log("%u",(uint32_t)(message_info[i].ack_net_time>>32));
+          bm_cli_log("%u ",(uint32_t)message_info[i].ack_net_time);
+          bm_cli_log("%u ",message_info[i].number_of_hops);
+          bm_cli_log("%d ",message_info[i].rssi);
+          bm_cli_log("%x ",message_info[i].src_addr);
+          bm_cli_log("%x ",message_info[i].dst_addr);
+          bm_cli_log("%x ",message_info[i].group_addr);
+          bm_cli_log("\r\n");
+        }        
+        return true; // Finish here
       }
       // Publish the report
-      bm_cli_log("<report> ");
-      bm_cli_log("%u ",message_info[bm_message_info_entry_ind].message_id);
-      bm_cli_log("%u",(uint32_t)(message_info[bm_message_info_entry_ind].net_time>>32));
-      bm_cli_log("%u ",(uint32_t)message_info[bm_message_info_entry_ind].net_time);
-      bm_cli_log("%u",(uint32_t)(message_info[bm_message_info_entry_ind].ack_net_time>>32));
-      bm_cli_log("%u ",(uint32_t)message_info[bm_message_info_entry_ind].ack_net_time);
-      bm_cli_log("%u ",message_info[bm_message_info_entry_ind].number_of_hops);
-      bm_cli_log("%d ",message_info[bm_message_info_entry_ind].rssi);
-      bm_cli_log("%x ",message_info[bm_message_info_entry_ind].src_addr);
-      bm_cli_log("%x ",message_info[bm_message_info_entry_ind].dst_addr);
-      bm_cli_log("%x ",message_info[bm_message_info_entry_ind].group_addr);
-      bm_cli_log("\r\n");
+
       // Next Report Entry
       bm_message_info_entry_ind++;
       bm_report_req_msg.ReportEntry = bm_message_info_entry_ind;
@@ -87,6 +92,7 @@ bool bm_report_msg_subscribe(bm_message_info *message_info)
       i--;
     } else if (bm_message_info_entry_ind > 0){
       bm_cli_log("Warning Sending and Request out of sync...\n");
+      synced_dely_ms = 0; // Reset additional Delay
     }
     if (i > 500 && rec_cnt == 0){ // If no Node is there it should be equal to 5s...
       bm_cli_log("No reports received\n");
