@@ -27,8 +27,8 @@ along with P2P-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 #include "Timer_sync.h"
 
 /* ------------- Definitions --------------*/
-#define isMaster 1									// Node is the Master (1) or Slave (0)
-#define CommonMode NRF_RADIO_MODE_BLE_1MBIT		// Common Mode
+#define isMaster 0									// Node is the Master (1) or Slave (0)
+#define CommonMode NRF_RADIO_MODE_BLE_LR125KBIT		// Common Mode
 #define CommonStartCH 37							// Common Start Channel
 #define CommonEndCH 39								// Common End Channel
 #define CommonCHCnt CommonEndCH - CommonStartCH + 1 // Common Channel Count
@@ -175,6 +175,7 @@ u8_t Nodeidx = 0;	// Node Index
 u8_t NodeCHcnt = 0; // Node had Channel Count
 bool ReportingDone = false;
 u8_t ReportingDoneCnt = 0;
+bool GotDataFromNode = false;
 
 uint64_t ST_REPORTS_TIMEOUT_MS;
 uint64_t ST_NODE_CHANNEL_REPORT_TIMEOUT_MS;
@@ -386,7 +387,7 @@ void ST_DISCOVERY_fn(void)
 			{
 				Disc_pkt_TX.MockupTimestamp = MockupTS;
 				Disc_pkt_TX.LastTxTimestamp = synctimer_getTxTimeStamp();
-				simple_nrf_radio.Send(radio_pkt_Tx);
+				simple_nrf_radio.Send(radio_pkt_Tx, 0);
 			}
 			else
 			{
@@ -448,7 +449,7 @@ void ST_MOCKUP_fn(void)
 			if ((!GotReportReq) || (!GotParam))
 			{
 				k_sleep(K_MSEC(rand_32 % ((k_timer_remaining_get(&state_timer) / CHidx) - 10))); // Sleep Random Mockup Delay minus 10ms send Margin
-				simple_nrf_radio.Send(radio_pkt_Tx);
+				simple_nrf_radio.Send(radio_pkt_Tx, 0);
 			}
 			else
 			{
@@ -485,7 +486,7 @@ void ST_PARAM_fn(void)
 		{
 			if (isMaster)
 			{
-				simple_nrf_radio.Send(radio_pkt_Tx);
+				simple_nrf_radio.Send(radio_pkt_Tx, 0);
 			}
 			else
 			{
@@ -526,17 +527,25 @@ void ST_PACKETS_fn(void)
 	RxPktStatLog log;	   //Temp
 	u16_t PktCnt_temp = 0; //Temp
 	// Setup CCA
-	if ((nrf_radio_mode_get(NRF_RADIO) == NRF_RADIO_MODE_IEEE802154_250KBIT) && (ParamLocal.CCMA_CA != 0)) {
-		if (ParamLocal.CCMA_CA == 1){
-			nrf_radio_cca_configure(NRF_RADIO,NRF_RADIO_CCA_MODE_ED,CCA_TRESHOLD_ED_SCALE,CCA_TRESHOLD_ED_SCALE,2);
-		} else if (ParamLocal.CCMA_CA == 2){
-			nrf_radio_cca_configure(NRF_RADIO,NRF_RADIO_CCA_MODE_CARRIER,CCA_TRESHOLD_ED_SCALE,CCA_TRESHOLD_ED_SCALE,2);
-		} else if (ParamLocal.CCMA_CA == 3){
-			nrf_radio_cca_configure(NRF_RADIO,NRF_RADIO_CCA_MODE_CARRIER_AND_ED,CCA_TRESHOLD_ED_SCALE,CCA_TRESHOLD_ED_SCALE,2);
-		} else if (ParamLocal.CCMA_CA == 4){
-			nrf_radio_cca_configure(NRF_RADIO,NRF_RADIO_CCA_MODE_CARRIER_OR_ED,CCA_TRESHOLD_ED_SCALE,CCA_TRESHOLD_ED_SCALE,2);
+	if ((nrf_radio_mode_get(NRF_RADIO) == NRF_RADIO_MODE_IEEE802154_250KBIT) && (ParamLocal.CCMA_CA != 0))
+	{
+		if (ParamLocal.CCMA_CA == 1)
+		{
+			nrf_radio_cca_configure(NRF_RADIO, NRF_RADIO_CCA_MODE_ED, CCA_TRESHOLD_ED_SCALE, CCA_TRESHOLD_ED_SCALE, 2);
 		}
-	} 
+		else if (ParamLocal.CCMA_CA == 2)
+		{
+			nrf_radio_cca_configure(NRF_RADIO, NRF_RADIO_CCA_MODE_CARRIER, CCA_TRESHOLD_ED_SCALE, CCA_TRESHOLD_ED_SCALE, 2);
+		}
+		else if (ParamLocal.CCMA_CA == 3)
+		{
+			nrf_radio_cca_configure(NRF_RADIO, NRF_RADIO_CCA_MODE_CARRIER_AND_ED, CCA_TRESHOLD_ED_SCALE, CCA_TRESHOLD_ED_SCALE, 2);
+		}
+		else if (ParamLocal.CCMA_CA == 4)
+		{
+			nrf_radio_cca_configure(NRF_RADIO, NRF_RADIO_CCA_MODE_CARRIER_OR_ED, CCA_TRESHOLD_ED_SCALE, CCA_TRESHOLD_ED_SCALE, 2);
+		}
+	}
 	// See: https://docs.zephyrproject.org/latest/reference/kconfig/CONFIG_NRF_802154_CCA_CORR_LIMIT.html?highlight=nrf%20cca#cmdoption-arg-config-nrf-802154-cca-corr-limit
 	// See: https://docs.zephyrproject.org/latest/reference/kconfig/CONFIG_NRF_802154_CCA_CORR_THRESHOLD.html?highlight=nrf%20cca#cmdoption-arg-config-nrf-802154-cca-corr-threshold
 	/* Do work and keep track of Time Left */
@@ -549,21 +558,34 @@ void ST_PACKETS_fn(void)
 		if (isMaster)
 		{
 			//chrep_local.back().Avg_NOISE_RSSI = simple_nrf_radio.RSSI(40); //Find out how long it takes and rise itirations
-			k_sleep(K_MSEC(5));																							 //Let Slave meassure noise and prepare Reception
-			PktCnt_temp = simple_nrf_radio.BurstCntPkt(radio_pkt_Tx, ParamLocal.CCMA_CA ,K_MSEC(k_timer_remaining_get(&state_timer2) - 15)); //Margin to let Slave Receive longer than sending and log data
-																														 //Let Slave End Reception
+			k_sleep(K_MSEC(5)); //Let Slave meassure noise and prepare Reception
+			//printk("TIME Sending %d : %u\n",ch,k_timer_remaining_get(&state_timer2) - 55);
+			PktCnt_temp = 0;
+			while ((k_timer_remaining_get(&state_timer2)) > 55)
+			{
+				simple_nrf_radio.Send(radio_pkt_Tx, ParamLocal.CCMA_CA);
+				PktCnt_temp++;
+			}
+			//PktCnt_temp = simple_nrf_radio.BurstCntPkt(radio_pkt_Tx, ParamLocal.CCMA_CA ,K_MSEC(k_timer_remaining_get(&state_timer2) - 55)); //Margin to let Slave Receive longer than sending and log data
+			//printk("TIME End CH: %d : %u\n",ch,(u32_t)synctimer_getSyncTime());
 		}
 		else
 		{
 			//======================= TODO ============================
-			chrep_local.back().CHRepPkt.Avg_NOISE_RSSI = simple_nrf_radio.RSSI(32); //Find out how long it takes and rise itirations
+			chrep_local.back().CHRepPkt.Avg_NOISE_RSSI = simple_nrf_radio.RSSI(8); //Find out how long it takes and rise itirations
 			//======================= TODO ============================
-			log = simple_nrf_radio.ReceivePktStatLog(K_MSEC(k_timer_remaining_get(&state_timer2) - 10));
+			//printk("TIME Start CH: %d : %u\n",ch,(u32_t)synctimer_getSyncTime());
+			log = simple_nrf_radio.ReceivePktStatLog(K_MSEC(k_timer_remaining_get(&state_timer2) - 20));
+			//printk("TIME End CH: %d : %u\n",ch,(u32_t)synctimer_getSyncTime());
 		}
 		// Slave and Master log all Data to keep timesync
 		chrep_local.back().TxPkt_CNT = PktCnt_temp;
 		chrep_local.back().CHRepPkt.CRCOK_CNT = log.CRCOKcnt;
 		chrep_local.back().CHRepPkt.CRCERR_CNT = log.CRCErrcnt;
+		if (log.RSSI_Sum_Avg == 174)
+		{
+			log.RSSI_Sum_Avg = chrep_local.back().CHRepPkt.Avg_NOISE_RSSI; // If the Meassured Signal is below the noise
+		}
 		chrep_local.back().CHRepPkt.Avg_SIG_RSSI = log.RSSI_Sum_Avg;
 		chrep_local.back().CHRepPkt.CH = ch;
 		k_sleep(K_MSEC(k_timer_remaining_get(&state_timer2)));
@@ -603,7 +625,7 @@ void ST_REPORT_REQ_fn(u8_t CH, u8_t NodeIdx)
 		if (isMaster)
 		{
 			k_sleep(K_MSEC(5));
-			simple_nrf_radio.Send(radio_pkt_Tx); // Burst Report Request
+			simple_nrf_radio.Send(radio_pkt_Tx, 0); // Burst Report Request
 		}
 		else
 		{
@@ -615,7 +637,7 @@ void ST_REPORT_REQ_fn(u8_t CH, u8_t NodeIdx)
 					GotReportReq = true; // Set Flag that a Report Req for this Node was received
 					GotReportReqNow = true;
 					break;
-				} 
+				}
 				else if (((ReportsReqPkt *)radio_pkt_Rx.PDU)->LSB_MAC_Address == ReportsDoneMACAddress)
 				{
 					ReportingDone = true; // Set Flag that the Reporting is Done
@@ -667,19 +689,20 @@ void ST_REPORT_fn(u8_t CH, u8_t NodeIdx)
 			{
 				chrep_local[((CHReportsPkt *)radio_pkt_Rx.PDU)->CH - ParamLocal.StartCH].CHRepPkt = *((CHReportsPkt *)radio_pkt_Rx.PDU);
 				chrep_local[((CHReportsPkt *)radio_pkt_Rx.PDU)->CH - ParamLocal.StartCH].valid = true;
+				GotDataFromNode = true;
 			}
 		}
 	}
 	else
 	{
-		k_sleep(K_MSEC(1)); // Let Master Prepare Reception
+		k_sleep(K_MSEC(2)); // Let Master Prepare Reception
 		if (GotReportReqNow && k_timer_remaining_get(&state_timer) > 0)
 		{
 			for (u8_t i = 0; i < chrep_local.size(); i++)
 			{
 				Repo_pkt_TX = chrep_local[i].CHRepPkt;
 				//printk("TIME in CH: %d : %u sent Pckt CH: %d\n",CH,(u32_t)synctimer_getSyncTime(),chrep_local[i].CHRepPkt.CH);
-				simple_nrf_radio.Send(radio_pkt_Tx); // Burst Reports
+				simple_nrf_radio.Send(radio_pkt_Tx, 0); // Burst Reports
 			}
 			GotReportReqNow = false;
 		}
@@ -705,13 +728,13 @@ void ST_REPORT_fn(u8_t CH, u8_t NodeIdx)
 			masrep.nodrep[Nodeidx].chrep.clear();
 			for (u8_t i = 0; i < chrep_local.size(); i++)
 			{
-				if (chrep_local[i].valid == true)
-				{
-					masrep.nodrep[Nodeidx].chrep.push_back({chrep_local[i]});
-				}
+				//if (chrep_local[i].valid == true)
+				//{
+				masrep.nodrep[Nodeidx].chrep.push_back({chrep_local[i]});
+				//}
 			}
 			// Check if any valid Data was Received from Node and Remove Node if not
-			if (masrep.nodrep[Nodeidx].chrep.size() == 0)
+			if (!GotDataFromNode)
 			{
 				// Didnt Received anything from Node... delete it from Nodelist
 				masrep.nodrep.erase(masrep.nodrep.begin() + Nodeidx);
@@ -722,10 +745,16 @@ void ST_REPORT_fn(u8_t CH, u8_t NodeIdx)
 			Nodeidx++;
 			if (Nodeidx < masrep.nodrep.size())
 			{
+				GotDataFromNode = false;
 				masrep.nodrep[Nodeidx].RepCHcnt = 0; // Init Node CHcnt
 				for (u8_t i = 0; i < chrep_local.size(); i++)
 				{
-					chrep_local[i].valid = false; // Erase Valid Statement
+					chrep_local[i].valid = false;						 // Erase Valid Statement
+					chrep_local[i].CHRepPkt.Avg_NOISE_RSSI = 174;		 // Default Value
+					chrep_local[i].CHRepPkt.Avg_SIG_RSSI = 174;			 // Default Value
+					chrep_local[i].CHRepPkt.CH = ParamLocal.StartCH + i; // Default Value
+					chrep_local[i].CHRepPkt.CRCERR_CNT = 0;				 // Default Value
+					chrep_local[i].CHRepPkt.CRCOK_CNT = 0;				 // Default Value
 				}
 			}
 			else
@@ -772,7 +801,7 @@ void ST_PUBLISH_fn(void)
 			printk("<NEW_NODE>\r\n");
 			for (const auto &ch : node.chrep)
 			{
-				printk("<NODE_REPORT> %x %d %d %d %d %d %d \r\n",node.LSB_MAC_Address, ch.CHRepPkt.CH, ch.TxPkt_CNT, ch.CHRepPkt.CRCOK_CNT, ch.CHRepPkt.CRCERR_CNT, ch.CHRepPkt.Avg_SIG_RSSI, ch.CHRepPkt.Avg_NOISE_RSSI);
+				printk("<NODE_REPORT> %x %d %d %d %d %d %d \r\n", node.LSB_MAC_Address, ch.CHRepPkt.CH, ch.TxPkt_CNT, ch.CHRepPkt.CRCOK_CNT, ch.CHRepPkt.CRCERR_CNT, ch.CHRepPkt.Avg_SIG_RSSI, ch.CHRepPkt.Avg_NOISE_RSSI);
 				/*
 				printk("<NODE_REPORT_BEGIN>\r\n");
 				// <MACAddress> <CH> <PktCnt> <CRCOKCnt> <CRCERRCnt> <AvgSigRSSI> <AvgNoiseRSSI>
@@ -787,7 +816,7 @@ void ST_PUBLISH_fn(void)
 		// For Debug
 		for (const auto &ch : chrep_local)
 		{
-			printk("<NODE_REPORT_BEGIN> %x %d %d %d %d %d %d \r\n",LSB_MAC_Address, ch.CHRepPkt.CH, ch.TxPkt_CNT, ch.CHRepPkt.CRCOK_CNT, ch.CHRepPkt.CRCERR_CNT, ch.CHRepPkt.Avg_SIG_RSSI, ch.CHRepPkt.Avg_NOISE_RSSI);
+			printk("<NODE_REPORT_BEGIN> %x %d %d %d %d %d %d \r\n", LSB_MAC_Address, ch.CHRepPkt.CH, ch.TxPkt_CNT, ch.CHRepPkt.CRCOK_CNT, ch.CHRepPkt.CRCERR_CNT, ch.CHRepPkt.Avg_SIG_RSSI, ch.CHRepPkt.Avg_NOISE_RSSI);
 			// <MACAddress> <CH> <PktCnt> <CRCOKCnt> <CRCERRCnt> <AvgSigRSSI> <AvgNoiseRSSI>
 			//printk("%x %d %d %d %d %d %d\n", LSB_MAC_Address, ch.CHRepPkt.CH, ch.TxPkt_CNT, ch.CHRepPkt.CRCOK_CNT, ch.CHRepPkt.CRCERR_CNT, ch.CHRepPkt.Avg_SIG_RSSI, ch.CHRepPkt.Avg_NOISE_RSSI);
 			//printk("<NODE_REPORT_END>\r\n");
@@ -835,15 +864,21 @@ void main(void)
 			/* Init the Reporting */
 			ReportingDone = false;
 			GotReportReq = false;
+			GotDataFromNode = false;
 			CHidx = 0;	 // Init CHannel Index
 			Nodeidx = 0; // Init Node Index
-			for (u8_t i = 0; i < chrep_local.size(); i++)
-			{
-				chrep_local[i].valid = false; // Erase Valid Statement
-			}
 			if (isMaster)
 			{
 				masrep.nodrep[Nodeidx].RepCHcnt = 0; // Init Node CHcnt
+				for (u8_t i = 0; i < chrep_local.size(); i++)
+				{
+					chrep_local[i].valid = false;						 // Erase Valid Statement
+					chrep_local[i].CHRepPkt.Avg_NOISE_RSSI = 174;		 // Default Value
+					chrep_local[i].CHRepPkt.Avg_SIG_RSSI = 174;			 // Default Value
+					chrep_local[i].CHRepPkt.CH = ParamLocal.StartCH + i; // Default Value
+					chrep_local[i].CHRepPkt.CRCERR_CNT = 0;				 // Default Value
+					chrep_local[i].CHRepPkt.CRCOK_CNT = 0;				 // Default Value
+				}
 			}
 			ReportingDoneCnt = 0;										  // init Reporting Done Counter
 			k_sleep(K_MSEC(ST_TIME_PACKETS_MS + ST_TIME_MARGIN_MS + 10)); // Ready for the Next State. Extra Margin of 10ms to prevent reentry in case of delayed TimerInterrupt.

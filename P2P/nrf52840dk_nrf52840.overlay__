@@ -1,0 +1,8 @@
+&uart0 {
+    tx-pin = <42>;
+	rx-pin = <45>;      
+};
+
+&spi3 {
+    status = "disabled";     
+};
