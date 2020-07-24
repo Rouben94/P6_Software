@@ -68,7 +68,7 @@ static void cmd_getNodeReport(nrf_cli_t const *p_cli, size_t argc, char **argv) 
   if (argc == 2) {
     bm_cli_cmd_getNodeReport.MAC = strtoul(argv[1], NULL, NULL); // MAC Adress in integer value format
     bm_cli_cmd_getNodeReport.req = true;
-    nrf_cli_print(p_cli, "Report request scheduled for MAC: %x", bm_cli_cmd_getNodeReport.MAC);
+    nrf_cli_print(p_cli, "Report request scheduled for MAC: 0x%x, %s", bm_cli_cmd_getNodeReport.MAC, argv[1]);
   } else {
     nrf_cli_error(p_cli, "Number of Arguments incorrect! expected:\n getNodeReport <MAC in Integer format>\n");
   }
@@ -80,7 +80,7 @@ static void cmd_setNodeSettings(nrf_cli_t const *p_cli, size_t argc, char **argv
     bm_cli_cmd_setNodeSettings.MAC = strtoul(argv[1], NULL, NULL); // MAC Adress in integer value format
     bm_cli_cmd_setNodeSettings.GroupAddress = atoi(argv[2]);       // Group Address Number (0-25)
     bm_cli_cmd_setNodeSettings.req = true;
-    nrf_cli_print(p_cli, "Set node settings request scheduled for MAC: %x", bm_cli_cmd_setNodeSettings.MAC);
+    nrf_cli_print(p_cli, "Set node settings request scheduled for MAC: 0x%x, %s", bm_cli_cmd_setNodeSettings.MAC, argv[1]);
   } else {
     nrf_cli_error(p_cli, "Number of Arguments incorrect! expected:\n setNodeSettings <MAC in Integer format> <GroupNumber>\n");
   }

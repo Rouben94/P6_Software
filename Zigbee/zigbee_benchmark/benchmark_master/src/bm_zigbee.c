@@ -41,7 +41,7 @@
  */
 static zb_void_t steering_finished(zb_uint8_t param) {
   UNUSED_PARAMETER(param);
-  NRF_LOG_INFO("Network steering finished");
+  NRF_LOG_INFO("Network steering finished\n");
 
   bm_led2_set(true);
   //  bsp_board_led_off(ZIGBEE_NETWORK_STATE_LED);
@@ -64,9 +64,9 @@ static void buttons_handler(bsp_event_t evt) {
 
     comm_status = bdb_start_top_level_commissioning(ZB_BDB_NETWORK_STEERING);
     if (comm_status) {
-      NRF_LOG_INFO("Top level comissioning restated");
+      NRF_LOG_INFO("Top level comissioning restated\n");
     } else {
-      NRF_LOG_INFO("Top level comissioning hasn't finished yet!");
+      NRF_LOG_INFO("Top level comissioning hasn't finished yet!\n");
     }
     break;
     //  case BSP_EVENT_KEY_3:
@@ -76,7 +76,7 @@ static void buttons_handler(bsp_event_t evt) {
     //    break;
 
   default:
-    NRF_LOG_INFO("Unhandled BSP Event received: %d", evt);
+    NRF_LOG_INFO("Unhandled BSP Event received: %d\n", evt);
     break;
   }
 }
@@ -93,29 +93,29 @@ static void buttons_handler(bsp_event_t evt) {
 
 /************************************ Benchmark Functions ***********************************************/
 
-void bm_report_data(zb_uint8_t param) {
-  uint16_t bm_msg_flash_cnt = 0;
-  uint16_t bm_cnt = 0;
-  bm_message_info message;
-
-  bm_msg_flash_cnt = bm_log_load_from_flash();
-
-  while (bm_cnt < bm_msg_flash_cnt) {
-    message = message_info[bm_cnt];
-    NRF_LOG_INFO("<REPORT>, %d, %llu, %llu, %d, %d, 0x%x",
-        message.message_id,
-        message.net_time,
-        message.ack_net_time,
-        message.number_of_hops,
-        message.rssi,
-        message.src_addr);
-
-    bm_cnt++;
-  }
-  bm_log_clear_ram();
-  bm_log_clear_flash();
-  NRF_LOG_INFO("<REPORTING FINISHED>");
-}
+//void bm_report_data(zb_uint8_t param) {
+//  uint16_t bm_msg_flash_cnt = 0;
+//  uint16_t bm_cnt = 0;
+//  bm_message_info message;
+//
+//  bm_msg_flash_cnt = bm_log_load_from_flash();
+//
+//  while (bm_cnt < bm_msg_flash_cnt) {
+//    message = message_info[bm_cnt];
+//    NRF_LOG_INFO("<REPORT>, %d, %llu, %llu, %d, %d, 0x%x",
+//        message.message_id,
+//        message.net_time,
+//        message.ack_net_time,
+//        message.number_of_hops,
+//        message.rssi,
+//        message.src_addr);
+//
+//    bm_cnt++;
+//  }
+//  bm_log_clear_ram();
+//  bm_log_clear_flash();
+//  NRF_LOG_INFO("<REPORTING FINISHED>\n");
+//}
 
 /**************************************** Zigbee event handler ***********************************************/
 
@@ -137,11 +137,11 @@ void zboss_signal_handler(zb_bufid_t bufid) {
     // BDB initialization completed after device reboot, use NVRAM contents during initialization. Device joined/rejoined and started.
     if (status == RET_OK) {
       if (ZIGBEE_MANUAL_STEERING == ZB_FALSE) {
-        NRF_LOG_INFO("Start network steering");
+        NRF_LOG_INFO("Start network steering\n");
         comm_status = bdb_start_top_level_commissioning(ZB_BDB_NETWORK_STEERING);
         ZB_COMM_STATUS_CHECK(comm_status);
       } else {
-        NRF_LOG_INFO("Coordinator restarted successfully");
+        NRF_LOG_INFO("Coordinator restarted successfully\n");
       }
     } else {
       NRF_LOG_ERROR("Failed to initialize Zigbee stack using NVRAM data (status: %d)", status);
@@ -151,12 +151,12 @@ void zboss_signal_handler(zb_bufid_t bufid) {
   case ZB_BDB_SIGNAL_STEERING:
     if (status == RET_OK) {
       if (ZIGBEE_PERMIT_LEGACY_DEVICES == ZB_TRUE) {
-        NRF_LOG_INFO("Allow pre-Zigbee 3.0 devices to join the network");
+        NRF_LOG_INFO("Allow pre-Zigbee 3.0 devices to join the network\n");
         zb_bdb_set_legacy_device_support(1);
       }
 
       /* Schedule an alarm to notify about the end of steering period */
-      NRF_LOG_INFO("Network steering started");
+      NRF_LOG_INFO("Network steering started\n");
       zb_err_code = ZB_SCHEDULE_APP_ALARM(steering_finished, 0, ZB_TIME_ONE_SECOND * ZB_ZGP_DEFAULT_COMMISSIONING_WINDOW);
       ZB_ERROR_CHECK(zb_err_code);
     }
@@ -165,11 +165,11 @@ void zboss_signal_handler(zb_bufid_t bufid) {
 
   case ZB_ZDO_SIGNAL_DEVICE_ANNCE: {
     zb_zdo_signal_device_annce_params_t *dev_annce_params = ZB_ZDO_SIGNAL_GET_PARAMS(p_sg_p, zb_zdo_signal_device_annce_params_t);
-    NRF_LOG_INFO("New device commissioned or rejoined (short: 0x%04hx)", dev_annce_params->device_short_addr);
+    NRF_LOG_INFO("New device commissioned or rejoined (short: 0x%04hx)\n", dev_annce_params->device_short_addr);
 
     zb_err_code = ZB_SCHEDULE_APP_ALARM_CANCEL(steering_finished, ZB_ALARM_ANY_PARAM);
     if (zb_err_code == RET_OK) {
-      NRF_LOG_INFO("Joining period extended.");
+      NRF_LOG_INFO("Joining period extended.\n");
       zb_err_code = ZB_SCHEDULE_APP_ALARM(steering_finished, 0, ZB_TIME_ONE_SECOND * ZB_ZGP_DEFAULT_COMMISSIONING_WINDOW);
       ZB_ERROR_CHECK(zb_err_code);
     }
@@ -229,5 +229,5 @@ void bm_zigbee_enable(void) {
   zb_err_code = zboss_start_no_autostart();
   ZB_ERROR_CHECK(zb_err_code);
 
-  NRF_LOG_INFO("BENCHMARK Master ready");
+  NRF_LOG_INFO("BENCHMARK Master ready\n");
 }

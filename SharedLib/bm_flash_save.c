@@ -8,7 +8,7 @@
  * @details This files handels the flash save settings.
  *
  */
-
+#include "bm_config.h"
 #ifdef NRF_SDK_Zigbee
 
 #include "bm_flash_save.h"

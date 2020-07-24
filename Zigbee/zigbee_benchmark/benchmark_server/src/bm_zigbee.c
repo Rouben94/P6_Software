@@ -79,36 +79,15 @@ ZB_HA_DECLARE_DIMMABLE_LIGHT_CLUSTER_LIST(dimmable_light_clusters,
     on_off_attr_list,
     level_control_attr_list);
 
-/* Declare cluster list for Controllable Output device (Identify, Basic, Scenes, Groups, On Off, Level Control). 
- * Only clusters Identify and Basic have attributes.*/
-//ZB_HA_DECLARE_DIMMER_SWITCH_CLUSTER_LIST(bm_control_clusters,
-//    basic_attr_list,
-//    identify_attr_list);
-
-//ZB_HA_DECLARE_CONFIGURATION_TOOL_CLUSTER_LIST(bm_report_clusters, basic_attr_list, identify_attr_list);
-
 /* Declare endpoint for Dimmable Light device. */
 ZB_HA_DECLARE_DIMMABLE_LIGHT_EP(
     dimmable_light_ep,
     BENCHMARK_SERVER_ENDPOINT,
     dimmable_light_clusters);
 
-/* Declare endpoint for Dimmer Switch device. */
-/* Will be used to control the benchmarking behavior of the node. */
-//ZB_HA_DECLARE_DIMMER_SWITCH_EP(bm_control_ep,
-//    BENCHMARK_CONTROL_ENDPOINT,
-//    bm_control_clusters);
-
-//ZB_HA_DECLARE_CONFIGURATION_TOOL_EP(bm_report_ep, BENCHMARK_REPORTING_ENDPOINT, bm_report_clusters);
-
 /* Declare application's device context (list of registered endpoints)
  * for Benchmark Server device.*/
 ZBOSS_DECLARE_DEVICE_CTX_1_EP(bm_server_ctx, dimmable_light_ep);
-
-//ZBOSS_DECLARE_DEVICE_CTX_3_EP(bm_server_ctx,
-//    dimmable_light_ep,
-//    bm_control_ep,
-//    bm_report_ep);
 
 /************************************ Forward Declarations ***********************************************/
 
@@ -191,36 +170,6 @@ static void timer_init(void) {
   APP_ERROR_CHECK(error_code);
 }
 
-/**@brief Function for initializing the nrf log module.
- */
-//static void log_init(void) {
-//  ret_code_t err_code = NRF_LOG_INIT(NULL);
-//  APP_ERROR_CHECK(err_code);
-//
-//  NRF_LOG_DEFAULT_BACKENDS_INIT();
-//}
-
-/**@brief Function for initializing LEDs and a single PWM channel.
- */
-//static void leds_buttons_init(void) {
-//  ret_code_t err_code;
-//  app_pwm_config_t pwm_cfg = APP_PWM_DEFAULT_CONFIG_1CH(5000L, bsp_board_led_idx_to_pin(BULB_LED));
-//
-//  /* Initialize all LEDs and buttons. */
-//  err_code = bsp_init(BSP_INIT_LEDS | BSP_INIT_BUTTONS, buttons_handler);
-//  APP_ERROR_CHECK(err_code);
-//  /* By default the bsp_init attaches BSP_KEY_EVENTS_{0-4} to the PUSH events of the corresponding buttons. */
-//
-//  /* Initialize PWM running on timer 1 in order to control dimmable light bulb. */
-//  err_code = app_pwm_init(&BULB_PWM_NAME, &pwm_cfg, NULL);
-//  APP_ERROR_CHECK(err_code);
-//
-//  app_pwm_enable(&BULB_PWM_NAME);
-//
-//  while (app_pwm_channel_duty_set(&BULB_PWM_NAME, 0, 99) == NRF_ERROR_BUSY) {
-//  }
-//}
-
 /**@brief Function for initializing LEDs and a single PWM channel.
  */
 static void leds_pwm_init(void) {
@@ -267,7 +216,7 @@ static void light_bulb_set_brightness(zb_uint8_t brightness_level) {
   * @param[in]   new_level   Light bulb brightness value.
  */
 static void level_control_set_value(zb_uint16_t new_level) {
-  NRF_LOG_INFO("Set level value: %i", new_level);
+  NRF_LOG_INFO("Set level value: %i\n", new_level);
 
   ZB_ZCL_SET_ATTRIBUTE(BENCHMARK_SERVER_ENDPOINT,
       ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL,
@@ -303,7 +252,7 @@ static void level_control_set_value(zb_uint16_t new_level) {
  * @param[in]   on   Boolean light bulb state.
  */
 static void on_off_set_value(zb_bool_t on) {
-  NRF_LOG_INFO("Set ON/OFF value: %i", on);
+  NRF_LOG_INFO("Set ON/OFF value: %i\n", on);
 
   ZB_ZCL_SET_ATTRIBUTE(BENCHMARK_SERVER_ENDPOINT,
       ZB_ZCL_CLUSTER_ID_ON_OFF,
@@ -332,7 +281,7 @@ zb_void_t bm_button_handler(zb_uint8_t button) {
   zb_ret_t zb_err_code;
   zb_uint8_t random_level_value;
 
-  NRF_LOG_INFO("Button pressed: %d", button);
+  NRF_LOG_INFO("Button pressed: %d\n", button);
 
   current_time = ZB_TIMER_GET();
 
@@ -342,7 +291,7 @@ zb_void_t bm_button_handler(zb_uint8_t button) {
     break;
 
   default:
-    NRF_LOG_INFO("Unhandled BSP Event received: %d", button);
+    NRF_LOG_INFO("Unhandled BSP Event received: %d\n", button);
     return;
   }
 
@@ -361,11 +310,11 @@ static void buttons_handler(bsp_event_t evt) {
   switch (evt) {
   case BSP_EVENT_KEY_0:
     button = DONGLE_BUTTON_ON;
-    NRF_LOG_INFO("BUTTON pressed");
+    NRF_LOG_INFO("BUTTON pressed\n");
     break;
 
   default:
-    NRF_LOG_INFO("Unhandled BSP Event received: %d", evt);
+    NRF_LOG_INFO("Unhandled BSP Event received: %d\n", evt);
     break;
   }
   if (!m_device_ctx.button.in_progress) {
@@ -374,7 +323,7 @@ static void buttons_handler(bsp_event_t evt) {
 
     zb_err_code = ZB_SCHEDULE_APP_ALARM(bm_button_handler, button, LIGHT_SWITCH_BUTTON_SHORT_POLL_TMO);
     if (zb_err_code == RET_OVERFLOW) {
-      NRF_LOG_WARNING("Can not schedule another alarm, queue is full.");
+      NRF_LOG_WARNING("Can not schedule another alarm, queue is full.\n");
       m_device_ctx.button.in_progress = ZB_FALSE;
     } else {
       ZB_ERROR_CHECK(zb_err_code);
@@ -395,7 +344,7 @@ static zb_void_t add_group_id(zb_bufid_t bufid) {
   local_node_short_addr = zb_address_short_by_ieee(local_node_ieee_addr);
   local_node_addr_len = ieee_addr_to_str(local_nodel_ieee_addr_buf, sizeof(local_nodel_ieee_addr_buf), local_node_ieee_addr);
 
-  NRF_LOG_INFO("Include device 0x%x, ep %d to the group 0x%x", local_node_short_addr, BENCHMARK_SERVER_ENDPOINT, groupID);
+  NRF_LOG_INFO("Include device 0x%x, ep %d to the group 0x%x\n", local_node_short_addr, BENCHMARK_SERVER_ENDPOINT, groupID);
 
   ZB_ZCL_GROUPS_SEND_ADD_GROUP_REQ(bufid,
       local_node_short_addr,
@@ -439,34 +388,10 @@ void bm_receive_message(zb_bufid_t bufid) {
   zb_zdo_get_diag_data(message.src_addr, &lqi, &rssi);
   message.rssi = rssi;
 
-  NRF_LOG_INFO("Benchmark Packet received with ID: %d from Src Address: 0x%x to Destination 0x%x with RSSI: %d, LQI: %d, Time: %llu", message.message_id, message.src_addr, message.dst_addr, rssi, lqi, message.net_time);
+  NRF_LOG_INFO("Benchmark Packet received with ID: %d from Src Address: 0x%x to Destination 0x%x with RSSI: %d, LQI: %d, Time: %llu\n", message.message_id, message.src_addr, message.dst_addr, rssi, lqi, message.net_time);
 
   bm_log_append_ram(message);
 }
-
-//void bm_report_data(zb_uint8_t param) {
-//  uint16_t bm_msg_flash_cnt = 0;
-//  uint16_t bm_cnt = 0;
-//  bm_message_info message;
-//
-//  bm_msg_flash_cnt = bm_log_load_from_flash();
-//
-//  while (bm_cnt < bm_msg_flash_cnt) {
-//    message = message_info[bm_cnt];
-//    NRF_LOG_INFO("<REPORT>, %d, %llu, %llu, %d, %d, 0x%x",
-//        message.message_id,
-//        message.net_time,
-//        message.ack_net_time,
-//        message.number_of_hops,
-//        message.rssi,
-//        message.src_addr);
-//
-//    bm_cnt++;
-//  }
-//  bm_log_clear_ram();
-//  bm_log_clear_flash();
-//  NRF_LOG_INFO("<REPORTING FINISHED>");
-//}
 
 /************************************ Zigbee event handler ***********************************************/
 
@@ -481,7 +406,7 @@ static zb_uint8_t bm_zcl_handler(zb_bufid_t bufid) {
   zb_zcl_parsed_hdr_t cmd_info;
 
   ZB_ZCL_COPY_PARSED_HEADER(bufid, &cmd_info);
-  NRF_LOG_INFO("%s with Endpoint ID: %hd, Cluster ID: %d", __func__, cmd_info.addr_data.common_data.dst_endpoint, cmd_info.cluster_id);
+  NRF_LOG_INFO("%s with Endpoint ID: %hd, Cluster ID: %d\n", __func__, cmd_info.addr_data.common_data.dst_endpoint, cmd_info.cluster_id);
 
   if (cmd_info.cluster_id == ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL) {
 
@@ -507,14 +432,14 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid) {
   zb_uint8_t attr_id;
   zb_zcl_device_callback_param_t *p_device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
 
-  NRF_LOG_INFO("zcl_device_cb id %hd", p_device_cb_param->device_cb_id);
+  NRF_LOG_INFO("zcl_device_cb id %hd\n", p_device_cb_param->device_cb_id);
 
   /* Set default response value. */
   p_device_cb_param->status = RET_OK;
 
   switch (p_device_cb_param->device_cb_id) {
   case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
-    NRF_LOG_INFO("Level control setting to %d", p_device_cb_param->cb_param.level_control_set_value_param.new_value);
+    NRF_LOG_INFO("Level control setting to %d\n", p_device_cb_param->cb_param.level_control_set_value_param.new_value);
     level_control_set_value(p_device_cb_param->cb_param.level_control_set_value_param.new_value);
     break;
 
@@ -525,20 +450,20 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid) {
     if (cluster_id == ZB_ZCL_CLUSTER_ID_ON_OFF) {
       uint8_t value = p_device_cb_param->cb_param.set_attr_value_param.values.data8;
 
-      NRF_LOG_INFO("on/off attribute setting to %hd", value);
+      NRF_LOG_INFO("on/off attribute setting to %hd\n", value);
       if (attr_id == ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID) {
         on_off_set_value((zb_bool_t)value);
       }
     } else if (cluster_id == ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL) {
       uint16_t value = p_device_cb_param->cb_param.set_attr_value_param.values.data16;
 
-      NRF_LOG_INFO("level control attribute setting to %hd", value);
+      NRF_LOG_INFO("level control attribute setting to %hd\n", value);
       if (attr_id == ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID) {
         level_control_set_value(value);
       }
     } else {
       /* Other clusters can be processed here */
-      NRF_LOG_INFO("Unhandled cluster attribute id: %d", cluster_id);
+      NRF_LOG_INFO("Unhandled cluster attribute id: %d\n", cluster_id);
     }
     break;
 
@@ -559,14 +484,14 @@ void zboss_signal_handler(zb_bufid_t bufid) {
   zb_ret_t status = ZB_GET_APP_SIGNAL_STATUS(bufid);
   zb_ret_t zb_err_code;
 
-  NRF_LOG_INFO("Signal Received, %d", sig);
+  NRF_LOG_INFO("Signal Received, %d\n", sig);
 
   /* Update network status LED */
   zigbee_led_status_update(bufid, ZIGBEE_NETWORK_STATE_LED);
 
   switch (sig) {
   case ZB_BDB_SIGNAL_STEERING:
-    NRF_LOG_INFO("Zigbee Network Steering");
+    NRF_LOG_INFO("Zigbee Network Steering\n");
     ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid)); /* Call default signal handler. */
     if (status == RET_OK) {
       /* Schedule Add Group ID request */
@@ -606,9 +531,7 @@ void bm_zigbee_init(void) {
 
   /* Initialize timer, logging system and GPIOs. */
   timer_init();
-  //  leds_buttons_init();
   leds_pwm_init();
-  //  bm_log_init();
 
   /* Set Zigbee stack logging level and traffic dump subsystem. */
   ZB_SET_TRACE_LEVEL(ZIGBEE_TRACE_LEVEL);

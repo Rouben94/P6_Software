@@ -9,6 +9,7 @@
 #include <drivers/clock_control/nrf_clock_control.h>
 
 
+
 /** Maximum radio RX or TX payload. */
 #define RADIO_MAX_PAYLOAD_LEN 256
 /** IEEE 802.15.4 maximum payload length. */
@@ -21,6 +22,27 @@ struct RADIO_PACKET
 	u8_t Rx_RSSI = 174; // Received RSSI of Packet
 };
 
+struct TxPktStatLog
+{
+	u16_t Pktcnt = 0;
+	bool act = false; // true if Logging is enabled
+};
+
+struct RxPktStatLog
+{
+	u16_t CRCOKcnt = 0;
+	u16_t CRCErrcnt = 0;
+	u16_t RSSI_Sum_Avg = 174; //Thermal Noise
+	bool act = false; // true if Logging is enabled
+};
+
+struct Radio_Handler_Context
+{
+	TxPktStatLog tx_stat;
+	RxPktStatLog rx_stat;
+	k_tid_t* thread_id; //Pointer for Thread ID waiting for ISR
+};
+
 class Simple_nrf_radio
 {
 private:
@@ -28,6 +50,7 @@ private:
 	int IEEE802_15_4_CH_freq[16] = {2405, 2410, 2415, 2420, 2425, 2430, 2435, 2440, 2445, 2450, 2455, 2460, 2465, 2470, 2475, 2480}; // List of IEEE802.15.4 Channels
 	k_tid_t ISR_Thread_ID;																											 //Thread ID waiting for ISR
 	k_tid_t *ISR_Thread_ID_ptr;																										 //Pointer for Thread ID waiting for ISR
+	Radio_Handler_Context rhctx;
 	/* Define the Packet PDU which is sent or received by the radio */
 	/* For info about Packing and unpacking see 
 	https://www.geeksforgeeks.org/structure-member-alignment-padding-and-data-packing/?ref=rp
@@ -77,11 +100,19 @@ public:
 	/**
 	 * Send a Payload
 	 *
-	 * @param payload Pointer what payload to send
-	 * @param size Length of the Payload to Send
-	 * @param timeout Waittimeout in ms for a packet to be sent
+	 * @param tx_pkt Radio Paket to Send
+	 * @param CCA_Mode 0 = Disabled / 1 = Mode 1 (energy above threshold) / 2 = Mode 2 (carrier sense only) / 3 = Mode 3 (carrier sense and threshold) / 4 = Mode 4 (carrier sense or threshold)
 	 */
-	void Send(RADIO_PACKET tx_pkt, int timeout);
+	void Send(RADIO_PACKET tx_pkt, u8_t CCA_Mode);
+	/**
+	 * Burst send out the same packet till timeout
+	 *
+	 * @param tx_pkt Radio Paket to Send
+	 * @param CCA_Mode 0 = Disabled / 1 = Mode 1 (energy above threshold) / 2 = Mode 2 (carrier sense only) / 3 = Mode 3 (carrier sense and threshold) / 4 = Mode 4 (carrier sense or threshold)
+	 * @param timeout Waittimeout in ms for bursting
+     * @return Number of Packeets sent
+	 */
+	u16_t BurstCntPkt(RADIO_PACKET tx_pkt, u8_t CCA_Mode ,k_timeout_t timeout);
 	/**
 	 * Receive a Payload
 	 *
@@ -90,7 +121,15 @@ public:
 	 * 
 	 * @return Zero of timeout occured or number of miliseconds till timeout occurs
 	 */
-	s32_t Receive(RADIO_PACKET *rx_pkt, int timeout);
+	s32_t Receive(RADIO_PACKET *rx_pkt, k_timeout_t timeout);
+	/**
+	 * Receive Packets and only Log Data
+	 *
+	 * @param timeout Waittimeout in ms packet to be received and logged
+     * 
+	 * @return Struct of Log Data CRCOKcnt, CRCErrcnt, RSSIAvg
+	 */
+	RxPktStatLog ReceivePktStatLog(k_timeout_t timeout);
 	/**
 	 * Set the Radio Mode.
 	 *

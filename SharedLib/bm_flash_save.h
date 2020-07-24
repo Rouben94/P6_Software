@@ -1,3 +1,4 @@
+#include "bm_config.h"
 #ifdef NRF_SDK_Zigbee
 
 #include "fds.h"

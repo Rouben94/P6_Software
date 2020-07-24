@@ -154,7 +154,6 @@ void bm_cli_log_init(void) {
 #else
   APP_ERROR_CHECK(NRF_LOG_INIT(NULL));
 #endif
-
   NRF_LOG_DEFAULT_BACKENDS_INIT();
 }
 #endif
