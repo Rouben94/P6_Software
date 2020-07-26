@@ -23,17 +23,6 @@
 
 /************************************ General Init Functions ***********************************************/
 
-///**@brief Function for the Timer initialization.
-// *
-// * @details Initializes the timer module. This creates and starts application timers.
-// */
-//static void timers_init(void) {
-//  ret_code_t err_code;
-//
-//  // Initialize timer module.
-//  err_code = app_timer_init();
-//  APP_ERROR_CHECK(err_code);
-//}
 
 /**@brief Callback used in order to visualise network steering period.
  *
@@ -42,9 +31,7 @@
 static zb_void_t steering_finished(zb_uint8_t param) {
   UNUSED_PARAMETER(param);
   bm_cli_log("Network steering finished\n");
-
   bm_led2_set(true);
-  //  bsp_board_led_off(ZIGBEE_NETWORK_STATE_LED);
 }
 
 /************************************ Button Handler Functions ***********************************************/
@@ -69,11 +56,7 @@ static void buttons_handler(bsp_event_t evt) {
       bm_cli_log("Top level comissioning hasn't finished yet!\n");
     }
     break;
-    //  case BSP_EVENT_KEY_3:
-    //    button = BENCHMARK_BUTTON;
-    //    bm_cli_log("BENCHMARK Button pressed");
-    //
-    //    break;
+
 
   default:
     bm_cli_log("Unhandled BSP Event received: %d\n", evt);
@@ -81,41 +64,7 @@ static void buttons_handler(bsp_event_t evt) {
   }
 }
 
-/**@brief Function for initializing LEDs and Buttons.
- */
-//static void leds_buttons_init(void) {
-//  uint32_t err_code = bsp_init(BSP_INIT_LEDS | BSP_INIT_BUTTONS, buttons_handler);
-//  APP_ERROR_CHECK(err_code);
-//  /* By default the bsp_init attaches BSP_KEY_EVENTS_{0-4} to the PUSH events of the corresponding buttons. */
-//
-//  bsp_board_leds_off();
-//}
 
-/************************************ Benchmark Functions ***********************************************/
-
-//void bm_report_data(zb_uint8_t param) {
-//  uint16_t bm_msg_flash_cnt = 0;
-//  uint16_t bm_cnt = 0;
-//  bm_message_info message;
-//
-//  bm_msg_flash_cnt = bm_log_load_from_flash();
-//
-//  while (bm_cnt < bm_msg_flash_cnt) {
-//    message = message_info[bm_cnt];
-//    bm_cli_log("<REPORT>, %d, %llu, %llu, %d, %d, 0x%x",
-//        message.message_id,
-//        message.net_time,
-//        message.ack_net_time,
-//        message.number_of_hops,
-//        message.rssi,
-//        message.src_addr);
-//
-//    bm_cnt++;
-//  }
-//  bm_log_clear_ram();
-//  bm_log_clear_flash();
-//  bm_cli_log("<REPORTING FINISHED>\n");
-//}
 
 /**************************************** Zigbee event handler ***********************************************/
 

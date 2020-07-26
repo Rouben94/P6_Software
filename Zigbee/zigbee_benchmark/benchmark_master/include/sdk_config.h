@@ -40,6 +40,7 @@
 
 #ifndef SDK_CONFIG_H
 #define SDK_CONFIG_H
+#include "bm_config.h"
 // <<< Use Configuration Wizard in Context Menu >>>\n
 #ifdef USE_APP_CONFIG
 #include "app_config.h"
@@ -1853,7 +1854,7 @@
 // <268435456=> 1000000 baud
 
 #ifndef NRFX_UART_DEFAULT_CONFIG_BAUDRATE
-#define NRFX_UART_DEFAULT_CONFIG_BAUDRATE 30924800
+#define NRFX_UART_DEFAULT_CONFIG_BAUDRATE 30801920
 #endif
 
 // <o> NRFX_UART_DEFAULT_CONFIG_IRQ_PRIORITY  - Interrupt priority
@@ -2936,7 +2937,6 @@
 #ifndef NRF_LOG_STR_PUSH_BUFFER_SIZE
 #define NRF_LOG_STR_PUSH_BUFFER_SIZE 1024
 #endif
-
 
 // <e> NRF_LOG_USES_COLORS - If enabled then ANSI escape code for colors is prefixed to every string
 //==========================================================

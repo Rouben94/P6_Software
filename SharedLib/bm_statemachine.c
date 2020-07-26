@@ -288,9 +288,10 @@ void ST_INIT_BENCHMARK_fn(void) {
   Note that the check for time left slows down the Zboss stack a bit. Since we are still init the stack this shouldnt be a big deal. */
   while ((synctimer_getSyncTime() - start_time_ts_us) < ST_INIT_BENCHMARK_TIME_MS * 1000) {
     zboss_main_loop_iteration();
-    UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
+//    UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
 #ifdef BENCHMARK_MASTER
     bm_cli_process();
+    UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
 #endif
   }
 #endif
@@ -317,9 +318,10 @@ void ST_BENCHMARK_fn(void) {
   Note that the check forcurrent slows down the Zboss stack a bit... this shouldnt be a big deal. */
   while (currentState == ST_BENCHMARK) {
     zboss_main_loop_iteration();
-    UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
+//    UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
 #ifdef BENCHMARK_MASTER
     bm_cli_process();
+    UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
 #endif
   }
 #endif

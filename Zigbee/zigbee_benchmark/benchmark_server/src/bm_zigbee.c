@@ -381,7 +381,7 @@ void bm_receive_message(zb_bufid_t bufid) {
   message.dst_addr = zb_address_short_by_ieee(ieee_dst_addr);
   message.group_addr = GROUP_ID;
 
-  /* TODO: Number of hops is not available yet */
+  /* TODO: Number of hops is not available yet from the ZBOSS API */
   message.number_of_hops = 0;
   message.data_size = 0;
 
@@ -404,9 +404,8 @@ void bm_receive_message(zb_bufid_t bufid) {
  */
 static zb_uint8_t bm_zcl_handler(zb_bufid_t bufid) {
   zb_zcl_parsed_hdr_t cmd_info;
-
   ZB_ZCL_COPY_PARSED_HEADER(bufid, &cmd_info);
-  bm_cli_log("%s with Endpoint ID: %hd, Cluster ID: %d\n", __func__, cmd_info.addr_data.common_data.dst_endpoint, cmd_info.cluster_id);
+  //  bm_cli_log("%s with Endpoint ID: %hd, Cluster ID: %d\n", __func__, cmd_info.addr_data.common_data.dst_endpoint, cmd_info.cluster_id);
 
   if (cmd_info.cluster_id == ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL) {
 
@@ -432,14 +431,14 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid) {
   zb_uint8_t attr_id;
   zb_zcl_device_callback_param_t *p_device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
 
-  bm_cli_log("zcl_device_cb id %hd\n", p_device_cb_param->device_cb_id);
+  //  bm_cli_log("zcl_device_cb id %hd\n", p_device_cb_param->device_cb_id);
 
   /* Set default response value. */
   p_device_cb_param->status = RET_OK;
 
   switch (p_device_cb_param->device_cb_id) {
   case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
-    bm_cli_log("Level control setting to %d\n", p_device_cb_param->cb_param.level_control_set_value_param.new_value);
+    //    bm_cli_log("Level control setting to %d\n", p_device_cb_param->cb_param.level_control_set_value_param.new_value);
     level_control_set_value(p_device_cb_param->cb_param.level_control_set_value_param.new_value);
     break;
 
@@ -484,8 +483,6 @@ void zboss_signal_handler(zb_bufid_t bufid) {
   zb_ret_t status = ZB_GET_APP_SIGNAL_STATUS(bufid);
   zb_ret_t zb_err_code;
 
-  bm_cli_log("Signal Received, %d\n", sig);
-
   /* Update network status LED */
   zigbee_led_status_update(bufid, ZIGBEE_NETWORK_STATE_LED);
 
@@ -498,22 +495,8 @@ void zboss_signal_handler(zb_bufid_t bufid) {
       zb_err_code = ZB_SCHEDULE_APP_ALARM(add_group_id, bufid, 2 * ZB_TIME_ONE_SECOND);
       ZB_ERROR_CHECK(zb_err_code);
 
-      /* Read local node address */
-      //      zb_get_long_address(local_node_ieee_addr);
-      //      local_node_short_addr = zb_address_short_by_ieee(local_node_ieee_addr);
-      //      local_node_addr_len = ieee_addr_to_str(local_nodel_ieee_addr_buf, sizeof(local_nodel_ieee_addr_buf), local_node_ieee_addr);
-      //      bm_cli_log("Network Steering finished with Local Node Address: Short: 0x%x, IEEE/Long: 0x%s", local_node_short_addr, local_nodel_ieee_addr_buf);
       bufid = 0; // Do not free buffer - it will be reused by find_light_bulb callback.
     }
-    //  case ZB_BDB_SIGNAL_DEVICE_REBOOT:
-    //    ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid)); /* Call default signal handler. */
-    //    if (status == RET_OK) {
-    //      /* Read local node address */
-    //      zb_get_long_address(local_node_ieee_addr);
-    //      local_node_short_addr = zb_address_short_by_ieee(local_node_ieee_addr);
-    //      local_node_addr_len = ieee_addr_to_str(local_nodel_ieee_addr_buf, sizeof(local_nodel_ieee_addr_buf), local_node_ieee_addr);
-    //      bm_cli_log("Node restarted with Local Node Address: Short: 0x%x, IEEE/Long: 0x%s", local_node_short_addr, local_nodel_ieee_addr_buf);
-    //    }
     break;
   default:
     /* No application-specific behavior is required. Call default signal handler. */
@@ -539,7 +522,7 @@ void bm_zigbee_init(void) {
   ZB_SET_TRAF_DUMP_OFF();
 
   /* Initialize Zigbee stack. */
-  ZB_INIT("led_bulb");
+  ZB_INIT("Benchmark Server");
 
   /* Set device address to the value read from FICR registers. */
   zb_osif_get_ieee_eui64(ieee_addr);

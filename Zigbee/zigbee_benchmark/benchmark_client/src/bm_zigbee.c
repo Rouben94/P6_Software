@@ -71,31 +71,17 @@ ZB_HA_DECLARE_DIMMER_SWITCH_CLUSTER_LIST(dimmer_switch_clusters,
     basic_attr_list,
     identify_attr_list);
 
-/* Declare cluster list for Controllable Output device (Identify, Basic, Scenes, Groups, On Off, Level Control). */
-//ZB_HA_DECLARE_LEVEL_CONTROLLABLE_OUTPUT_CLUSTER_LIST(bm_control_clusters,
-//    basic_attr_list,
-//    identify_attr_list,
-//    scenes_attr_list,
-//    groups_attr_list,
-//    on_off_attr_list,
-//    level_control_attr_list);
+
 
 /* Declare endpoint for Dimmer Switch device. */
 ZB_HA_DECLARE_DIMMER_SWITCH_EP(dimmer_switch_ep,
     BENCHMARK_CLIENT_ENDPOINT,
     dimmer_switch_clusters);
 
-/* Declare endpoint for Controllable Output device. */
-/* Will be used to control the benchmarking behvior of the node. */
-//ZB_HA_DECLARE_LEVEL_CONTROLLABLE_OUTPUT_EP(bm_control_ep,
-//    BENCHMARK_CONTROL_ENDPOINT,
-//    bm_control_clusters);
 
 /* Declare application's device context (list of registered endpoints) for Dimmer Switch device. */
 ZBOSS_DECLARE_DEVICE_CTX_1_EP(bm_client_ctx, dimmer_switch_ep);
-//ZBOSS_DECLARE_DEVICE_CTX_2_EP(bm_client_ctx,
-//    dimmer_switch_ep,
-//    bm_control_ep);
+
 
 /************************************ Forward Declarations ***********************************************/
 
@@ -189,27 +175,20 @@ static void timers_init(void) {
   APP_ERROR_CHECK(err_code);
 }
 
-/**@brief Function for initializing the nrf log module.
- */
-//static void log_init(void) {
-//  ret_code_t err_code = NRF_LOG_INIT(NULL);
-//  APP_ERROR_CHECK(err_code);
-//
-//  NRF_LOG_DEFAULT_BACKENDS_INIT();
-//}
+
 
 /**@brief Function for initializing LEDs and buttons.
  */
-static zb_void_t leds_buttons_init(void) {
-  ret_code_t error_code;
-
-  /* Initialize LEDs and buttons - use BSP to control them. */
-  error_code = bsp_init(BSP_INIT_LEDS | BSP_INIT_BUTTONS, buttons_handler);
-  APP_ERROR_CHECK(error_code);
-  /* By default the bsp_init attaches BSP_KEY_EVENTS_{0-4} to the PUSH events of the corresponding buttons. */
-
-  bsp_board_leds_off();
-}
+//static zb_void_t leds_buttons_init(void) {
+//  ret_code_t error_code;
+//
+//  /* Initialize LEDs and buttons - use BSP to control them. */
+//  error_code = bsp_init(BSP_INIT_LEDS | BSP_INIT_BUTTONS, buttons_handler);
+//  APP_ERROR_CHECK(error_code);
+//  /* By default the bsp_init attaches BSP_KEY_EVENTS_{0-4} to the PUSH events of the corresponding buttons. */
+//
+//  bsp_board_leds_off();
+//}
 
 /************************************ Light Switch Functions ***********************************************/
 
@@ -218,28 +197,28 @@ static zb_void_t leds_buttons_init(void) {
  * @param[in]   bufid    Non-zero reference to Zigbee stack buffer that will be used to construct on/off request.
  * @param[in]   on_off   Requested state of the light bulb.
  */
-static zb_void_t light_switch_send_on_off(zb_bufid_t bufid, zb_uint16_t on_off) {
-  zb_uint8_t cmd_id;
-  zb_uint16_t group_id = GROUP_ID;
-
-  if (on_off) {
-    cmd_id = ZB_ZCL_CMD_ON_OFF_ON_ID;
-  } else {
-    cmd_id = ZB_ZCL_CMD_ON_OFF_OFF_ID;
-  }
-
-  bm_cli_log("Send ON/OFF command: %d to group id: %d\n", on_off, group_id);
-
-  ZB_ZCL_ON_OFF_SEND_REQ(bufid,
-      group_id,
-      ZB_APS_ADDR_MODE_16_GROUP_ENDP_NOT_PRESENT,
-      0,
-      BENCHMARK_CLIENT_ENDPOINT,
-      ZB_AF_HA_PROFILE_ID,
-      ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
-      cmd_id,
-      NULL);
-}
+//static zb_void_t light_switch_send_on_off(zb_bufid_t bufid, zb_uint16_t on_off) {
+//  zb_uint8_t cmd_id;
+//  zb_uint16_t group_id = GROUP_ID;
+//
+//  if (on_off) {
+//    cmd_id = ZB_ZCL_CMD_ON_OFF_ON_ID;
+//  } else {
+//    cmd_id = ZB_ZCL_CMD_ON_OFF_OFF_ID;
+//  }
+//
+//  bm_cli_log("Send ON/OFF command: %d to group id: %d\n", on_off, group_id);
+//
+//  ZB_ZCL_ON_OFF_SEND_REQ(bufid,
+//      group_id,
+//      ZB_APS_ADDR_MODE_16_GROUP_ENDP_NOT_PRESENT,
+//      0,
+//      BENCHMARK_CLIENT_ENDPOINT,
+//      ZB_AF_HA_PROFILE_ID,
+//      ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
+//      cmd_id,
+//      NULL);
+//}
 
 /************************************ Button Handler Functions ***********************************************/
 
@@ -259,23 +238,7 @@ zb_void_t bm_button_handler(zb_uint8_t button) {
   current_time = ZB_TIMER_GET();
 
   switch (button) {
-    //  case LIGHT_SWITCH_BUTTON_ON:
-    //    on_off = ZB_TRUE;
-    //
-    //    /* Allocate output buffer and send on/off command. */
-    //    zb_err_code = zb_buf_get_out_delayed_ext(light_switch_send_on_off, on_off, 0);
-    //    ZB_ERROR_CHECK(zb_err_code);
-    //    bm_cli_log("Light Switch BUTTON_ON pressed");
-    //    break;
-    //  case LIGHT_SWITCH_BUTTON_OFF:
-    //    on_off = ZB_FALSE;
-    //
-    //    /* Allocate output buffer and send on/off command. */
-    //    zb_err_code = zb_buf_get_out_delayed_ext(light_switch_send_on_off, on_off, 0);
-    //    ZB_ERROR_CHECK(zb_err_code);
-    //    bm_cli_log("Light Switch BUTTON_OFF pressed");
-    //
-    //    break;
+
 
   case DONGLE_BUTTON:
 
@@ -305,23 +268,7 @@ void buttons_handler(bsp_event_t evt) {
     button = DONGLE_BUTTON_ON;
 
     break;
-    //  case BSP_EVENT_KEY_0:
-    //    button = LIGHT_SWITCH_BUTTON_ON;
-    //    break;
 
-    //  case BSP_EVENT_KEY_1:
-    //    button = LIGHT_SWITCH_BUTTON_OFF;
-    //    break;
-    //
-    //  case BSP_EVENT_KEY_2:
-    //    bm_cli_log("BENCHMARK - Button pressed");
-    //    button = BENCHMARK_BUTTON;
-    //    break;
-    //
-    //  case BSP_EVENT_KEY_3:
-    //    bm_cli_log("TEST - Button pressed");
-    //    button = TEST_BUTTON;
-    //    break;
 
   default:
     bm_cli_log("Unhandled BSP Event received: %d\n", evt);
