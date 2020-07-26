@@ -1,14 +1,21 @@
 {% extends 'p2p/base_p2p.html' %}
 {% block content %}
 
-<meta http-equiv="refresh" content="1">
+<meta http-equiv="refresh" content="100">
+
+<!-- <script>
+  setInterval(function(){
+    $( '#accordion' ).load( 'chart #accordion' );
+  }, 1000); //refresh every second
+</script> -->
 
 <h2>Bar Chart</h2>
   <p>Bar chart of the nodes and the channels</p>
 
+  <div id="accordion">
   {% for node in nodes %}
-  <h4>Node MAC Address: {{ node.mac }}</h4>
-  <div id={{ node.mac }}></div>
+      <h3>Node MAC Address: {{ node.mac }}</h3>
+      <div id={{ node.mac }}> 
     <script type="text/javascript">
       var mac = '{{ node.mac }}'
       var xValue = [];
@@ -16,7 +23,7 @@
 
       {% for channel in node.channel_set.all %}
         xValue.push('Channel ' + '{{ channel.ch }}');
-        yValue.push(parseInt('{{ channel.signal_to_noise_ratio }}', 10));
+        yValue.push(parseInt('{{ channel.packetloss }}', 10));
       {% endfor %}
       
       var trace1 = {
@@ -50,7 +57,8 @@
       };
       
       Plotly.newPlot(mac, data, layout);
-    </script>
+    </script></div>
   {% endfor %}
+</div>
 
 {% endblock %}
