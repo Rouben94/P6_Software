@@ -65,17 +65,19 @@
   <Watches active="0" update="Never"/>
  </Watch4>
  <Files>
-  <SessionOpenFile windowGroup="DockEditLeft" x="49" y="12" useTextEdit="1" useBinaryEdit="0" left="0" path="main.c" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="21" y="9" useTextEdit="1" useBinaryEdit="0" left="0" path="main.c" selected="0" top="0" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" useBinaryEdit="0" left="0" path="include/bm_zigbee.h" selected="0" top="23" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="27" y="6" useTextEdit="1" useBinaryEdit="0" left="0" path="src/bm_zigbee.c" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="19" y="16" useTextEdit="1" useBinaryEdit="0" left="0" path="src/bm_zigbee.c" selected="1" top="12" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="22" y="7" useTextEdit="1" useBinaryEdit="0" left="0" path="include/bm_config.h" selected="0" top="0" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="68" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../SharedLib/bm_cli_cmds.c" selected="0" top="57" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="6" y="2337" useTextEdit="1" useBinaryEdit="0" left="0" path="include/sdk_config.h" selected="0" top="2324" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="41" y="2345" useTextEdit="1" useBinaryEdit="0" left="0" path="include/sdk_config.h" selected="0" top="18" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="6" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../SharedLib/bm_report.c" selected="0" top="0" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="67" y="119" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../SharedLib/bm_statemachine.c" selected="1" top="198" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="104" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../SharedLib/bm_cli.c" selected="0" top="104" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="19" y="4" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../SharedLib/bm_log.c" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="12" y="192" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../SharedLib/bm_statemachine.c" selected="0" top="183" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="24" y="125" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../SharedLib/bm_cli.c" selected="0" top="107" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="4" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../SharedLib/bm_log.c" selected="0" top="0" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="16" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../SharedLib/bm_cli.h" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="27" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../SharedLib/bm_rand.c" selected="0" top="12" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="83" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../SharedLib/bm_flash_save.c" selected="0" top="60" codecName="Default"/>
  </Files>
  <ARMCrossStudioWindow activeProject="zigbee_benchmark_client" fileDialogDefaultFilter="*.c" autoConnectTarget="J-Link" buildConfiguration="Release" sessionSettings="" debugSearchFileMap="" fileDialogInitialDirectory="C:/Users/cyril/Documents/GitHub/P6_Software/Zigbee/zigbee_benchmark/benchmark_client/src" debugSearchPath="" autoConnectCapabilities="3711"/>
 </session>
