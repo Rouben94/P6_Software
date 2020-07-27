@@ -1,8 +1,9 @@
-#include "bm_config.h"
-#include "bm_cli.h"
-#include "bm_radio.h"
 #include "bm_control.h"
+#include "bm_cli.h"
+#include "bm_config.h"
+#include "bm_radio.h"
 #include "bm_rand.h"
+#include "bm_simple_buttons_and_leds.h"
 #include "bm_timesync.h"
 
 #include <hal/nrf_timer.h>
@@ -21,7 +22,7 @@
 #define CommonMode NRF_RADIO_MODE_BLE_1MBIT         // Common Mode
 #define CommonStartCH 37                            // Common Start Channel
 #define CommonEndCH 39                              // Common End Channel
-#define CommonCHCnt CommonEndCH - CommonStartCH + 1 // Common Channel Count
+#define CommonCHCnt (CommonEndCH - CommonStartCH + 1) // Common Channel Count
 // Selection Between nrf52840 and nrf5340 of TxPower -> The highest available for Common Channel is recomended
 #if defined(RADIO_TXPOWER_TXPOWER_Pos8dBm) || defined(__NRFX_DOXYGEN__)
 #define CommonTxPower NRF_RADIO_TXPOWER_POS8DBM // Common Tx Power < 8 dBm
@@ -31,58 +32,50 @@
 
 static RADIO_PACKET Radio_Packet_TX, Radio_Packet_RX;
 
-void bm_control_msg_publish(bm_control_msg_t bm_control_msg)
-{
-    bm_radio_init();
-    bm_radio_setMode(CommonMode);
-    bm_radio_setAA(ControlAddress);
-    bm_radio_setTxP(CommonTxPower);
-    Radio_Packet_TX.length = sizeof(bm_control_msg);
-    Radio_Packet_TX.PDU = (uint8_t *)&bm_control_msg;
-    for (int ch_rx = CommonStartCH; ch_rx <= CommonEndCH; ch_rx++)
-    {
-        for (int ch = CommonStartCH; ch <= CommonEndCH; ch++)
-        {
-            bm_radio_setCH(ch);
-            bm_radio_send_burst(Radio_Packet_TX, msg_time_ms * msg_cnt);
-        }
+void bm_control_msg_publish(bm_control_msg_t bm_control_msg) {
+  bm_radio_init();
+  bm_radio_setMode(CommonMode);
+  bm_radio_setAA(ControlAddress);
+  bm_radio_setTxP(CommonTxPower);
+  Radio_Packet_TX.length = sizeof(bm_control_msg);
+  Radio_Packet_TX.PDU = (uint8_t *)&bm_control_msg;
+  for (int ch_rx = CommonStartCH; ch_rx <= CommonEndCH; ch_rx++) {
+    for (int ch = CommonStartCH; ch <= CommonEndCH; ch++) {
+      bm_radio_setCH(ch);
+      bm_radio_send_burst(Radio_Packet_TX, msg_time_ms * msg_cnt);
     }
-    bm_sleep(2*backoff_time_max_ms + msg_time_ms * msg_cnt * CommonCHCnt * CommonCHCnt); // Sleep till all relays neerby should be done
+  }
+  bm_sleep(2 * backoff_time_max_ms + msg_time_ms * msg_cnt * CommonCHCnt * CommonCHCnt); // Sleep till all relays neerby should be done
 }
 
-bool bm_control_msg_subscribe(bm_control_msg_t *bm_control_msg)
-{
-    bm_radio_init();
-    bm_radio_setMode(CommonMode);
-    bm_radio_setAA(ControlAddress);
-    bm_radio_setTxP(CommonTxPower);
-    while (true)
-    {
-        for (int ch = CommonStartCH; ch <= CommonEndCH; ch++)
-        {
-            bm_radio_setCH(ch);
-            if (bm_radio_receive(&Radio_Packet_RX, msg_time_ms * msg_cnt * CommonCHCnt))
-            {
-                bm_cli_log("Control Message received\n");
-                *bm_control_msg = *(bm_control_msg_t *)Radio_Packet_RX.PDU; // Bring the sheep to a dry place
-                bm_sleep(bm_rand_32 % backoff_time_max_ms);                 // Sleep from 0 till Random Backoff Time
-                /* Relay Message */
-                Radio_Packet_TX.length = sizeof(bm_control_msg);
-                Radio_Packet_TX.PDU = (uint8_t *)&bm_control_msg;
-                for (int ch = CommonStartCH; ch <= CommonEndCH; ch++)
-                {
-                    bm_radio_setCH(ch);
-                    bm_radio_send_burst(Radio_Packet_TX, msg_time_ms * msg_cnt);
-                }
-                bm_cli_log("Control Message relayed\n");
-                if (backoff_time_max_ms - (bm_rand_32 % backoff_time_max_ms) > msg_time_ms){
-                    bm_sleep(backoff_time_max_ms - (bm_rand_32 % backoff_time_max_ms));                 // Sleep the Rest of the Backoff Time
-                }
-                bm_sleep(backoff_time_max_ms); // Sleep for satfy to net get a backloop ... 
-                return true;
-            }
+bool bm_control_msg_subscribe(bm_control_msg_t *bm_control_msg) {
+  bm_radio_init();
+  bm_radio_setMode(CommonMode);
+  bm_radio_setAA(ControlAddress);
+  bm_radio_setTxP(CommonTxPower);
+  while (true) {
+    for (int ch = CommonStartCH; ch <= CommonEndCH; ch++) {
+      bm_radio_setCH(ch);
+      if (bm_radio_receive(&Radio_Packet_RX, msg_time_ms * msg_cnt * CommonCHCnt)) {
+        bm_cli_log("Control Message received\n");
+        *bm_control_msg = *(bm_control_msg_t *)Radio_Packet_RX.PDU; // Bring the sheep to a dry place
+        bm_sleep(bm_rand_32 % backoff_time_max_ms);                 // Sleep from 0 till Random Backoff Time
+        /* Relay Message */
+        Radio_Packet_TX.length = sizeof(bm_control_msg);
+        Radio_Packet_TX.PDU = (uint8_t *)&bm_control_msg;
+        for (int ch = CommonStartCH; ch <= CommonEndCH; ch++) {
+          bm_radio_setCH(ch);
+          bm_radio_send_burst(Radio_Packet_TX, msg_time_ms * msg_cnt);
         }
+        bm_cli_log("Control Message relayed\n");
+        if (backoff_time_max_ms - (bm_rand_32 % backoff_time_max_ms) > msg_time_ms) {
+          bm_sleep(backoff_time_max_ms - (bm_rand_32 % backoff_time_max_ms)); // Sleep the Rest of the Backoff Time
+        }
+        bm_sleep(backoff_time_max_ms); // Sleep for satfy to net get a backloop ...
+        return true;
+      }
     }
+  }
 
-    return false;
+  return false;
 }

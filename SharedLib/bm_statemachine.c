@@ -359,7 +359,7 @@ void ST_SAVE_FLASH_fn(void) {
   synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb); // Shedule the Timestamp event
   start_time_ts_us = synctimer_getSyncTime();                          // Get the current Timestamp
   bm_log_save_to_flash();                                              // Save the log to FLASH;
-
+  bm_sleep(1000);
   /* Do a System Reset */
   NVIC_SystemReset();
   return;

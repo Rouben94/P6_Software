@@ -5,6 +5,9 @@ extern "C" {
 #ifndef BM_CONTROL_H
 #define BM_CONTROL_H
 
+#include <stdint.h>
+#include <stdbool.h>
+
   
   typedef struct
   {

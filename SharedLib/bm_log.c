@@ -76,7 +76,7 @@ void bm_log_save_to_flash()
 {
 #ifdef NRF_SDK_ZIGBEE
   uint16_t bm_message_cnt_flash = 0;
-  while (bm_message_cnt_flash <= bm_message_cnt)
+  while (bm_message_cnt_flash < bm_message_cnt)
   {
     flash_write(*((Measurement *)&message_info[bm_message_cnt_flash]));
     bm_cli_log("Message write to Flash Message Number: %d\n", bm_message_cnt_flash);
