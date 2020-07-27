@@ -10,6 +10,8 @@
 #include "zcl/zb_zcl_on_off_addons.h"
 #include "zcl/zb_zcl_scenes_addons.h"
 
+#define max_number_of_nodes 100
+
 typedef struct light_switch_bulb_params_s {
   zb_uint8_t endpoint;
   zb_uint16_t short_addr;
@@ -35,12 +37,18 @@ typedef struct
   zb_zcl_level_control_attrs_t level_control_attr;
 } bulb_device_ctx_t;
 
+typedef struct
+{
+  uint16_t src_addr;
+  uint8_t last_TID_seen;
+  uint8_t TID_OverflowCnt;
+} __attribute__((packed)) bm_tid_overflow_handler_t;
 
 void bm_zigbee_init(void);
 
 void bm_zigbee_enable(void);
 
-void bm_receive_message(zb_bufid_t bufid);
+void bm_receive_message(zb_bufid_t bufid, zb_uint8_t seq_num);
 
 void bm_read_message_info(zb_uint16_t timeout);
 

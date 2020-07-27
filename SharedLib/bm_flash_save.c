@@ -33,19 +33,19 @@ static void fds_evt_handler(fds_evt_t const *p_fds_evt) {
 
   case FDS_EVT_WRITE:
     if (p_fds_evt->result == NRF_SUCCESS) {
-      bm_cli_log("FDS record write was successful\n");
+//      bm_cli_log("FDS record write was successful\n");
     }
     break;
 
   case FDS_EVT_UPDATE:
     if (p_fds_evt->result == NRF_SUCCESS) {
-      bm_cli_log("FDS record read was successful\n");
+//      bm_cli_log("FDS record read was successful\n");
     }
     break;
 
   case FDS_EVT_DEL_RECORD:
     if (p_fds_evt->result == NRF_SUCCESS) {
-      bm_cli_log("FDS record delete was successful\n");
+//      bm_cli_log("FDS record delete was successful\n");
     }
     break;
 

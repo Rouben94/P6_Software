@@ -67,7 +67,7 @@ APP_TIMER_DEF(m_timer_0);
 /**
  * @brief Command line interface instance
  * */
-#define CLI_EXAMPLE_LOG_QUEUE_SIZE (4)
+#define CLI_EXAMPLE_LOG_QUEUE_SIZE (100)
 
 NRF_CLI_LIBUARTE_DEF(m_cli_libuarte_transport, 256, 256);
 NRF_CLI_DEF(m_cli_libuarte,
@@ -115,14 +115,14 @@ void bm_cli_init(void) {
   APP_ERROR_CHECK(ret);
   nrf_drv_clock_lfclk_request(NULL);
 
-  ret = app_timer_init();
-  APP_ERROR_CHECK(ret);
-
-  ret = app_timer_create(&m_timer_0, APP_TIMER_MODE_REPEATED, timer_handle);
-  APP_ERROR_CHECK(ret);
-
-  ret = app_timer_start(m_timer_0, APP_TIMER_TICKS(1000), NULL);
-  APP_ERROR_CHECK(ret);
+//  ret = app_timer_init();
+//  APP_ERROR_CHECK(ret);
+//
+//  ret = app_timer_create(&m_timer_0, APP_TIMER_MODE_REPEATED, timer_handle);
+//  APP_ERROR_CHECK(ret);
+//
+//  ret = app_timer_start(m_timer_0, APP_TIMER_TICKS(1000), NULL);
+//  APP_ERROR_CHECK(ret);
 
   cli_init();
   cli_start();

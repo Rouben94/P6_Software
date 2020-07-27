@@ -71,40 +71,32 @@ ZB_HA_DECLARE_DIMMER_SWITCH_CLUSTER_LIST(dimmer_switch_clusters,
     basic_attr_list,
     identify_attr_list);
 
-
-
 /* Declare endpoint for Dimmer Switch device. */
 ZB_HA_DECLARE_DIMMER_SWITCH_EP(dimmer_switch_ep,
     BENCHMARK_CLIENT_ENDPOINT,
     dimmer_switch_clusters);
 
-
 /* Declare application's device context (list of registered endpoints) for Dimmer Switch device. */
 ZBOSS_DECLARE_DEVICE_CTX_1_EP(bm_client_ctx, dimmer_switch_ep);
-
 
 /************************************ Forward Declarations ***********************************************/
 
 void buttons_handler(bsp_event_t evt);
 static void light_switch_send_on_off(zb_bufid_t bufid, zb_uint16_t on_off);
-void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t on_off);
+void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t level);
 void bm_send_control_message_cb(zb_bufid_t bufid, zb_uint16_t level);
 void bm_send_message(void);
-void bm_read_message_info(zb_uint16_t timeout);
+void bm_read_message_info(zb_uint8_t seq_num);
 void bm_report_data(zb_uint8_t param);
 
-zb_uint32_t bm_msg_cnt;
-zb_uint32_t bm_msg_cnt_sent;
-zb_uint32_t bm_time_interval_msec;
-
-zb_uint32_t timeout;
-zb_uint32_t time_random;
-zb_uint32_t timeslot;
+zb_uint8_t seq_num = 0;
 
 zb_ieee_addr_t local_node_ieee_addr;
 zb_uint16_t local_node_short_addr;
 char local_nodel_ieee_addr_buf[17] = {0};
 int local_node_addr_len;
+
+bm_tid_overflow_handler_t bm_tid_overflow_handler[max_number_of_nodes]; /* Expect not more than max_number_of_nodes Different Adresses */
 
 /************************************ Benchmark Client Cluster Attribute Init ***********************************************/
 
@@ -158,7 +150,6 @@ static void bm_client_clusters_attr_init(void) {
       ZB_ZCL_LEVEL_CONTROL_LEVEL_MAX_VALUE;
   dev_ctx.level_control_attr.remaining_time =
       ZB_ZCL_LEVEL_CONTROL_REMAINING_TIME_DEFAULT_VALUE;
-
 }
 
 /************************************ General Init Functions ***********************************************/
@@ -174,51 +165,6 @@ static void timers_init(void) {
   err_code = app_timer_init();
   APP_ERROR_CHECK(err_code);
 }
-
-
-
-/**@brief Function for initializing LEDs and buttons.
- */
-//static zb_void_t leds_buttons_init(void) {
-//  ret_code_t error_code;
-//
-//  /* Initialize LEDs and buttons - use BSP to control them. */
-//  error_code = bsp_init(BSP_INIT_LEDS | BSP_INIT_BUTTONS, buttons_handler);
-//  APP_ERROR_CHECK(error_code);
-//  /* By default the bsp_init attaches BSP_KEY_EVENTS_{0-4} to the PUSH events of the corresponding buttons. */
-//
-//  bsp_board_leds_off();
-//}
-
-/************************************ Light Switch Functions ***********************************************/
-
-/**@brief Function for sending ON/OFF requests to the desired Group ID.
- *
- * @param[in]   bufid    Non-zero reference to Zigbee stack buffer that will be used to construct on/off request.
- * @param[in]   on_off   Requested state of the light bulb.
- */
-//static zb_void_t light_switch_send_on_off(zb_bufid_t bufid, zb_uint16_t on_off) {
-//  zb_uint8_t cmd_id;
-//  zb_uint16_t group_id = GROUP_ID;
-//
-//  if (on_off) {
-//    cmd_id = ZB_ZCL_CMD_ON_OFF_ON_ID;
-//  } else {
-//    cmd_id = ZB_ZCL_CMD_ON_OFF_OFF_ID;
-//  }
-//
-//  bm_cli_log("Send ON/OFF command: %d to group id: %d\n", on_off, group_id);
-//
-//  ZB_ZCL_ON_OFF_SEND_REQ(bufid,
-//      group_id,
-//      ZB_APS_ADDR_MODE_16_GROUP_ENDP_NOT_PRESENT,
-//      0,
-//      BENCHMARK_CLIENT_ENDPOINT,
-//      ZB_AF_HA_PROFILE_ID,
-//      ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
-//      cmd_id,
-//      NULL);
-//}
 
 /************************************ Button Handler Functions ***********************************************/
 
@@ -238,7 +184,6 @@ zb_void_t bm_button_handler(zb_uint8_t button) {
   current_time = ZB_TIMER_GET();
 
   switch (button) {
-
 
   case DONGLE_BUTTON:
 
@@ -269,7 +214,6 @@ void buttons_handler(bsp_event_t evt) {
 
     break;
 
-
   default:
     bm_cli_log("Unhandled BSP Event received: %d\n", evt);
     return;
@@ -291,10 +235,34 @@ void buttons_handler(bsp_event_t evt) {
 
 /************************************ Benchmark Functions ***********************************************/
 
+/* Insert the tid and src address to get the merged tid with the tid overlfow cnt -> resulting in a uint16_t */
+uint16_t bm_get_overflow_tid_from_overflow_handler(uint8_t tid, uint16_t src_addr) {
+  // Get the TID in array
+  for (int i = 0; i < max_number_of_nodes; i++) {
+    if (bm_tid_overflow_handler[i].src_addr == src_addr) {
+      // Check if Overflow happend
+      if ((bm_tid_overflow_handler[i].last_TID_seen - tid) > 250) {
+        bm_tid_overflow_handler[i].TID_OverflowCnt++;
+      }
+      // Add the last seen TID
+      bm_tid_overflow_handler[i].last_TID_seen = tid;
+      return (uint16_t)(bm_tid_overflow_handler[i].TID_OverflowCnt << 8) | (tid & 0xff);
+      //return bm_tid_overflow_handler[i].TID_OverflowCnt;
+    } else if (bm_tid_overflow_handler[i].src_addr == 0) {
+      // Add the Src Adress
+      bm_tid_overflow_handler[i].src_addr = src_addr;
+      bm_tid_overflow_handler[i].last_TID_seen = tid;
+      bm_tid_overflow_handler[i].TID_OverflowCnt = 0;
+      return (uint16_t)(bm_tid_overflow_handler[i].TID_OverflowCnt << 8) | (tid & 0xff);
+    }
+  }
+  return 0; // Default return 0
+}
+
 /* Function to send Benchmark Message */
 void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t level) {
   zb_uint16_t groupID = bm_params.GroupAddress + GROUP_ID;
-  bm_cli_log("Benchmark Message Callback send to Group Address: 0x%x, ID: %x\n", groupID, bm_params.GroupAddress);
+//  bm_cli_log("Benchmark Message Callback send to Group Address: 0x%x, ID: %x\n", groupID, level);
 
   /* Send Move to level request. Level value is uint8. */
   ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
@@ -311,40 +279,43 @@ void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t level) {
 
 void bm_send_message(void) {
   zb_ret_t zb_err_code;
-  zb_uint8_t random_level_value;
+  seq_num++;
 
-  random_level_value = ZB_RANDOM_VALUE(255);
-
-  bm_read_message_info(timeout);
-  zb_err_code = zb_buf_get_out_delayed_ext(bm_send_message_cb, random_level_value, 0);
+  bm_read_message_info(seq_num);
+  zb_err_code = zb_buf_get_out_delayed_ext(bm_send_message_cb, seq_num, 0);
+  //  zb_err_code = zb_buf_get_out_delayed_ext(bm_send_message_cb, random_level_value, 0);
   ZB_ERROR_CHECK(zb_err_code);
-
 }
 
 /* TODO: Description */
-void bm_read_message_info(zb_uint16_t timeout) {
+void bm_read_message_info(zb_uint8_t seq_num) {
   bm_message_info message;
   zb_ieee_addr_t ieee_src_addr;
+  zb_uint16_t groupID = bm_params.GroupAddress + GROUP_ID;
+  zb_uint8_t lqi = ZB_MAC_LQI_UNDEFINED;
+  zb_int8_t rssi = ZB_MAC_RSSI_UNDEFINED;
 
-  message.rssi = 0;
   message.number_of_hops = 0;
   message.data_size = 0;
 
   zb_get_long_address(ieee_src_addr);
   message.src_addr = zb_address_short_by_ieee(ieee_src_addr);
-  message.group_addr = GROUP_ID;
-  message.dst_addr = GROUP_ID;
+  message.group_addr = groupID;
+  message.dst_addr = groupID;
 
   message.net_time = synctimer_getSyncTime();
   message.ack_net_time = 0;
 
-  message.message_id = ZB_ZCL_GET_SEQ_NUM() + 1;
+  message.message_id = bm_get_overflow_tid_from_overflow_handler(seq_num, message.src_addr);
+  //  message.message_id = ZB_ZCL_GET_SEQ_NUM() + 1;
 
-  bm_cli_log("Benchmark Message send, TimeStamp: %lld, MessageID: %d, TimeOut: %u\n", message.net_time, message.message_id, timeout);
+  zb_zdo_get_diag_data(message.src_addr, &lqi, &rssi);
+  message.rssi = rssi;
+
+  bm_cli_log("Benchmark Message send to Group Address: 0x%x TimeStamp: %lld, MessageID: %d\n", groupID, message.net_time, message.message_id);
 
   bm_log_append_ram(message);
 }
-
 
 /************************************ Zigbee event handler ***********************************************/
 

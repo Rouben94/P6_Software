@@ -96,8 +96,11 @@ int local_node_addr_len;
 zb_ieee_addr_t local_node_ieee_addr;
 zb_uint16_t local_node_short_addr;
 
+zb_uint8_t seq_num = 0;
+bm_tid_overflow_handler_t bm_tid_overflow_handler[max_number_of_nodes]; /* Excpect not more than max_number_of_nodes Different Adresses */
+
 static void buttons_handler(bsp_event_t evt);
-void bm_receive_message(zb_uint8_t param);
+void bm_receive_message(zb_bufid_t bufid, zb_uint8_t seq_num);
 void bm_read_message_info(zb_uint16_t timeout);
 
 /************************************ Benchmark Client Cluster Attribute Init ***********************************************/
@@ -216,7 +219,7 @@ static void light_bulb_set_brightness(zb_uint8_t brightness_level) {
   * @param[in]   new_level   Light bulb brightness value.
  */
 static void level_control_set_value(zb_uint16_t new_level) {
-  bm_cli_log("Set level value: %i\n", new_level);
+//  bm_cli_log("Set level value: %i\n", new_level);
 
   ZB_ZCL_SET_ATTRIBUTE(BENCHMARK_SERVER_ENDPOINT,
       ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL,
@@ -333,6 +336,30 @@ static void buttons_handler(bsp_event_t evt) {
 
 /************************************ Benchmark Functions ***********************************************/
 
+/* Insert the tid and src address to get the merged tid with the tid overlfow cnt -> resulting in a uint16_t */
+uint16_t bm_get_overflow_tid_from_overflow_handler(uint8_t tid, uint16_t src_addr) {
+  // Get the TID in array
+  for (int i = 0; i < max_number_of_nodes; i++) {
+    if (bm_tid_overflow_handler[i].src_addr == src_addr) {
+      // Check if Overflow happend
+      if ((bm_tid_overflow_handler[i].last_TID_seen - tid) > 250) {
+        bm_tid_overflow_handler[i].TID_OverflowCnt++;
+      }
+      // Add the last seen TID
+      bm_tid_overflow_handler[i].last_TID_seen = tid;
+      return (uint16_t)(bm_tid_overflow_handler[i].TID_OverflowCnt << 8) | (tid & 0xff);
+      //return bm_tid_overflow_handler[i].TID_OverflowCnt;
+    } else if (bm_tid_overflow_handler[i].src_addr == 0) {
+      // Add the Src Adress
+      bm_tid_overflow_handler[i].src_addr = src_addr;
+      bm_tid_overflow_handler[i].last_TID_seen = tid;
+      bm_tid_overflow_handler[i].TID_OverflowCnt = 0;
+      return (uint16_t)(bm_tid_overflow_handler[i].TID_OverflowCnt << 8) | (tid & 0xff);
+    }
+  }
+  return 0; // Default return 0
+}
+
 /**@brief Function for sending add group request to the local node.
  *
  * @param[in]   bufid   Reference to Zigbee stack buffer used to pass received data.
@@ -361,12 +388,13 @@ static zb_void_t add_group_id(zb_bufid_t bufid) {
  *
  * @param[in]   bufid   Reference to Zigbee stack buffer used to pass received data.
  */
-void bm_receive_message(zb_bufid_t bufid) {
+void bm_receive_message(zb_bufid_t bufid, zb_uint8_t seq_num) {
   bm_message_info message;
   zb_uint8_t lqi = ZB_MAC_LQI_UNDEFINED;
-  zb_uint8_t rssi = ZB_MAC_RSSI_UNDEFINED;
+  zb_int8_t rssi = ZB_MAC_RSSI_UNDEFINED;
   zb_uint8_t addr_type;
   zb_ieee_addr_t ieee_dst_addr;
+  zb_uint16_t groupID = bm_params.GroupAddress + GROUP_ID;
 
   zb_zcl_parsed_hdr_t cmd_info;
   ZB_ZCL_COPY_PARSED_HEADER(bufid, &cmd_info);
@@ -374,14 +402,16 @@ void bm_receive_message(zb_bufid_t bufid) {
   message.net_time = synctimer_getSyncTime();
   message.ack_net_time = 0;
 
-  message.message_id = cmd_info.seq_number;
   memcpy(&message.src_addr, &(cmd_info.addr_data.common_data.source.u.short_addr), sizeof(zb_uint16_t));
 
   zb_get_long_address(ieee_dst_addr);
   message.dst_addr = zb_address_short_by_ieee(ieee_dst_addr);
-  message.group_addr = GROUP_ID;
+  message.group_addr = groupID;
 
-  /* TODO: Number of hops is not available yet from the ZBOSS API */
+  message.message_id = bm_get_overflow_tid_from_overflow_handler(seq_num, message.dst_addr);
+  //  message.message_id = cmd_info.seq_number;
+
+  /* TODO: Number of hops is not yet available from the ZBOSS API */
   message.number_of_hops = 0;
   message.data_size = 0;
 
@@ -402,25 +432,33 @@ void bm_receive_message(zb_bufid_t bufid) {
  * @param[in]   bufid   Reference to Zigbee stack buffer
  *                      used to pass received data.
  */
-static zb_uint8_t bm_zcl_handler(zb_bufid_t bufid) {
-  zb_zcl_parsed_hdr_t cmd_info;
-  ZB_ZCL_COPY_PARSED_HEADER(bufid, &cmd_info);
-  //  bm_cli_log("%s with Endpoint ID: %hd, Cluster ID: %d\n", __func__, cmd_info.addr_data.common_data.dst_endpoint, cmd_info.cluster_id);
-
-  if (cmd_info.cluster_id == ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL) {
-
-    switch (cmd_info.addr_data.common_data.dst_endpoint) {
-
-    case BENCHMARK_SERVER_ENDPOINT:
-      ZB_SCHEDULE_APP_CALLBACK(bm_receive_message, bufid);
-      break;
-
-    default:
-      break;
-    }
-  }
-  return ZB_FALSE;
-}
+//static zb_uint8_t bm_zcl_handler(zb_bufid_t bufid) {
+//  zb_uint8_t new_level;
+//  zb_zcl_parsed_hdr_t cmd_info;
+//  ZB_ZCL_COPY_PARSED_HEADER(bufid, &cmd_info);
+//  zb_zcl_device_callback_param_t *p_device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
+//
+//  new_level = p_device_cb_param->cb_param.level_control_set_value_param.new_value;
+//  bm_cli_log("Level control setting to %d\n", new_level);
+//
+//  if (cmd_info.cluster_id == ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL) {
+//
+//    switch (cmd_info.addr_data.common_data.dst_endpoint) {
+//
+//    case BENCHMARK_SERVER_ENDPOINT:
+//      ZB_SCHEDULE_APP_CALLBACK(bm_receive_message, bufid);
+//      ZB_SCHEDULE_APP_CALLBACK2(bm_receive_message, bufid, new_level);
+//      ZB_SCHEDULE_APP_ALARM(bm_receive_message, (uint8_t *)(&p_device_cb_param->cb_param.level_control_set_value_param.new_value), 0);
+//      bm_cli_log("Level control setting to %d\n", new_level);
+//      level_control_set_value(new_level);
+//      break;
+//
+//    default:
+//      break;
+//    }
+//  }
+//  return ZB_FALSE;
+//}
 
 /**@brief Callback function for handling ZCL commands.
  *
@@ -438,7 +476,8 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid) {
 
   switch (p_device_cb_param->device_cb_id) {
   case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
-    //    bm_cli_log("Level control setting to %d\n", p_device_cb_param->cb_param.level_control_set_value_param.new_value);
+//    bm_cli_log("Level control setting to %d\n", p_device_cb_param->cb_param.level_control_set_value_param.new_value);
+    ZB_SCHEDULE_APP_CALLBACK2(bm_receive_message, bufid, p_device_cb_param->cb_param.level_control_set_value_param.new_value);
     level_control_set_value(p_device_cb_param->cb_param.level_control_set_value_param.new_value);
     break;
 
@@ -541,7 +580,7 @@ void bm_zigbee_init(void) {
   ZB_AF_REGISTER_DEVICE_CTX(&bm_server_ctx);
 
   /* Register callback for handling ZCL commands. */
-  ZB_AF_SET_ENDPOINT_HANDLER(BENCHMARK_SERVER_ENDPOINT, bm_zcl_handler);
+  //  ZB_AF_SET_ENDPOINT_HANDLER(BENCHMARK_SERVER_ENDPOINT, bm_zcl_handler);
   ZB_ZCL_REGISTER_DEVICE_CB(zcl_device_cb);
 
   bm_server_clusters_attr_init();
