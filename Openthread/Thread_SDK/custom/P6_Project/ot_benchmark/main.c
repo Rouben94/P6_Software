@@ -70,8 +70,8 @@
 #define SCHED_EVENT_DATA_SIZE APP_TIMER_SCHED_EVENT_DATA_SIZE /**< Maximum app_scheduler event size. */
 
 //#define BM_MASTER
-#define BM_CLIENT
-//#define BM_SERVER
+//#define BM_CLIENT
+#define BM_SERVER
 
 #ifdef BM_CLIENT
 bool toggle_data_size = true;
