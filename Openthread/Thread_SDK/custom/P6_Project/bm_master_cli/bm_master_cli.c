@@ -13,9 +13,9 @@
 void bm_cli_write_result(bm_message_info message_info)
 {
     char buf[9][50] = {"\0"};
-    char test[100] = {"\0"};
+    char bm_result_cli[100] = {"\0"};
 
-    strcpy(test, "<report> ");
+    strcpy(bm_result_cli, "<report> ");
     sprintf(buf[0], "%u ", message_info.message_id);
     sprintf(buf[1], "%u ", message_info.net_time);
     sprintf(buf[2], "%u ", message_info.net_time_ack);
@@ -35,8 +35,8 @@ void bm_cli_write_result(bm_message_info message_info)
 
     for(int i=0; i<9; i++)
     {
-        strcat(test, buf[i]);
+        strcat(bm_result_cli, buf[i]);
     }
 
-    otCliOutput(test, sizeof(test));
+    otCliOutput(bm_result_cli, sizeof(bm_result_cli));
 }

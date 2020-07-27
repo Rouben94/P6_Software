@@ -69,8 +69,8 @@
 #define SCHED_QUEUE_SIZE      32                              /**< Maximum number of events in the scheduler queue. */
 #define SCHED_EVENT_DATA_SIZE APP_TIMER_SCHED_EVENT_DATA_SIZE /**< Maximum app_scheduler event size. */
 
-#define BM_MASTER
-//#define BM_CLIENT
+//#define BM_MASTER
+#define BM_CLIENT
 //#define BM_SERVER
 
 #ifdef BM_CLIENT
@@ -95,6 +95,7 @@ bm_master_message master_message;
 
 static void bsp_event_handler(bsp_event_t event)
 {
+    uint64_t tempo;
     switch (event)
     {
         case BSP_EVENT_KEY_0:
