@@ -262,7 +262,7 @@ uint16_t bm_get_overflow_tid_from_overflow_handler(uint8_t tid, uint16_t src_add
 /* Function to send Benchmark Message */
 void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t level) {
   zb_uint16_t groupID = bm_params.GroupAddress + GROUP_ID;
-//  bm_cli_log("Benchmark Message Callback send to Group Address: 0x%x, ID: %x\n", groupID, level);
+  //  bm_cli_log("Benchmark Message Callback send to Group Address: 0x%x, ID: %x\n", groupID, level);
 
   /* Send Move to level request. Level value is uint8. */
   ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
@@ -291,7 +291,6 @@ void bm_send_message(void) {
 void bm_read_message_info(zb_uint8_t seq_num) {
   bm_message_info message;
   zb_ieee_addr_t ieee_src_addr;
-  zb_uint16_t groupID = bm_params.GroupAddress + GROUP_ID;
   zb_uint8_t lqi = ZB_MAC_LQI_UNDEFINED;
   zb_int8_t rssi = ZB_MAC_RSSI_UNDEFINED;
 
@@ -300,8 +299,8 @@ void bm_read_message_info(zb_uint8_t seq_num) {
 
   zb_get_long_address(ieee_src_addr);
   message.src_addr = zb_address_short_by_ieee(ieee_src_addr);
-  message.group_addr = groupID;
-  message.dst_addr = groupID;
+  message.group_addr = bm_params.GroupAddress + GROUP_ID;
+  message.dst_addr = message.group_addr;
 
   message.net_time = synctimer_getSyncTime();
   message.ack_net_time = 0;
@@ -312,7 +311,7 @@ void bm_read_message_info(zb_uint8_t seq_num) {
   zb_zdo_get_diag_data(message.src_addr, &lqi, &rssi);
   message.rssi = rssi;
 
-  bm_cli_log("Benchmark Message send to Group Address: 0x%x TimeStamp: %lld, MessageID: %d\n", groupID, message.net_time, message.message_id);
+  bm_cli_log("Benchmark Message send to Group Address: 0x%x TimeStamp: %lld, MessageID: %d (%d)\n", message.group_addr, message.net_time, message.message_id, seq_num);
 
   bm_log_append_ram(message);
 }

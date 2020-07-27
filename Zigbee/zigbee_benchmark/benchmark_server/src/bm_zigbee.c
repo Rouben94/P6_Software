@@ -219,7 +219,7 @@ static void light_bulb_set_brightness(zb_uint8_t brightness_level) {
   * @param[in]   new_level   Light bulb brightness value.
  */
 static void level_control_set_value(zb_uint16_t new_level) {
-//  bm_cli_log("Set level value: %i\n", new_level);
+  //  bm_cli_log("Set level value: %i\n", new_level);
 
   ZB_ZCL_SET_ATTRIBUTE(BENCHMARK_SERVER_ENDPOINT,
       ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL,
@@ -336,7 +336,7 @@ static void buttons_handler(bsp_event_t evt) {
 
 /************************************ Benchmark Functions ***********************************************/
 
-/* Insert the tid and src address to get the merged tid with the tid overlfow cnt -> resulting in a uint16_t */
+/* Insert the tid and src address to get the merged tid with the tid overflow cnt -> resulting in a uint16_t */
 uint16_t bm_get_overflow_tid_from_overflow_handler(uint8_t tid, uint16_t src_addr) {
   // Get the TID in array
   for (int i = 0; i < max_number_of_nodes; i++) {
@@ -394,7 +394,6 @@ void bm_receive_message(zb_bufid_t bufid, zb_uint8_t seq_num) {
   zb_int8_t rssi = ZB_MAC_RSSI_UNDEFINED;
   zb_uint8_t addr_type;
   zb_ieee_addr_t ieee_dst_addr;
-  zb_uint16_t groupID = bm_params.GroupAddress + GROUP_ID;
 
   zb_zcl_parsed_hdr_t cmd_info;
   ZB_ZCL_COPY_PARSED_HEADER(bufid, &cmd_info);
@@ -406,9 +405,9 @@ void bm_receive_message(zb_bufid_t bufid, zb_uint8_t seq_num) {
 
   zb_get_long_address(ieee_dst_addr);
   message.dst_addr = zb_address_short_by_ieee(ieee_dst_addr);
-  message.group_addr = groupID;
+  message.group_addr = bm_params.GroupAddress + GROUP_ID;
 
-  message.message_id = bm_get_overflow_tid_from_overflow_handler(seq_num, message.dst_addr);
+  message.message_id = bm_get_overflow_tid_from_overflow_handler(seq_num, message.src_addr);
   //  message.message_id = cmd_info.seq_number;
 
   /* TODO: Number of hops is not yet available from the ZBOSS API */
@@ -418,8 +417,9 @@ void bm_receive_message(zb_bufid_t bufid, zb_uint8_t seq_num) {
   zb_zdo_get_diag_data(message.src_addr, &lqi, &rssi);
   message.rssi = rssi;
 
-  bm_cli_log("Benchmark Packet received with ID: %d from Src Address: 0x%x to Destination 0x%x with RSSI: %d, LQI: %d, Time: %llu\n", message.message_id, message.src_addr, message.dst_addr, rssi, lqi, message.net_time);
-
+  bm_cli_log("Benchmark Packet received with ID: %d (%d) from Src Address: 0x%x to Destination 0x%x with RSSI: %d, Time: %llu\n", message.message_id, seq_num, message.src_addr, message.dst_addr, rssi, message.net_time);
+  
+  level_control_set_value(0);
   bm_log_append_ram(message);
 }
 
@@ -476,7 +476,7 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid) {
 
   switch (p_device_cb_param->device_cb_id) {
   case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
-//    bm_cli_log("Level control setting to %d\n", p_device_cb_param->cb_param.level_control_set_value_param.new_value);
+    //    bm_cli_log("Level control setting to %d\n", p_device_cb_param->cb_param.level_control_set_value_param.new_value);
     ZB_SCHEDULE_APP_CALLBACK2(bm_receive_message, bufid, p_device_cb_param->cb_param.level_control_set_value_param.new_value);
     level_control_set_value(p_device_cb_param->cb_param.level_control_set_value_param.new_value);
     break;

@@ -79,7 +79,7 @@ void bm_log_save_to_flash()
   while (bm_message_cnt_flash < bm_message_cnt)
   {
     flash_write(*((Measurement *)&message_info[bm_message_cnt_flash]));
-    bm_cli_log("Message write to Flash Message Number: %d\n", bm_message_cnt_flash);
+//    bm_cli_log("Message write to Flash Message Number: %d\n", bm_message_cnt_flash);
     bm_message_cnt_flash++;
   }
   bm_cli_log("Write to Flash finished. %d data packets saved\n", bm_message_cnt_flash);
