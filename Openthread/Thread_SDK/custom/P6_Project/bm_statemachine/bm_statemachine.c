@@ -3,7 +3,6 @@
 #include "app_timer.h"
 #include "boards.h"
 #include "bm_coap.h"
-#include "bm_master_cli.h"
 
 #include "nrf_log_ctrl.h"
 #include "nrf_log.h"
@@ -13,7 +12,7 @@
 #include <openthread/random_noncrypto.h>
 
 #define NUMBER_OF_NETWORK_TIME_ELEMENTS 1000
-#define NUMBER_OF_NODES 60
+#define NUMBER_OF_SENDING_MESSAGES 10
 
 APP_TIMER_DEF(m_benchmark_timer);
 APP_TIMER_DEF(m_result_timer);
@@ -29,21 +28,14 @@ APP_TIMER_DEF(m_msg_9_timer);
 APP_TIMER_DEF(m_msg_10_timer);
 
 bm_message_info message_info[NUMBER_OF_NETWORK_TIME_ELEMENTS] = {0};
-bm_message_info result[NUMBER_OF_NODES][NUMBER_OF_NETWORK_TIME_ELEMENTS] = {0};
 
 uint16_t bm_message_info_nr = 0;
-uint16_t bm_result_nr = 0;
-uint16_t bm_slave_nr = 0;
 
-otIp6Address bm_slave_address[NUMBER_OF_NODES] = {};
 uint32_t  bm_time = 0;
 uint8_t   bm_new_state = 0;
 uint8_t   bm_actual_state = 0;
 uint8_t   data_size = 1;
 uint8_t   s_timer = 0;
-
-uint8_t   index = 200;
-bool      bm_stop = true;
 
 /***************************************************************************************************
  * @section State machine - Functions
@@ -52,33 +44,6 @@ void bm_save_message_info(bm_message_info message)
 {
     message_info[bm_message_info_nr] = message;
     bm_message_info_nr++;
-}
-
-void bm_save_result(bm_message_info message)
-{
-    if(index != message.index)
-    {
-        bm_cli_write_result(message);
-    }
-
-    if(message.index == 0 && !bm_stop)
-    {
-        bm_sm_new_state_set(BM_STATE_2_MASTER);
-        app_timer_stop(m_result_timer);
-    }
-    
-    index = message.index;    
-}
-
-void bm_save_slave_address(otIp6Address slave_address)
-{
-    bm_slave_address[bm_slave_nr] = slave_address;
-    bm_slave_nr++;
-}
-
-void bm_stop_set(bool state)
-{
-    bm_stop = state;
 }
 
 void bm_sm_time_set(uint32_t time)
@@ -136,6 +101,47 @@ static void start_timer(void)
 
     error = app_timer_start(m_msg_10_timer, APP_TIMER_TICKS(ticks_array[9]), NULL);
     ASSERT(error == NRF_SUCCESS);
+
+    error = app_timer_start(m_benchmark_timer, APP_TIMER_TICKS(bm_time+otRandomNonCryptoGetUint16InRange(0, 2000)), NULL);
+    ASSERT(error == NRF_SUCCESS);
+}
+
+static void stop_timer(void)
+{
+    uint32_t error;
+    error = app_timer_stop(m_msg_1_timer);
+    ASSERT(error == NRF_SUCCESS);
+
+    error = app_timer_stop(m_msg_2_timer);
+    ASSERT(error == NRF_SUCCESS);
+
+    error = app_timer_stop(m_msg_3_timer);
+    ASSERT(error == NRF_SUCCESS);
+
+    error = app_timer_stop(m_msg_4_timer);
+    ASSERT(error == NRF_SUCCESS);
+
+    error = app_timer_stop(m_msg_5_timer);
+    ASSERT(error == NRF_SUCCESS);
+
+    error = app_timer_stop(m_msg_6_timer);
+    ASSERT(error == NRF_SUCCESS);
+
+    error = app_timer_stop(m_msg_7_timer);
+    ASSERT(error == NRF_SUCCESS);
+
+    error = app_timer_stop(m_msg_8_timer);
+    ASSERT(error == NRF_SUCCESS);
+
+    error = app_timer_stop(m_msg_9_timer);
+    ASSERT(error == NRF_SUCCESS);
+
+    error = app_timer_stop(m_msg_10_timer);
+    ASSERT(error == NRF_SUCCESS);
+
+    error = app_timer_stop(m_benchmark_timer);
+    ASSERT(error == NRF_SUCCESS);
+    
 }
 
 /***************************************************************************************************
@@ -201,26 +207,37 @@ static void m_msg_10_handler(void * p_context)
     bm_coap_probe_message_send(data_size);
 }
 
-static void m_benchmark_handler(void * p_context)
+static void benchmark_handler(void * p_context)
 {
-    bm_new_state = BM_STATE_2_MASTER;
+    bm_new_state = BM_STATE_2;
 }
 
-static void m_result_handler(void * p_context)
+static void result_handler(void * p_context)
 {
-    bm_new_state = BM_STATE_2_MASTER;
+    bm_message_info_nr--;
+    bm_coap_results_send(message_info[bm_message_info_nr]);
+    bm_new_state = BM_STATE_2;
 }
 
 /***************************************************************************************************
  * @section State machine
  **************************************************************************************************/
-static void state_1_slave(void)
+static void state_1_client(void)
 {
     start_timer();       
     bm_new_state = BM_EMPTY_STATE;
 }
 
-static void state_2_slave(void)
+static void state_1_server(void)
+{
+    uint32_t error;
+
+    error = app_timer_start(m_benchmark_timer, APP_TIMER_TICKS(bm_time+otRandomNonCryptoGetUint16InRange(2000, 5000)), NULL);
+    ASSERT(error == NRF_SUCCESS);
+    bm_new_state = BM_EMPTY_STATE;
+}
+
+static void state_2(void)
 {
     uint32_t error;
     if(bm_message_info_nr == 0)
@@ -232,32 +249,21 @@ static void state_2_slave(void)
         bm_new_state = BM_EMPTY_STATE;
     } else
     {
-        bm_message_info_nr--;
-        message_info[bm_message_info_nr].index = bm_message_info_nr;
-        bm_coap_results_send(message_info[bm_message_info_nr]);
+        error = app_timer_start(m_result_timer, APP_TIMER_TICKS(otRandomNonCryptoGetUint16InRange(20, 30)), NULL);
+        ASSERT(error == NRF_SUCCESS);
+
         bm_new_state = BM_EMPTY_STATE;
     }
 }
 
-static void state_1_master(void)
-{    
-    uint32_t error;
-    error = app_timer_start(m_benchmark_timer, APP_TIMER_TICKS(bm_time+10000), NULL);
-    ASSERT(error == NRF_SUCCESS);
-    bm_new_state = BM_EMPTY_STATE;
-}
+static void state_stop(void)
+{
+    stop_timer();
+    bsp_board_led_off(BSP_BOARD_LED_2);
 
-static void state_2_master(void)
-{   
-    uint32_t error;
-    if (bm_slave_nr != 0)
-    {
-        bm_slave_nr--;
-        bm_coap_result_request_send(bm_slave_address[bm_slave_nr]);
-        error = app_timer_start(m_result_timer, APP_TIMER_TICKS(1000), NULL);
-        ASSERT(error == NRF_SUCCESS);
-    }
-    
+    bm_message_info_nr = 0;
+    memset(message_info, 0, sizeof(message_info));
+
     bm_new_state = BM_EMPTY_STATE;
 }
 
@@ -267,20 +273,20 @@ void bm_sm_process(void)
 
     switch(bm_actual_state)
     {        
-        case BM_STATE_1_SLAVE:
-            state_1_slave();
+        case BM_STATE_1_CLIENT:
+            state_1_client();
             break;
 
-        case BM_STATE_2_SLAVE:
-            state_2_slave();
+        case BM_STATE_1_SERVER:
+            state_1_server();
             break;
 
-        case BM_STATE_1_MASTER:
-            state_1_master();
+        case BM_STATE_2:
+            state_2();
             break;
 
-        case BM_STATE_2_MASTER:
-            state_2_master();
+        case BM_STATE_STOP:
+            state_stop();
             break;
 
         case BM_EMPTY_STATE:
@@ -298,9 +304,10 @@ void bm_statemachine_init(void)
 {
     uint32_t error;
 
-    error = app_timer_create(&m_benchmark_timer, APP_TIMER_MODE_SINGLE_SHOT, m_benchmark_handler);
+    error = app_timer_create(&m_benchmark_timer, APP_TIMER_MODE_SINGLE_SHOT, benchmark_handler);
     ASSERT(error == NRF_SUCCESS);
-    error = app_timer_create(&m_result_timer, APP_TIMER_MODE_SINGLE_SHOT, m_result_handler);
+
+    error = app_timer_create(&m_result_timer, APP_TIMER_MODE_SINGLE_SHOT, result_handler);
     ASSERT(error == NRF_SUCCESS);
 
     error = app_timer_create(&m_msg_1_timer, APP_TIMER_MODE_SINGLE_SHOT, m_msg_1_handler);

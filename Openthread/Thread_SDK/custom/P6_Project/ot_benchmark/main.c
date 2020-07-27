@@ -95,7 +95,6 @@ bm_master_message master_message;
 
 static void bsp_event_handler(bsp_event_t event)
 {
-    uint64_t tempo;
     switch (event)
     {
         case BSP_EVENT_KEY_0:
@@ -126,7 +125,7 @@ static void bsp_event_handler(bsp_event_t event)
             break;
 
         default:
-            return; // no implementation needed1
+            return; // no implementation needed
     }
 }
 
@@ -156,23 +155,13 @@ static void thread_state_changed_callback(uint32_t flags, void * p_context)
 }
 
 #if defined(BM_CLIENT) || defined(BM_SERVER)
-static void thread_time_sync_callback(void * p_context) 
-{
-    NRF_LOG_INFO("time sync callback"); 
-    if (*(int*)p_context == OT_NETWORK_TIME_SYNCHRONIZED)
-    {
-        NRF_LOG_INFO("time sync synchronized"); 
-    }
-    
-}
+static void thread_time_sync_callback(void * p_context) { NRF_LOG_INFO("time sync callback"); }
 #endif //BM_CLIENT || BM_SERVER
 
 #ifdef BM_MASTER
 static void bm_cli_benchmark_start(uint8_t aArgsLength, char *aArgs[]) {
     NRF_LOG_INFO("Benchmark start");
     NRF_LOG_INFO("Argument: %s", aArgs[0]);
-
-    bm_stop_set(false);
 
     master_message.bm_status = true;
     master_message.bm_master_ip6_address = *otThreadGetMeshLocalEid(thread_ot_instance_get());
@@ -185,8 +174,12 @@ static void bm_cli_benchmark_start(uint8_t aArgsLength, char *aArgs[]) {
 
 static void bm_cli_benchmark_stop(uint8_t aArgsLength, char *aArgs[]) {
     NRF_LOG_INFO("Benchmark stop");
+    
+    master_message.bm_status = false;
+    master_message.bm_master_ip6_address = *otThreadGetMeshLocalEid(thread_ot_instance_get());
+    master_message.bm_time = NULL;
 
-    bm_stop_set(true);
+    bm_coap_multicast_start_send(master_message);
 
     otCliOutput("done \r\n", sizeof("done \r\n"));
 }
@@ -341,14 +334,17 @@ int main(int argc, char *argv[])
 
 #if defined(BM_CLIENT) || defined(BM_SERVER)
     thread_time_sync_init();
-#endif //BM_CLIENT || BM_SERVER   
     bm_statemachine_init();
- 
+#endif //BM_CLIENT || BM_SERVER    
 
     while (true)
     {
         thread_process();
+
+#if defined(BM_CLIENT) || defined(BM_SERVER)
         bm_sm_process();
+#endif //BM_CLIENT || BM_SERVER 
+
         app_sched_execute();
 
         if (NRF_LOG_PROCESS() == false)

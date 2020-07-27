@@ -110,13 +110,6 @@ void bm_coap_results_send(bm_message_info message_info);
  * @param[in] message  message state
  *
  */
-void bm_coap_result_request_send(otIp6Address address);
-
-/**@brief Function for sending the benchmark test message to the peered unicast IPv6 address.
- *
- * @param[in] message  message state
- *
- */
 void bm_increment_group_address(void);
 
 /**@brief Function for sending the benchmark test message to the peered unicast IPv6 address.

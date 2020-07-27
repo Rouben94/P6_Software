@@ -1,0 +1,66 @@
+<!DOCTYPE CrossStudio_Session_File>
+<session>
+ <Bookmarks/>
+ <Breakpoints groups="Breakpoints" active_group="Breakpoints">
+  <Exceptions set="MemManage;UsageFault_Coprocessor;UsageFault_CheckingError;UsageFault_StateError;BusFault;ExceptionEntryReturnFault;HardFault"/>
+ </Breakpoints>
+ <ExecutionProfileWindow/>
+ <FrameBufferWindow>
+  <FrameBufferWindow bufferHeight="-1" addressSpace="" addressText="" bufferWidth="-1"/>
+ </FrameBufferWindow>
+ <Memory1>
+  <MemoryWindow addressSpace="" dataSize="1" autoEvaluate="0" viewMode="0" addressOrder="0" columnsText="" refreshPeriod="0" name="ot_benchmark_slave" radix="16" sizeText="" addressText=""/>
+ </Memory1>
+ <Memory2>
+  <MemoryWindow addressSpace="" dataSize="1" autoEvaluate="0" viewMode="0" addressOrder="0" columnsText="" refreshPeriod="0" name="ot_benchmark_slave" radix="16" sizeText="" addressText=""/>
+ </Memory2>
+ <Memory3>
+  <MemoryWindow addressSpace="" dataSize="1" autoEvaluate="0" viewMode="0" addressOrder="0" columnsText="" refreshPeriod="0" name="ot_benchmark_slave" radix="16" sizeText="" addressText=""/>
+ </Memory3>
+ <Memory4>
+  <MemoryWindow addressSpace="" dataSize="1" autoEvaluate="0" viewMode="0" addressOrder="0" columnsText="" refreshPeriod="0" name="ot_benchmark_slave" radix="16" sizeText="" addressText=""/>
+ </Memory4>
+ <Project>
+  <ProjectSessionItem path="ot_benchmark_slave"/>
+  <ProjectSessionItem path="ot_benchmark_slave;ot_benchmark_slave"/>
+  <ProjectSessionItem path="ot_benchmark_slave;ot_benchmark_slave;Application"/>
+  <ProjectSessionItem path="ot_benchmark_slave;ot_benchmark_slave;None"/>
+  <ProjectSessionItem path="ot_benchmark_slave;ot_benchmark_slave;nRF_Thread"/>
+ </Project>
+ <Register1>
+  <RegisterWindow visibleNodes="CPU - Current Context/r0;CPU - Current Context/r1;CPU - Current Context/r2;CPU - Current Context/r3;CPU - Current Context/r4;CPU - Current Context/r5;CPU - Current Context/r6;CPU - Current Context/r7;CPU - Current Context/r8;CPU - Current Context/r9;CPU - Current Context/r10;CPU - Current Context/r11;CPU - Current Context/r12;CPU - Current Context/sp(r13);CPU - Current Context/lr(r14);CPU - Current Context/pc(r15);CPU - Current Context/apsr;CPU/r0;CPU/r1;CPU/r2;CPU/r3;CPU/r4;CPU/r5;CPU/r6;CPU/r7;CPU/r8;CPU/r9;CPU/r10;CPU/r11;CPU/r12;CPU/sp(r13);CPU/lr(r14);CPU/pc(r15);CPU/xpsr;CPU/msp;CPU/psp;CPU/cfbp;CPU/internal" binaryNodes="" asciiNodes="" openNodes="CPU - Current Context" name="ot_benchmark_slave" decimalNodes="" octalNodes="" unsignedNodes=""/>
+ </Register1>
+ <Register2>
+  <RegisterWindow visibleNodes="CPU - Current Context/r0;CPU - Current Context/r1;CPU - Current Context/r2;CPU - Current Context/r3;CPU - Current Context/r4;CPU - Current Context/r5;CPU - Current Context/r6;CPU - Current Context/r7;CPU - Current Context/r8;CPU - Current Context/r9;CPU - Current Context/r10;CPU - Current Context/r11;CPU - Current Context/r12;CPU - Current Context/sp(r13);CPU - Current Context/lr(r14);CPU - Current Context/pc(r15);CPU - Current Context/apsr;CPU/r0;CPU/r1;CPU/r2;CPU/r3;CPU/r4;CPU/r5;CPU/r6;CPU/r7;CPU/r8;CPU/r9;CPU/r10;CPU/r11;CPU/r12;CPU/sp(r13);CPU/lr(r14);CPU/pc(r15);CPU/xpsr;CPU/msp;CPU/psp;CPU/cfbp;CPU/internal" binaryNodes="" asciiNodes="" openNodes="CPU - Current Context" name="ot_benchmark_slave" decimalNodes="" octalNodes="" unsignedNodes=""/>
+ </Register2>
+ <Register3>
+  <RegisterWindow visibleNodes="CPU - Current Context/r0;CPU - Current Context/r1;CPU - Current Context/r2;CPU - Current Context/r3;CPU - Current Context/r4;CPU - Current Context/r5;CPU - Current Context/r6;CPU - Current Context/r7;CPU - Current Context/r8;CPU - Current Context/r9;CPU - Current Context/r10;CPU - Current Context/r11;CPU - Current Context/r12;CPU - Current Context/sp(r13);CPU - Current Context/lr(r14);CPU - Current Context/pc(r15);CPU - Current Context/apsr;CPU/r0;CPU/r1;CPU/r2;CPU/r3;CPU/r4;CPU/r5;CPU/r6;CPU/r7;CPU/r8;CPU/r9;CPU/r10;CPU/r11;CPU/r12;CPU/sp(r13);CPU/lr(r14);CPU/pc(r15);CPU/xpsr;CPU/msp;CPU/psp;CPU/cfbp;CPU/internal" binaryNodes="" asciiNodes="" openNodes="CPU - Current Context" name="ot_benchmark_slave" decimalNodes="" octalNodes="" unsignedNodes=""/>
+ </Register3>
+ <Register4>
+  <RegisterWindow visibleNodes="CPU - Current Context/r0;CPU - Current Context/r1;CPU - Current Context/r2;CPU - Current Context/r3;CPU - Current Context/r4;CPU - Current Context/r5;CPU - Current Context/r6;CPU - Current Context/r7;CPU - Current Context/r8;CPU - Current Context/r9;CPU - Current Context/r10;CPU - Current Context/r11;CPU - Current Context/r12;CPU - Current Context/sp(r13);CPU - Current Context/lr(r14);CPU - Current Context/pc(r15);CPU - Current Context/apsr;CPU/r0;CPU/r1;CPU/r2;CPU/r3;CPU/r4;CPU/r5;CPU/r6;CPU/r7;CPU/r8;CPU/r9;CPU/r10;CPU/r11;CPU/r12;CPU/sp(r13);CPU/lr(r14);CPU/pc(r15);CPU/xpsr;CPU/msp;CPU/psp;CPU/cfbp;CPU/internal" binaryNodes="" asciiNodes="" openNodes="CPU - Current Context" name="ot_benchmark_slave" decimalNodes="" octalNodes="" unsignedNodes=""/>
+ </Register4>
+ <Threads>
+  <ThreadsWindow showLists=""/>
+ </Threads>
+ <TraceWindow>
+  <Trace enabled="Yes"/>
+ </TraceWindow>
+ <Watch1>
+  <Watches active="1" update="Never"/>
+ </Watch1>
+ <Watch2>
+  <Watches active="0" update="Never"/>
+ </Watch2>
+ <Watch3>
+  <Watches active="0" update="Never"/>
+ </Watch3>
+ <Watch4>
+  <Watches active="0" update="Never"/>
+ </Watch4>
+ <Files>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="159" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../main.c" selected="0" top="137" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="281" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../components/thread/utils/thread_utils.c" selected="0" top="249" codecName=""/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="71" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../modules/nrfx/mdk/ses_startup_nrf52840.s" selected="1" top="42" codecName=""/>
+ </Files>
+ <ARMCrossStudioWindow activeProject="ot_benchmark_slave" fileDialogDefaultFilter="*.c" autoConnectTarget="J-Link" buildConfiguration="Debug" sessionSettings="" debugSearchFileMap="/home/piko/Documents/project/pikoncs/mbedtls/include/mbedtls/cipher.h&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/include/mbedtls/ssl_ciphersuites.h&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/include/mbedtls/ssl_internal.h&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/arc4.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/asn1parse.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/asn1write.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/base64.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/bignum.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/cipher.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/cipher_wrap.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/ctr_drbg.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/ecjpake.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/hmac_drbg.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/md.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/md_wrap.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/oid.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/pk.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/pk_wrap.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/pkcs5.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/pkparse.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/platform.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/sha512.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/ssl_cli.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/ssl_cookie.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/ssl_srv.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/ssl_tls.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/x509.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/mbedtls/library/x509_crt.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/nrfxlib/nrf_security/src/backend/cc310/replacements/entropy.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/nrfxlib/nrf_security/src/mbedcrypto_glue/aes_alt.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/nrfxlib/nrf_security/src/mbedcrypto_glue/cc310/aes_cc310.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/nrfxlib/nrf_security/src/mbedcrypto_glue/vanilla/aes_vanilla.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/nrfxlib/nrf_security/src/mbedtls/replacements/pem.c&#xa;&#xa;/home/piko/Documents/project/pikoncs/nrfxlib/nrf_security/src/mbedtls/replacements/ssl_ciphersuites.c&#xa;" fileDialogInitialDirectory="/home/robin/Workfolder/P6_Software/Openthread/Thread_SDK/custom/P6_Project/coap" debugSearchPath="" autoConnectCapabilities="3711"/>
+</session>
