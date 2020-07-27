@@ -7,10 +7,10 @@
 /** @file
  *  @brief Nordic Mesh light sample
  */
+#include "bm_config.h"
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/mesh/models.h>
 #include <drivers/hwinfo.h>
-#include "bm_config.h"
 #include "bm_blemesh_model_handler.h"
 #include "bm_blemesh.h"
 #include "bm_simple_buttons_and_leds.h"

@@ -94,7 +94,7 @@ bool bm_report_msg_subscribe(bm_message_info *message_info) {
       bm_cli_log("Warning Sending and Request out of sync...\n");
       synced_delay_ms = 0; // Reset additional Delay
     }
-    if (i > 500 && rec_cnt == 0) { // If no Node is there it should be equal to 5s...
+    if (i > 1000 && rec_cnt == 0) { // If no Node is there it should be equal to 5s...
       bm_cli_log("No reports received\n");
       return false;
     }
@@ -132,6 +132,9 @@ bool bm_report_msg_publish(bm_message_info *message_info) {
       }
     } else if (bm_message_info_entry_ind > 0) {
       bm_cli_log("Warning Sending and Request out of sync...\n");
+    } else if (bm_message_info_entry_ind == 0 && i > 170){ // Should be a timeout of 5 seconds
+      bm_cli_log("Timeout Sending Reports... Is Master close enough?\n");
+      return false;
     }
     //bm_cli_log("hoi %u\n",(uint32_t)message_info[bm_message_info_entry_ind].net_time);
   }
