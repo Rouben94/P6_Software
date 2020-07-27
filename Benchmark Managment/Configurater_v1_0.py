@@ -4,7 +4,7 @@ import serial.tools.list_ports
 import pandas as pd
 import subprocess
 
-COM_PORT_Dongle = ''
+COM_PORT_Master = ''
 
 dirpath = os.getcwd()
 
@@ -16,8 +16,9 @@ ports = list(serial.tools.list_ports.comports())
 for p in ports:
     if 'JLink CDC UART Port' in p.description:
         print('Assume Master on: ' + p.device)
+        COM_PORT_Master = p.device
         ser = serial.Serial(p.device, 115200)
-if (COM_PORT_Dongle == ''):
+if (COM_PORT_Master == ''):
     print('No Master Detected... exit')
     import sys
     sys.exit()
