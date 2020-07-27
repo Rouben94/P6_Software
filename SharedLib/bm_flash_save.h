@@ -1,5 +1,5 @@
 #include "bm_config.h"
-#ifdef NRF_SDK_Zigbee
+#ifdef NRF_SDK_ZIGBEE
 
 #include "fds.h"
 #include "zboss_api.h"

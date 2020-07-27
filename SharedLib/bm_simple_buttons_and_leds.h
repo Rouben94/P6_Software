@@ -152,7 +152,7 @@ bool bm_button0_toggle_state_get();
 */
 void bm_button0_toggle_state_set(bool newstate);
 
-#elif defined NRF_SDK_Zigbee
+#elif defined NRF_SDK_ZIGBEE
 
 #include "boards.h"
 #include "bsp.h"

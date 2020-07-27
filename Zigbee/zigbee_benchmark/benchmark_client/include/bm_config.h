@@ -5,7 +5,7 @@
 #include "stdint.h"
 
 // Change the following to switch the Protokoll Stack and SDK
-#define NRF_SDK_Zigbee
+#define NRF_SDK_ZIGBEE
 //#define ZEPHYR_BLE_MESH
 
 /* =============== Time Sync ===================== */
@@ -36,8 +36,9 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 #define BLE_MESH_TTL 7 // Maybee optimize
 
 /* ================= Zigbee Stuff ====================== */
-#define ZBOSS_MAIN_LOOP_ITERATION_TIME_MARGIN_MS 1000 // Time Margin needed because zboss can block timecheck. note this time will be added to the Stack Init Time
-#define MAX_CHILDREN 10                               /**< The maximum amount of connected devices. Setting this value to 0 disables association to this device.  */
+#define DEFFERED_LOGGING false                        /* Activate Deffered logging. Log data is buffered and can be processed in idle via NRF_LOG_PROCESS() or flushed via NRF_LOG_FLUSH(). If set false logs will be written directly but performance is decreased */
+#define ZBOSS_MAIN_LOOP_ITERATION_TIME_MARGIN_MS 1000 /* Time Margin needed because zboss can block timecheck. note this time will be added to the Stack Init Time */
+#define MAX_CHILDREN 10                               /* The maximum amount of connected devices. Setting this value to 0 disables association to this device.  */
 
 #define IEEE_CHANNEL_MASK (1l << ZIGBEE_CHANNEL) /**< Scan only one, predefined channel to find the coordinator. */
 //#define IEEE_CHANNEL_MASK                   0x07fff800U
@@ -46,7 +47,7 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 #define MATCH_DESC_REQ_START_DELAY (2 * ZB_TIME_ONE_SECOND)  /**< Delay between the light switch startup and light bulb finding procedure. */
 #define MATCH_DESC_REQ_TIMEOUT (5 * ZB_TIME_ONE_SECOND)      /**< Timeout for finding procedure. */
 #define MATCH_DESC_REQ_ROLE ZB_NWK_BROADCAST_RX_ON_WHEN_IDLE /**< Find only non-sleepy device. */
-#define ERASE_PERSISTENT_CONFIG ZB_FALSE                 /**< Do not erase NVRAM to save the network parameters after device reboot or power-off. NOTE: If this option is set to ZB_TRUE then do full device erase for all network devices before running other samples. */
+#define ERASE_PERSISTENT_CONFIG ZB_FALSE                     /**< Do not erase NVRAM to save the network parameters after device reboot or power-off. NOTE: If this option is set to ZB_TRUE then do full device erase for all network devices before running other samples. */
 
 #define BENCHMARK_INIT_BASIC_APP_VERSION 01                                   /* Version of the application software (1 byte). */
 #define BENCHMARK_INIT_BASIC_STACK_VERSION 10                                 /* Version of the implementation of the Zigbee stack (1 byte). */

@@ -11,7 +11,7 @@ extern "C" {
 #include <zephyr.h>
 // Global Printing Function for Printing Log Info
 void bm_cli_log(const char *fmt, ...);
-#elif defined NRF_SDK_Zigbee
+#elif defined NRF_SDK_ZIGBEE
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 #define bm_cli_log(...) NRF_LOG_RAW_INFO(__VA_ARGS__)
@@ -45,7 +45,7 @@ extern bm_cli_cmd_startBM_t bm_cli_cmd_startBM;
 
 #ifdef ZEPHYR_BLE_MESH
 
-#elif defined NRF_SDK_Zigbee
+#elif defined NRF_SDK_ZIGBEE
 
 void bm_cli_start(void);
 
@@ -55,7 +55,7 @@ void bm_cli_process(void);
 
 #endif
 #endif
-#ifdef NRF_SDK_Zigbee
+#ifdef NRF_SDK_ZIGBEE
 
 void bm_cli_init(void);
 

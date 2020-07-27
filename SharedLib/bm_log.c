@@ -1,7 +1,7 @@
 #include "bm_log.h"
 #include "bm_cli.h"
 #include "bm_config.h"
-#ifdef NRF_SDK_Zigbee
+#ifdef NRF_SDK_ZIGBEE
 #include "bm_flash_save.h"
 #elif defined ZEPHYR_BLE_MESH
 #include <zephyr.h>
@@ -58,7 +58,7 @@ void bm_log_append_ram(bm_message_info message)
 
 void bm_log_clear_flash()
 {
-#ifdef NRF_SDK_Zigbee
+#ifdef NRF_SDK_ZIGBEE
   flash_delete();
   bm_cli_log("Flash Data deleted\n");
 #elif defined ZEPHYR_BLE_MESH
@@ -74,7 +74,7 @@ void bm_log_clear_flash()
 
 void bm_log_save_to_flash()
 {
-#ifdef NRF_SDK_Zigbee
+#ifdef NRF_SDK_ZIGBEE
   uint16_t bm_message_cnt_flash = 0;
   while (bm_message_cnt_flash < bm_message_cnt)
   {
@@ -107,7 +107,7 @@ void bm_log_save_to_flash()
 #endif
 }
 
-#ifdef NRF_SDK_Zigbee
+#ifdef NRF_SDK_ZIGBEE
 /* Callback function to read Benchmark Message Info data from Flash. */
 void bm_log_load_from_flash_cb(Measurement *data)
 {
@@ -119,7 +119,7 @@ void bm_log_load_from_flash_cb(Measurement *data)
 uint32_t bm_log_load_from_flash()
 {
   bm_message_cnt = 0;
-#ifdef NRF_SDK_Zigbee
+#ifdef NRF_SDK_ZIGBEE
   flash_read();
 #elif defined ZEPHYR_BLE_MESH
   uint32_t i, offset;  
@@ -146,7 +146,7 @@ uint32_t bm_log_load_from_flash()
 
 void bm_log_init()
 {
-#ifdef NRF_SDK_Zigbee
+#ifdef NRF_SDK_ZIGBEE
   flash_save_init(bm_log_load_from_flash_cb);
 #elif defined ZEPHYR_BLE_MESH
   flash_dev = device_get_binding(DT_CHOSEN_ZEPHYR_FLASH_CONTROLLER_LABEL);
