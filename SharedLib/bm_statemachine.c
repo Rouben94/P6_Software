@@ -47,6 +47,7 @@ IV.    if yess -> change to next state*/
 #define ST_INIT_BENCHMARK_TIME_MS 10000 // Time required to init the Mesh Stack
 // The Benchmark time is obtained by the arameters from Timesync
 #define ST_BENCHMARK_MIN_GAP_TIME_US 1000 // Minimal Gap Time to not exit the interrupt context while waiting for another package.
+#define ST_BENCHMARK_ADDITIONAL_WAIT_TIME_MS 1500 // Additional Waittime for finishing the Benchmark State (if all transitions are at the end)
 #define ST_SAVE_FLASH_TIME_MS 1000        // Time required to Save Log to Flash
 
 #define ST_MARGIN_TIME_MS 5            // Margin for State Transition (Let the State Terminate)
@@ -307,7 +308,7 @@ void ST_BENCHMARK_fn(void) {
   synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb);               // Shedule the Timestamp event
   bm_cli_log("Sheduled first Message at %u, now is %u, start time was %u\n", (uint32_t)next_state_ts_us, (uint32_t)synctimer_getSyncTime(), (uint32_t)start_time_ts_us);
 #else
-  next_state_ts_us = (start_time_ts_us + bm_params.benchmark_time_s * 1e6 + ST_MARGIN_TIME_MS * 1000);
+  next_state_ts_us = (start_time_ts_us + bm_params.benchmark_time_s * 1e6 + ST_MARGIN_TIME_MS * 1000 + ST_BENCHMARK_ADDITIONAL_WAIT_TIME_MS * 1000);
   synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb); // Shedule the Timestamp event
   benchmark_messageing_done = true;
 #endif
@@ -346,7 +347,7 @@ void ST_BENCHMARK_msg_cb(void) {
     return;                                                              // Return immidiatly to save time and prevent wait for transition errors
   } else {
     //Finish Benchmark
-    next_state_ts_us = (start_time_ts_us + bm_params.benchmark_time_s * 1e6 + ST_MARGIN_TIME_MS * 1000);
+    next_state_ts_us = (start_time_ts_us + bm_params.benchmark_time_s * 1e6 + ST_MARGIN_TIME_MS * 1000 + ST_BENCHMARK_ADDITIONAL_WAIT_TIME_MS * 1000);
     synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb); // Shedule the Timestamp event
     benchmark_messageing_done = true;
   }

@@ -12,28 +12,31 @@
 
 void bm_cli_write_result(bm_message_info message_info)
 {
-    char buf1[50] = {"\0"};
-    char buf2[50] = {"\0"};
-    char buf3[50] = {"\0"};
-    char buf4[50] = {"\0"};
-    char buf5[50] = {"\0"};
+    char buf[9][50] = {"\0"};
+    char bm_result_cli[100] = {"\0"};
 
-    sprintf(buf1, "ID: %u, ", message_info.message_id);
-    sprintf(buf2, "Time: %u us, ", message_info.net_time);
-    sprintf(buf3, "Hops: %u, ", message_info.number_of_hops);
-    sprintf(buf4, "RSSI: %d dB, ", message_info.RSSI);
+    strcpy(bm_result_cli, "<report> ");
+    sprintf(buf[0], "%u ", message_info.message_id);
+    sprintf(buf[1], "%u ", message_info.net_time);
+    sprintf(buf[2], "%u ", message_info.net_time_ack);
+    sprintf(buf[3], "%u ", message_info.number_of_hops);
+    sprintf(buf[4], "%d ", message_info.RSSI);
+    sprintf(buf[5], "%x ", message_info.source_address.mFields.m16[7]);
+    sprintf(buf[6], "%x ", message_info.dest_address.mFields.m16[7]);
+    sprintf(buf[7], "%x ", message_info.grp_address.mFields.m16[7]);
 
     if (message_info.data_size)
     {
-        sprintf(buf5, "Data: 1024 byte \r\n");
+        sprintf(buf[8], "8192\r\n");
     } else if (!message_info.data_size)
     {
-        sprintf(buf5, "Data: 1 bit \r\n");
+        sprintf(buf[8], "16\r\n");
     }
-    
-    otCliOutput(buf1, sizeof(buf1));
-    otCliOutput(buf2, sizeof(buf2));
-    otCliOutput(buf3, sizeof(buf3));
-    otCliOutput(buf4, sizeof(buf4));
-    otCliOutput(buf5, sizeof(buf5));
+
+    for(int i=0; i<9; i++)
+    {
+        strcat(bm_result_cli, buf[i]);
+    }
+
+    otCliOutput(bm_result_cli, sizeof(bm_result_cli));
 }

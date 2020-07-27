@@ -13,6 +13,7 @@
 #include "bm_blemesh_model_handler.h"
 #include "bm_blemesh.h"
 #include "bm_simple_buttons_and_leds.h"
+#include "bm_config.h"
 
 
 
@@ -128,8 +129,7 @@ static void bt_ready(int err){
 	{
 		settings_load();
 	}
-	err = bt_mesh_provision(net_key, net_idx, flags, iv_index, addr,
-							dev_key);
+	err = bt_mesh_provision(net_key, net_idx, flags, iv_index, addr, dev_key);
 	if (err == -EALREADY)
 	{
 		printk("Already Provisioned (Restored Settings)\n");
@@ -173,8 +173,12 @@ void bm_blemesh_enable(void)
 	bt_mesh_cfg_app_key_add(net_idx, addr, net_idx, app_idx, app_key, &stat);
 	printk("Err Code: %d\n", stat);
 	/* Bind to Generic ON/OFF Model */
+#ifdef BENCHMARK_CLIENT
 	bt_mesh_cfg_mod_app_bind(net_idx, addr, addr, app_idx,
 							 BT_MESH_MODEL_ID_GEN_ONOFF_SRV, &stat);
+	printk("Err Code: %d\n", stat);
+#endif
+#ifdef BENCHMARK_SERVER
 	bt_mesh_cfg_mod_app_bind(net_idx, addr, addr, app_idx,
 							 BT_MESH_MODEL_ID_GEN_ONOFF_CLI, &stat);
 	printk("Err Code: %d\n", stat);
@@ -182,6 +186,8 @@ void bm_blemesh_enable(void)
 	bt_mesh_cfg_mod_sub_add(net_idx, addr, addr, GROUP_ADDR + bm_params.GroupAddress,
 							BT_MESH_MODEL_ID_GEN_ONOFF_SRV, &stat);
 	printk("Err Code: %d\n", stat);
+#endif
+#ifdef BENCHMARK_CLIENT
 	/* Add model publishing */
 	struct bt_mesh_cfg_mod_pub pub = {
 		.addr = GROUP_ADDR + bm_params.GroupAddress,
@@ -191,7 +197,7 @@ void bm_blemesh_enable(void)
 	bt_mesh_cfg_mod_pub_set(net_idx, addr, addr, BT_MESH_MODEL_ID_GEN_ONOFF_CLI,
 						 &pub, &stat);
 	printk("Err Code: %d\n",stat);
-	
+#endif
 	printk("Configuring done\n");
 
 	bm_led0_set(true); // Signal that the Configuring was sucessfull
