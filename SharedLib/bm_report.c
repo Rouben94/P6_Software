@@ -77,8 +77,10 @@ bool bm_report_msg_subscribe(bm_message_info *message_info) {
           bm_cli_log("%x ", message_info[i].dst_addr);
           bm_cli_log("%x ", message_info[i].group_addr);
           bm_cli_log("\r\n");
+#ifdef NRF_SDK_Zigbee
           NRF_LOG_PROCESS();
           bm_cli_process();
+#endif
         }
         return true; // Finish here
       }

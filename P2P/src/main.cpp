@@ -32,7 +32,7 @@ along with P2P-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 #define CommonMode NRF_RADIO_MODE_BLE_LR125KBIT		// Common Mode
 #define CommonStartCH 37							// Common Start Channel
 #define CommonEndCH 39								// Common End Channel
-#define CommonCHCnt CommonEndCH - CommonStartCH + 1 // Common Channel Count
+#define CommonCHCnt (CommonEndCH - CommonStartCH + 1) // Common Channel Count
 // Selection Between nrf52840 and nrf5340 of TxPower -> The highest available for Common Channel is recomended
 #if defined(RADIO_TXPOWER_TXPOWER_Pos8dBm) || defined(__NRFX_DOXYGEN__)
 #define CommonTxPower NRF_RADIO_TXPOWER_POS8DBM // Common Tx Power < 8 dBm
