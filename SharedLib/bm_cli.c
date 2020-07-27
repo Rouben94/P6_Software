@@ -6,7 +6,7 @@
 #include <shell/shell.h>
 #include <stdlib.h>
 #include <zephyr.h>
-#elif defined NRF_SDK_Zigbee
+#elif defined NRF_SDK_ZIGBEE
 #include "boards.h"
 #include "nrf_log_default_backends.h"
 
@@ -54,7 +54,7 @@ void bm_cli_log(const char *fmt, ...) {
   // Zephyr way to Log info
   printk(fmt);
 }
-#elif defined NRF_SDK_Zigbee
+#elif defined NRF_SDK_ZIGBEE
 #ifdef BENCHMARK_MASTER
 
 #if NRF_LOG_BACKEND_CRASHLOG_ENABLED
@@ -71,17 +71,10 @@ APP_TIMER_DEF(m_timer_0);
 
 NRF_CLI_LIBUARTE_DEF(m_cli_libuarte_transport, 256, 256);
 NRF_CLI_DEF(m_cli_libuarte,
-            "libuarte_cli:~$ ",
-            &m_cli_libuarte_transport.transport,
-            '\r',
-            CLI_EXAMPLE_LOG_QUEUE_SIZE);
-
-//NRF_CLI_UART_DEF(m_cli_uart_transport, 0, 64, 16);
-//NRF_CLI_DEF(m_cli_uart,
-//    "uart_cli:~$ ",
-//    &m_cli_uart_transport.transport,
-//    '\r',
-//    CLI_EXAMPLE_LOG_QUEUE_SIZE);
+    "libuarte_cli:~$ ",
+    &m_cli_libuarte_transport.transport,
+    '\r',
+    CLI_EXAMPLE_LOG_QUEUE_SIZE);
 
 static void timer_handle(void *p_context) {
   UNUSED_PARAMETER(p_context);
@@ -92,18 +85,10 @@ static void cli_start(void) {
 
   ret = nrf_cli_start(&m_cli_libuarte);
   APP_ERROR_CHECK(ret);
-  //  ret = nrf_cli_start(&m_cli_uart);
-  //  APP_ERROR_CHECK(ret);
 }
 
 static void cli_init(void) {
   ret_code_t ret;
-
-  //  nrf_drv_uart_config_t uart_config = NRF_DRV_UART_DEFAULT_CONFIG;
-  //  uart_config.pseltxd = TX_PIN_NUMBER;
-  //  uart_config.pselrxd = RX_PIN_NUMBER;
-  //  uart_config.hwfc = NRF_UART_HWFC_DISABLED;
-  //  ret = nrf_cli_init(&m_cli_uart, &uart_config, true, true, NRF_LOG_SEVERITY_INFO);
 
   cli_libuarte_config_t libuarte_config;
   libuarte_config.tx_pin = TX_PIN_NUMBER;
@@ -114,14 +99,14 @@ static void cli_init(void) {
   ret = nrf_cli_init(&m_cli_libuarte, &libuarte_config, true, true, NRF_LOG_SEVERITY_INFO);
   APP_ERROR_CHECK(ret);
 
-  APP_ERROR_CHECK(ret);
-}
-
-void bm_cli_process(void) {
-    nrf_cli_process(&m_cli_libuarte);
-    //  nrf_cli_process(&m_cli_uart);
 }
 #endif
+void bm_cli_process(void) {
+#ifdef BENCHMARK_MASTER
+  nrf_cli_process(&m_cli_libuarte);
+//  nrf_cli_process(&m_cli_uart);
+#endif
+}
 void bm_cli_init(void) {
 #ifdef BENCHMARK_MASTER
   ret_code_t ret;
@@ -140,20 +125,18 @@ void bm_cli_init(void) {
   APP_ERROR_CHECK(ret);
 
   cli_init();
-
   cli_start();
 
-  NRF_LOG_RAW_INFO("Command Line Interface example started.\n");
   NRF_LOG_RAW_INFO("Please press the Tab key to see all available commands.\n");
 #endif
 }
 
 void bm_cli_log_init(void) {
-#ifdef BENCHMARK_MASTER
-  APP_ERROR_CHECK(NRF_LOG_INIT(app_timer_cnt_get));
-#else
+//#ifdef BENCHMARK_MASTER
+//  APP_ERROR_CHECK(NRF_LOG_INIT(app_timer_cnt_get));
+//#else
   APP_ERROR_CHECK(NRF_LOG_INIT(NULL));
-#endif
+//#endif
   NRF_LOG_DEFAULT_BACKENDS_INIT();
 }
 #endif

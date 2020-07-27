@@ -40,6 +40,7 @@
 
 #ifndef SDK_CONFIG_H
 #define SDK_CONFIG_H
+#include "bm_config.h"
 // <<< Use Configuration Wizard in Context Menu >>>\n
 #ifdef USE_APP_CONFIG
 #include "app_config.h"
@@ -387,7 +388,6 @@
 
 // </e>
 
-
 // <h> nRF_Segger_RTT
 
 //==========================================================
@@ -432,7 +432,6 @@
 #endif
 
 /************************************************************************************************************************/
-
 
 // <h> Zigbee
 
@@ -2342,7 +2341,7 @@
 // <i> Log data is buffered and can be processed in idle.
 
 #ifndef NRF_LOG_DEFERRED
-#define NRF_LOG_DEFERRED 0
+#define NRF_LOG_DEFERRED DEFFERED_LOGGING
 #endif
 
 // <q> NRF_LOG_FILTERS_ENABLED  - Enable dynamic filtering of logs.
@@ -2359,20 +2358,6 @@
 
 #ifndef NRF_LOG_NON_DEFFERED_CRITICAL_REGION_ENABLED
 #define NRF_LOG_NON_DEFFERED_CRITICAL_REGION_ENABLED 0
-#endif
-
-// <o> NRF_LOG_STR_PUSH_BUFFER_SIZE  - Size of the buffer dedicated for strings stored using @ref NRF_LOG_PUSH.
-
-// <16=> 16
-// <32=> 32
-// <64=> 64
-// <128=> 128
-// <256=> 256
-// <512=> 512
-// <1024=> 1024
-
-#ifndef NRF_LOG_STR_PUSH_BUFFER_SIZE
-#define NRF_LOG_STR_PUSH_BUFFER_SIZE 128
 #endif
 
 // <o> NRF_LOG_STR_PUSH_BUFFER_SIZE  - Size of the buffer dedicated for strings stored using @ref NRF_LOG_PUSH.

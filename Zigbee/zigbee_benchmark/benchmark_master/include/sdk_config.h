@@ -40,6 +40,7 @@
 
 #ifndef SDK_CONFIG_H
 #define SDK_CONFIG_H
+#include "bm_config.h"
 // <<< Use Configuration Wizard in Context Menu >>>\n
 #ifdef USE_APP_CONFIG
 #include "app_config.h"
@@ -1853,7 +1854,7 @@
 // <268435456=> 1000000 baud
 
 #ifndef NRFX_UART_DEFAULT_CONFIG_BAUDRATE
-#define NRFX_UART_DEFAULT_CONFIG_BAUDRATE 30924800
+#define NRFX_UART_DEFAULT_CONFIG_BAUDRATE 30801920
 #endif
 
 // <o> NRFX_UART_DEFAULT_CONFIG_IRQ_PRIORITY  - Interrupt priority
@@ -2878,7 +2879,7 @@
 // <16384=> 16384
 
 #ifndef NRF_LOG_BUFSIZE
-#define NRF_LOG_BUFSIZE 4096
+#define NRF_LOG_BUFSIZE 16384
 #endif
 
 // <q> NRF_LOG_CLI_CMDS  - Enable CLI commands for the module.
@@ -2934,21 +2935,7 @@
 // <1024=> 1024
 
 #ifndef NRF_LOG_STR_PUSH_BUFFER_SIZE
-#define NRF_LOG_STR_PUSH_BUFFER_SIZE 128
-#endif
-
-// <o> NRF_LOG_STR_PUSH_BUFFER_SIZE  - Size of the buffer dedicated for strings stored using @ref NRF_LOG_PUSH.
-
-// <16=> 16
-// <32=> 32
-// <64=> 64
-// <128=> 128
-// <256=> 256
-// <512=> 512
-// <1024=> 1024
-
-#ifndef NRF_LOG_STR_PUSH_BUFFER_SIZE
-#define NRF_LOG_STR_PUSH_BUFFER_SIZE 128
+#define NRF_LOG_STR_PUSH_BUFFER_SIZE 1024
 #endif
 
 // <e> NRF_LOG_USES_COLORS - If enabled then ANSI escape code for colors is prefixed to every string

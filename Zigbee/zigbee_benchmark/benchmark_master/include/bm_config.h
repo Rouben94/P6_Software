@@ -5,7 +5,7 @@
 #include "stdint.h"
 
 // Change the following to switch the Protokoll Stack and SDK
-#define NRF_SDK_Zigbee
+#define NRF_SDK_ZIGBEE
 //#define ZEPHYR_BLE_MESH
 
 /* =============== Time Sync ===================== */
@@ -36,6 +36,7 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 #define BLE_MESH_TTL 7 // Maybee optimize
 
 /* ================= Zigbee Stuff ====================== */
+#define DEFFERED_LOGGING false                        /* Activate Deffered logging. Log data is buffered and can be processed in idle via NRF_LOG_PROCESS() or flushed via NRF_LOG_FLUSH(). If set false logs will be written directly but performance is decreased */
 #define ZBOSS_MAIN_LOOP_ITERATION_TIME_MARGIN_MS 1000 // Time Margin needed because zboss can block timecheck. note this time will be added to the Stack Init Time
 #define MAX_CHILDREN 10                               /**< The maximum amount of connected devices. Setting this value to 0 disables association to this device.  */
 
@@ -56,8 +57,8 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 #define GROUP_ID 0xB331              /* Group ID to send Benchmark message to.*/
 
 /* =============== CLI Parameters ===================== */
-#define CLI_EXAMPLE_LOG_QUEUE_SIZE (4) /* Command line interface instance */
+//#define CLI_EXAMPLE_LOG_QUEUE_SIZE (4) /* Command line interface instance */
 #define USBD_POWER_DETECTION true      /*Enable power USB detection. Configure if example supports USB port connection*/
-#define NRF_LOG_SUBMODULE_NAME cli     /* Name of the submodule used for logger messaging.*/
+//#define NRF_LOG_SUBMODULE_NAME cli     /* Name of the submodule used for logger messaging.*/
 
 #endif //BM_ZIGBEE_H

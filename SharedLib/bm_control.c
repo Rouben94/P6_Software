@@ -10,7 +10,7 @@
 
 #ifdef ZEPHYR_BLE_MESH
 #include <zephyr.h>
-#elif defined NRF_SDK_Zigbee
+#elif defined NRF_SDK_ZIGBEE
 #endif
 
 #define msg_time_ms 5            // Time needed for one message

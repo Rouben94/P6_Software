@@ -216,7 +216,7 @@ static void light_bulb_set_brightness(zb_uint8_t brightness_level) {
   * @param[in]   new_level   Light bulb brightness value.
  */
 static void level_control_set_value(zb_uint16_t new_level) {
-  NRF_LOG_INFO("Set level value: %i\n", new_level);
+  bm_cli_log("Set level value: %i\n", new_level);
 
   ZB_ZCL_SET_ATTRIBUTE(BENCHMARK_SERVER_ENDPOINT,
       ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL,
@@ -252,7 +252,7 @@ static void level_control_set_value(zb_uint16_t new_level) {
  * @param[in]   on   Boolean light bulb state.
  */
 static void on_off_set_value(zb_bool_t on) {
-  NRF_LOG_INFO("Set ON/OFF value: %i\n", on);
+  bm_cli_log("Set ON/OFF value: %i\n", on);
 
   ZB_ZCL_SET_ATTRIBUTE(BENCHMARK_SERVER_ENDPOINT,
       ZB_ZCL_CLUSTER_ID_ON_OFF,
@@ -281,7 +281,7 @@ zb_void_t bm_button_handler(zb_uint8_t button) {
   zb_ret_t zb_err_code;
   zb_uint8_t random_level_value;
 
-  NRF_LOG_INFO("Button pressed: %d\n", button);
+  bm_cli_log("Button pressed: %d\n", button);
 
   current_time = ZB_TIMER_GET();
 
@@ -291,7 +291,7 @@ zb_void_t bm_button_handler(zb_uint8_t button) {
     break;
 
   default:
-    NRF_LOG_INFO("Unhandled BSP Event received: %d\n", button);
+    bm_cli_log("Unhandled BSP Event received: %d\n", button);
     return;
   }
 
@@ -310,11 +310,11 @@ static void buttons_handler(bsp_event_t evt) {
   switch (evt) {
   case BSP_EVENT_KEY_0:
     button = DONGLE_BUTTON_ON;
-    NRF_LOG_INFO("BUTTON pressed\n");
+    bm_cli_log("BUTTON pressed\n");
     break;
 
   default:
-    NRF_LOG_INFO("Unhandled BSP Event received: %d\n", evt);
+    bm_cli_log("Unhandled BSP Event received: %d\n", evt);
     break;
   }
   if (!m_device_ctx.button.in_progress) {
@@ -344,7 +344,7 @@ static zb_void_t add_group_id(zb_bufid_t bufid) {
   local_node_short_addr = zb_address_short_by_ieee(local_node_ieee_addr);
   local_node_addr_len = ieee_addr_to_str(local_nodel_ieee_addr_buf, sizeof(local_nodel_ieee_addr_buf), local_node_ieee_addr);
 
-  NRF_LOG_INFO("Include device 0x%x, ep %d to the group 0x%x\n", local_node_short_addr, BENCHMARK_SERVER_ENDPOINT, groupID);
+  bm_cli_log("Include device 0x%x, ep %d to the group 0x%x\n", local_node_short_addr, BENCHMARK_SERVER_ENDPOINT, groupID);
 
   ZB_ZCL_GROUPS_SEND_ADD_GROUP_REQ(bufid,
       local_node_short_addr,
@@ -381,14 +381,14 @@ void bm_receive_message(zb_bufid_t bufid) {
   message.dst_addr = zb_address_short_by_ieee(ieee_dst_addr);
   message.group_addr = GROUP_ID;
 
-  /* TODO: Number of hops is not available yet */
+  /* TODO: Number of hops is not available yet from the ZBOSS API */
   message.number_of_hops = 0;
   message.data_size = 0;
 
   zb_zdo_get_diag_data(message.src_addr, &lqi, &rssi);
   message.rssi = rssi;
 
-  NRF_LOG_INFO("Benchmark Packet received with ID: %d from Src Address: 0x%x to Destination 0x%x with RSSI: %d, LQI: %d, Time: %llu\n", message.message_id, message.src_addr, message.dst_addr, rssi, lqi, message.net_time);
+  bm_cli_log("Benchmark Packet received with ID: %d from Src Address: 0x%x to Destination 0x%x with RSSI: %d, LQI: %d, Time: %llu\n", message.message_id, message.src_addr, message.dst_addr, rssi, lqi, message.net_time);
 
   bm_log_append_ram(message);
 }
@@ -404,9 +404,8 @@ void bm_receive_message(zb_bufid_t bufid) {
  */
 static zb_uint8_t bm_zcl_handler(zb_bufid_t bufid) {
   zb_zcl_parsed_hdr_t cmd_info;
-
   ZB_ZCL_COPY_PARSED_HEADER(bufid, &cmd_info);
-  NRF_LOG_INFO("%s with Endpoint ID: %hd, Cluster ID: %d\n", __func__, cmd_info.addr_data.common_data.dst_endpoint, cmd_info.cluster_id);
+  //  bm_cli_log("%s with Endpoint ID: %hd, Cluster ID: %d\n", __func__, cmd_info.addr_data.common_data.dst_endpoint, cmd_info.cluster_id);
 
   if (cmd_info.cluster_id == ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL) {
 
@@ -432,14 +431,14 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid) {
   zb_uint8_t attr_id;
   zb_zcl_device_callback_param_t *p_device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
 
-  NRF_LOG_INFO("zcl_device_cb id %hd\n", p_device_cb_param->device_cb_id);
+  //  bm_cli_log("zcl_device_cb id %hd\n", p_device_cb_param->device_cb_id);
 
   /* Set default response value. */
   p_device_cb_param->status = RET_OK;
 
   switch (p_device_cb_param->device_cb_id) {
   case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
-    NRF_LOG_INFO("Level control setting to %d\n", p_device_cb_param->cb_param.level_control_set_value_param.new_value);
+    //    bm_cli_log("Level control setting to %d\n", p_device_cb_param->cb_param.level_control_set_value_param.new_value);
     level_control_set_value(p_device_cb_param->cb_param.level_control_set_value_param.new_value);
     break;
 
@@ -450,20 +449,20 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid) {
     if (cluster_id == ZB_ZCL_CLUSTER_ID_ON_OFF) {
       uint8_t value = p_device_cb_param->cb_param.set_attr_value_param.values.data8;
 
-      NRF_LOG_INFO("on/off attribute setting to %hd\n", value);
+      bm_cli_log("on/off attribute setting to %hd\n", value);
       if (attr_id == ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID) {
         on_off_set_value((zb_bool_t)value);
       }
     } else if (cluster_id == ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL) {
       uint16_t value = p_device_cb_param->cb_param.set_attr_value_param.values.data16;
 
-      NRF_LOG_INFO("level control attribute setting to %hd\n", value);
+      bm_cli_log("level control attribute setting to %hd\n", value);
       if (attr_id == ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID) {
         level_control_set_value(value);
       }
     } else {
       /* Other clusters can be processed here */
-      NRF_LOG_INFO("Unhandled cluster attribute id: %d\n", cluster_id);
+      bm_cli_log("Unhandled cluster attribute id: %d\n", cluster_id);
     }
     break;
 
@@ -484,36 +483,20 @@ void zboss_signal_handler(zb_bufid_t bufid) {
   zb_ret_t status = ZB_GET_APP_SIGNAL_STATUS(bufid);
   zb_ret_t zb_err_code;
 
-  NRF_LOG_INFO("Signal Received, %d\n", sig);
-
   /* Update network status LED */
   zigbee_led_status_update(bufid, ZIGBEE_NETWORK_STATE_LED);
 
   switch (sig) {
   case ZB_BDB_SIGNAL_STEERING:
-    NRF_LOG_INFO("Zigbee Network Steering\n");
+    bm_cli_log("Zigbee Network Steering\n");
     ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid)); /* Call default signal handler. */
     if (status == RET_OK) {
       /* Schedule Add Group ID request */
       zb_err_code = ZB_SCHEDULE_APP_ALARM(add_group_id, bufid, 2 * ZB_TIME_ONE_SECOND);
       ZB_ERROR_CHECK(zb_err_code);
 
-      /* Read local node address */
-      //      zb_get_long_address(local_node_ieee_addr);
-      //      local_node_short_addr = zb_address_short_by_ieee(local_node_ieee_addr);
-      //      local_node_addr_len = ieee_addr_to_str(local_nodel_ieee_addr_buf, sizeof(local_nodel_ieee_addr_buf), local_node_ieee_addr);
-      //      NRF_LOG_INFO("Network Steering finished with Local Node Address: Short: 0x%x, IEEE/Long: 0x%s", local_node_short_addr, local_nodel_ieee_addr_buf);
       bufid = 0; // Do not free buffer - it will be reused by find_light_bulb callback.
     }
-    //  case ZB_BDB_SIGNAL_DEVICE_REBOOT:
-    //    ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid)); /* Call default signal handler. */
-    //    if (status == RET_OK) {
-    //      /* Read local node address */
-    //      zb_get_long_address(local_node_ieee_addr);
-    //      local_node_short_addr = zb_address_short_by_ieee(local_node_ieee_addr);
-    //      local_node_addr_len = ieee_addr_to_str(local_nodel_ieee_addr_buf, sizeof(local_nodel_ieee_addr_buf), local_node_ieee_addr);
-    //      NRF_LOG_INFO("Node restarted with Local Node Address: Short: 0x%x, IEEE/Long: 0x%s", local_node_short_addr, local_nodel_ieee_addr_buf);
-    //    }
     break;
   default:
     /* No application-specific behavior is required. Call default signal handler. */
@@ -539,7 +522,7 @@ void bm_zigbee_init(void) {
   ZB_SET_TRAF_DUMP_OFF();
 
   /* Initialize Zigbee stack. */
-  ZB_INIT("led_bulb");
+  ZB_INIT("Benchmark Server");
 
   /* Set device address to the value read from FICR registers. */
   zb_osif_get_ieee_eui64(ieee_addr);
