@@ -61,6 +61,7 @@ bool bm_control_msg_subscribe(bm_control_msg_t *bm_control_msg)
         for (int ch = CommonStartCH; ch <= CommonEndCH; ch++)
         {
             bm_radio_setCH(ch);
+            bm_cli_log("Time: %u\n",msg_time_ms * msg_cnt * CommonCHCnt);
             if (bm_radio_receive(&Radio_Packet_RX, msg_time_ms * msg_cnt * CommonCHCnt))
             {
                 bm_cli_log("Control Message received\n");

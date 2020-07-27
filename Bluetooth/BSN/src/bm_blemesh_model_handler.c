@@ -211,8 +211,11 @@ static struct bt_mesh_elem elements[] = {
 			BT_MESH_MODEL_CFG_SRV(&cfg_srv),
 			BT_MESH_MODEL_CFG_CLI(&cfg_cli),
 			BT_MESH_MODEL_HEALTH_SRV(&health_srv, &health_pub),
+//#ifdef BENCHMARK_CLIENT
 			BT_MESH_MODEL_ONOFF_CLI(&on_off_cli),
+//#else
 			BT_MESH_MODEL_ONOFF_SRV(&on_off_srv)),
+//#endif
 		BT_MESH_MODEL_NONE)
 };
 
