@@ -24,7 +24,7 @@ class Node(models.Model):
 
 
 class Channel(models.Model):
-    ch = models.CharField(max_length=255, unique=False)
+    ch = models.IntegerField(unique=False)
     signal_to_noise_ratio = models.CharField(max_length=255)
     packetloss = models.CharField(max_length=255)
     node = models.ForeignKey(Node, on_delete=models.CASCADE)
