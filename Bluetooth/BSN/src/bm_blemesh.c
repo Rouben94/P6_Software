@@ -196,6 +196,7 @@ void bm_blemesh_enable(void)
 	bt_mesh_cfg_mod_pub_set(net_idx, addr, addr, BT_MESH_MODEL_ID_GEN_ONOFF_CLI,
 						 &pub, &stat);
 	printk("Err Code: %d\n",stat);
+#endif
 	
 	printk("Configuring done\n");
 
