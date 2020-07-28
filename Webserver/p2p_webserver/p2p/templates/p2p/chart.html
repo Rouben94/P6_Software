@@ -1,0 +1,74 @@
+{% extends 'p2p/base_p2p.html' %}
+{% block content %}
+
+<h2>Bar Chart</h2>
+<p>Bar chart of the nodes and the channels</p>
+
+<div id="accordion">
+  {% for node in nodes %}
+  <h3>Node MAC Address: {{ node.mac }}</h3>
+  <div id={{ node.mac }}>
+    <script type="text/javascript">
+      var mac = '{{ node.mac }}'
+      var xValue = [];
+      var yValue = [];
+
+      {% for channel in node.channel_set.all %}
+      xValue.push('Channel ' + '{{ channel.ch }}');
+      yValue.push(parseInt('{{ channel.packetloss }}', 10));
+      {% endfor %}
+
+      var trace1 = {
+        x: xValue,
+        y: yValue,
+        name: "Node 1",
+        type: 'bar',
+        text: yValue.map(String),
+        textposition: 'auto',
+        hoverinfo: 'none',
+        opacity: 0.75,
+      };
+
+      var data = [trace1];
+
+      var layout = {
+        xaxis: {
+          title: ('MAC[' + mac + ']'),
+          titlefont: {
+            size: 16,
+            color: 'rgb(107, 107, 107)'
+          }, barmode: 'group'
+        },
+        yaxis: {
+          title: 'Packet loss [%]',
+          titlefont: {
+            size: 16,
+            color: 'rgb(107, 107, 107)'
+          }, barmode: 'group'
+        }
+      };
+
+      Plotly.newPlot(mac, data, layout);
+
+      setInterval(function () {
+        /* $(("#accordion")).load(("chart #accordion")); */
+        $(("#" + mac)).load(("chart #" + mac));
+        Plotly.redraw(mac);
+        /* $(("#" + mac)).load(("chart #" + mac)); */
+      }, 1000); //refresh every second
+    </script>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- <script>
+  setInterval(function () {
+    {% for node in nodes %}
+    var mac = '{{ node.mac }}'
+    Plotly.redraw(mac);
+    /* $('#accordion').load('chart #accordion'); */
+    {% endfor %}
+  }, 1000); //refresh every second
+</script> -->
+
+{% endblock %}
