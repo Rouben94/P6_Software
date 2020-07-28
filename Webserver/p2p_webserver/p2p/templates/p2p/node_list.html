@@ -1,0 +1,59 @@
+{% extends 'p2p/base_p2p.html' %}
+
+{% block content %}
+
+{% if messages %}
+  {% for message in messages %}
+   {% if message.tags %}  <script>alert("{{ message }}")</script> {% endif %}
+  {% endfor %}
+{% endif %}
+
+<script>
+  setInterval(function(){
+    $( "#node_table" ).load( "node #node_table" );
+  }, 1000); //refresh every second
+</script>
+
+<h2>Node list</h2>
+  <p>The parameters can be set below:</p> 
+  <br>
+  <p>
+    <form action="/node" method="post">
+      {% csrf_token %}
+      <p> 
+        <h4>Channel Selection and Payload</h4> <p><b>Start Channel: {{ form.start_channel }} Stop Channel: {{ form.stop_channel }} Payload: {{ form.size }}</b></p> 
+        <br>
+        <h4>Mode Selection</h4> <p><b>Mode: {{ form.mode }} CCMA CA: {{ form.ccma_ca }} Transmit Power: {{ form.tx_power }}</b></p> 
+      </p>
+      <p>
+        <br>
+        <input type="submit" value="Set Parameters" class="btn btn-dark navbar-btn">
+      </p>
+    </form>
+  </p>
+  <div id="node_table">
+    <table class="table table-dark table-striped">
+      <thead>
+        <tr>
+          <th>Nodes <p>[MAC]</p> </th>
+          {% with nodes|first as node %}
+            {% for channel in node.channel_set.all %}
+              <th>Channel: {{ channel.ch }} <p>[Packet loss | SNR]</p> </th>
+            {% endfor %}
+          {% endwith %} 
+        </tr>
+      </thead>
+      <tbody>
+        {% for node in nodes %}
+          <tr>
+            <td>{{ node.mac }}</td>
+            {% for channel in node.channel_set.all %}
+              <td>{{ channel.packetloss }} % | {{ channel.signal_to_noise_ratio }} dB</td>
+            {% endfor %}  
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+{% endblock %}

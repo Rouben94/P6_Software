@@ -1,0 +1,21 @@
+{% extends 'p2p/base_p2p.html' %}
+{% block content %}
+
+<h2>Connection</h2>
+  <p>Set up the connection to the master device:</p> 
+  <p>
+    <form action="/connect" method="post">
+      {% csrf_token %}
+      <p>
+        <h4>Port Selection</h4> <p><b>Port:  {{ form.port }} </b><input type="submit" value="Connect" class="btn btn-dark navbar-btn"></p> 
+      </p>
+  </form>
+  </p>
+
+{% if messages %}
+  {% for message in messages %}
+   {% if message.tags %}  <script>alert("{{ message }}")</script> {% endif %}
+  {% endfor %}
+{% endif %}
+
+{% endblock %}
