@@ -140,6 +140,10 @@ void ST_INIT_fn(void) {
   bm_cli_log("Error no Role defined. Please define a Role in the bm_config.h (BENCHMARK_MASTER - CLIENT - SERVER)\n");
 #endif
 
+// Delete Old COnfig in Settings Storage (clean BLE Mesh)
+#ifdef ZEPHYR_BLE_MESH
+bm_log_clear_storage_flash();
+#endif
   /* Test read FLASH Data */
   uint32_t restored_cnt = bm_log_load_from_flash(); // Restor Log Data from FLASH
   bm_cli_log("Restored %u entries from Flash\n", restored_cnt);
@@ -238,9 +242,10 @@ void ST_REPORT_fn(void) {
   memset(message_info, 0, sizeof(message_info)); // Erase old Log Buffer Content
   bm_report_msg_subscribe(message_info);         // Get the Reports
 #else                                            // Servers and Clients wait for Reports
-  bm_report_msg_publish(message_info);                                                                           // Send out Reports
-  memset(message_info, 0, sizeof(message_info));                                                                 // Erase old Log Buffer Content
-  bm_log_clear_flash();                                                                                          // Clear Flash Area
+  if(bm_report_msg_publish(message_info)){ // Send out Reports
+    memset(message_info, 0, sizeof(message_info)); // Erase old Log Buffer Content                                                        
+    bm_log_clear_flash(); // Erase old Log Buffer Content   
+  }                                                                           
 #endif
   wait_for_transition = true; // Self trigger Transition
   ST_transition_cb();

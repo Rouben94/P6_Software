@@ -27,12 +27,22 @@ if (COM_PORT_Master == ''):
 for ind in df.index: 
 
     #Configure the Device
-    print("Set node settings for Node " + str(df['Dev ID'][ind]) +" in 3 seconds")
-    time.sleep(3)
+    print("Set node settings for Node " + str(df['Dev ID'][ind]))
+    #time.sleep(3)
     print("setNodeSettings " + str(int(str(df['Dev ID'][ind]), 16)) + " " + str(df['Group ID'][ind]))
     serialcmd = "setNodeSettings " + str(int(str(df['Dev ID'][ind]), 16)) + " " + str(df['Group ID'][ind]) + "\r"
     ser.write(serialcmd.encode("ascii"))
     ser.flushInput()
+    while True:        
+        serdataline = ser.readline()
+        #if there is something process it
+        if len(serdataline) >= 1:
+            serdataline_str = serdataline.decode("utf-8")
+            print(serdataline_str)            
+            if 'Ready for Control Message' in serdataline_str:
+                print("Ready for next Node")
+                break
+    
 
 ser.close()
             

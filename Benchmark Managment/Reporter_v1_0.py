@@ -57,13 +57,9 @@ for ind in df.index:
                 remove_tag_entry = entry.pop(0)
                 report.append(entry)
                 ReportsCnt = ReportsCnt + 1
-                timeout = time.time() + 1 # Extend Timeout
             elif 'Ready for Control Message' in serdataline_str:
                 print("Got " + str(ReportsCnt) + " Reports")
                 break
-        elif time.time() > timeout:
-            print("Got " + str(ReportsCnt) + " Reports")
-            break
 
 ser.close()
 
