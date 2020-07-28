@@ -80,7 +80,7 @@ bool bm_report_msg_subscribe(bm_message_info *message_info) {
                     bm_cli_log("%x ", message_info[i].group_addr);
                     bm_cli_log("\r\n");
           */
-          char buf[10][50] = {"\0"};
+          char buf[11][50] = {"\0"};
           char str_output[150] = {"\0"};
 
           strcpy(str_output, "<report> ");
@@ -91,12 +91,11 @@ bool bm_report_msg_subscribe(bm_message_info *message_info) {
           sprintf(buf[4], "%u ", (uint32_t)message_info[i].ack_net_time);
           sprintf(buf[5], "%u ", message_info[i].number_of_hops);
           sprintf(buf[6], "%d ", (int8_t)message_info[i].rssi);
-          sprintf(buf[6], "%d ", (int8_t)message_info[i].rssi);
           sprintf(buf[7], "%x ", message_info[i].src_addr);
           sprintf(buf[8], "%x ", message_info[i].dst_addr);
-          sprintf(buf[9], "%x \r\n", message_info[i].group_addr);
-
-          for (int a = 0; a < 10; a++) {
+          sprintf(buf[9], "%x ", message_info[i].group_addr);
+          sprintf(buf[10], "%u \r\n", message_info[i].data_size);
+          for (int a = 0; a < 11; a++) {
             strcat(str_output, buf[a]);
           }
           bm_cli_log("%s", str_output);

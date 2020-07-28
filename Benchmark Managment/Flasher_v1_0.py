@@ -4,6 +4,8 @@ import serial.tools.list_ports
 import pandas as pd
 import subprocess
 
+#pip3 install pandas pyserial
+
 COM_PORT_Dongle = ''
 
 dirpath = os.getcwd()
@@ -13,8 +15,9 @@ df = pd.read_excel('Config.xlsx', sheet_name='Config')
 
 # iterate through each row entry (Slave)
 for ind in df.index: 
-    input('Please insert Dongle number ' + str(df['Number'][ind]) + ' ... Press enter to continue')
-          
+    x = input('Please insert Dongle number ' + str(df['Number'][ind]) + ' ... Press enter to continue. Press s followed by Enter to skip')
+    if x == 's':
+        continue
     #Get the COM Ports
     ports = list(serial.tools.list_ports.comports())
     for p in ports:

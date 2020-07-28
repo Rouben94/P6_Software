@@ -1,106 +1,108 @@
 {% load static %}
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
-        <title>Team Blau Dashboard</title>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
-        <!-- Bootstrap CSS CDN -->
-        <link  href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
-        <!-- Our Custom CSS -->
-        <link href="{% static 'css/sidebar.css' %}" rel="stylesheet">
-        <link href="{% static 'iconfont/material-icons.css' %}" rel="stylesheet">
-        <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-        <script src="{% static 'js/plotly-latest.min.js' %}"></script>
-        <!--<script src="{% static 'js/jquery.min.js' %}"></script>-->
-        <!--<script src="{% static 'js/jquery-ui.accordion.multiple.js' %}"></script>
+    <title>Team Blau Dashboard</title>
+
+    <!-- Bootstrap CSS CDN -->
+    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+    <!-- Our Custom CSS -->
+    <link href="{% static 'css/sidebar.css' %}" rel="stylesheet">
+    <link href="{% static 'iconfont/material-icons.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="{% static 'js/plotly-latest.min.js' %}"></script>
+    <!--<script src="{% static 'js/jquery.min.js' %}"></script>-->
+    <!--<script src="{% static 'js/jquery-ui.accordion.multiple.js' %}"></script>
         <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
         <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>-->
 
-    </head>
-    <body>
-        <div class="wrapper">
-            <!-- Sidebar Holder -->
-            <nav id="sidebar" class="active">
-                <div class="sidebar-header">
-                    <h3>Blue Seidon</h3>
-                    <strong>BS</strong>
-                </div>
+</head>
 
-                <ul class="list-unstyled components">
-                    <li>
-                        <a href="{% url 'node_list' %}">
-                            <i class="material-icons">home</i>
-                            Point to point
-                        </a>  
-                    </li>
-                    <li>
-                        <a href="{% url 'chart' %}">
-                            <i class="material-icons">assessment</i>
-                            Charts
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{% url 'connect' %}">
-                            <i class="material-icons">autorenew</i>
-                            Connection
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{% url 'info' %}">
-                            <i class="material-icons">info</i>
-                            About
-                        </a>
-                    </li>
-                </ul>
-                <ul class="list-unstyled CTAs">
-                    <li><a href="https://github.com/Rouben94/P6_Software" class="download">GitHub Repo</a></li>
-                </ul>
-            </nav>
-            <div id="content">
-                <div class="container-fluid shadow p-3 mb-5 bg-dark text-white">
-                    <div class="d-flex justify-content-between">
-                        <button type="button" id="sidebarCollapse" class="btn btn-dark navbar-btn">
-                            <i class="material-icons">menu</i>
-                        </button>
-                        <h2>Point to Point Connection</h2>
-                        <h2></h2>
-                    </div>
-                </div>
-            
-                <!-- Page Content Holder -->
-                <div id="block">
-                {% block content %}
-                {% endblock %}
+<body>
+    <div class="wrapper">
+        <!-- Sidebar Holder -->
+        <nav id="sidebar" class="active">
+            <div class="sidebar-header">
+                <h3>Blue Seidon</h3>
+                <strong>BS</strong>
+            </div>
+
+            <ul class="list-unstyled components">
+                <li>
+                    <a href="{% url 'node_list' %}">
+                        <i class="material-icons">home</i>
+                        Point to point
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'chart' %}">
+                        <i class="material-icons">assessment</i>
+                        Charts
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'connect' %}">
+                        <i class="material-icons">autorenew</i>
+                        Connection
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'info' %}">
+                        <i class="material-icons">info</i>
+                        About
+                    </a>
+                </li>
+            </ul>
+            <ul class="list-unstyled CTAs">
+                <li><a href="https://github.com/Rouben94/P6_Software" class="download">GitHub Repo</a></li>
+            </ul>
+        </nav>
+        <div id="content">
+            <div class="container-fluid shadow p-3 mb-5 bg-dark text-white">
+                <div class="d-flex justify-content-between">
+                    <button type="button" id="sidebarCollapse" class="btn btn-dark navbar-btn">
+                        <i class="material-icons">menu</i>
+                    </button>
+                    <h2>Point to Point Connection</h2>
+                    <h2></h2>
                 </div>
             </div>
-            
-        </div>  
 
-        <!-- jQuery CDN -->
-         <script src="{% static 'js/jquery.min.js' %}"></script>
-         <script src="{% static 'js/jquery-ui.min.js' %}"></script>
-         <!-- Bootstrap Js CDN -->
-         <script src="{% static 'js/bootstrap.min.js' %}"></script>
+            <!-- Page Content Holder -->
+            <div id="block">
+                {% block content %}
+                {% endblock %}
+            </div>
+        </div>
 
-         <script type="text/javascript">
-             $(document).ready(function () {
-                 $('#sidebarCollapse').on('click', function () {
-                     $('#sidebar').toggleClass('active');
-                 });
+    </div>
 
-                 $("#accordion").accordion({
-                    collapsible: true
-                });
-             });
+    <!-- jQuery CDN -->
+    <script src="{% static 'js/jquery.min.js' %}"></script>
+    <script src="{% static 'js/jquery-ui.min.js' %}"></script>
+    <!-- Bootstrap Js CDN -->
+    <script src="{% static 'js/bootstrap.min.js' %}"></script>
 
-             /*
-             $(function() {
-            $("#accordion").accordion();
-        })*/
-         </script>
-    </body>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('#sidebarCollapse').on('click', function () {
+                $('#sidebar').toggleClass('active');
+            });
+
+            $(function () {
+                $(".accordion").accordion({
+                    collapsible: true,
+                    clearStyle: true,
+                    active: false,
+                })
+            });
+        });
+    </script>
+</body>
+
 </html>
