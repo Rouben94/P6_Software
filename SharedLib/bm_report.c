@@ -102,7 +102,6 @@ bool bm_report_msg_subscribe(bm_message_info *message_info) {
           bm_cli_log("%s", str_output);
 #ifdef NRF_SDK_ZIGBEE
           NRF_LOG_FLUSH();
-//          NRF_LOG_PROCESS();
           bm_cli_process();
 #endif
         }
