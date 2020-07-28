@@ -27,7 +27,7 @@ for ind in df.index:
 
     #Flash the Firmware
     print("nrfutil dfu usb-serial -pkg " + dirpath + "\\" + str(df['Firmware'][ind]) + " -p " + COM_PORT_Dongle)
-    os.system("nrfutil dfu usb-serial -pkg " + dirpath + "\\" + str(df['Firmware'][ind]) + " -p " + COM_PORT_Dongle)
+    os.system("nrfutil dfu usb-serial -pkg " + '"' + dirpath + "\\" + str(df['Firmware'][ind]) + '"' + " -p " + COM_PORT_Dongle)
     #subprocess.run(["nrfutil", "dfu", "usb-serial", "-pkg " + dirpath + "/" + df['Firmware'][ind] ,"-p " + COM_PORT_Dongle ],capture_output=True)
 
             

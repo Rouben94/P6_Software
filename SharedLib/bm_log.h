@@ -33,6 +33,10 @@ void bm_log_init();
 
 void bm_log_clear_ram();
 
+#ifdef ZEPHYR_BLE_MESH
+void bm_log_clear_storage_flash();
+#endif
+
 void bm_log_append_ram(bm_message_info message);
 
 void bm_log_save_to_flash();

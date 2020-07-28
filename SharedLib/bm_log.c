@@ -12,8 +12,10 @@
 /* Flash Area "image_1" is used by the MCU Bootloader for DFU Firmware Upgrade. its save to use it when there is no DFU in Process... 
 see: https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/ug_bootloader.html#flash-partitions-used-by-mcuboot */
 #define FLASH_OFFSET FLASH_AREA_OFFSET(image_1) // Regarding DTS file size is define in nRF52 to 421’888 Bytes
+#define FLASH_OFFSET_STORAGE FLASH_AREA_OFFSET(storage) // Regarding DTS file size is define in nRF52 to 32'768 Bytes = 8 Pages
 #define FLASH_PAGE_SIZE 4096                    // Since the Page size is 4096 bytes we need a maximum of 3000*40bytes = 120'000 ~ 30 PAGES
 #define FLASH_PAGES 30                          // Since the Page size is 4096 bytes we need a maximum of 3000*40bytes = 120'000 ~ 30 PAGES
+#define FLASH_PAGES_STORAGE 8                          // Since the Page size is 4096 bytes we need a maximum of 3000*40bytes = 120'000 ~ 30 PAGES
 struct device *flash_dev;
 uint32_t test = 0;
 #endif
@@ -71,6 +73,21 @@ void bm_log_clear_flash()
   flash_write_protection_set(flash_dev, true); // enable is recommended
 #endif
 }
+
+#ifdef ZEPHYR_BLE_MESH
+void bm_log_clear_storage_flash()
+{
+  flash_write_protection_set(flash_dev, false);
+  for (int i = 0; i < FLASH_PAGES_STORAGE; i++)
+  {
+    flash_erase(flash_dev, FLASH_OFFSET_STORAGE + FLASH_PAGE_SIZE * i, FLASH_PAGE_SIZE);
+  } 
+  bm_cli_log("Storage Flash erase succeeded!\n");
+  flash_write_protection_set(flash_dev, true); // enable is recommended
+}
+#endif
+
+
 
 void bm_log_save_to_flash()
 {

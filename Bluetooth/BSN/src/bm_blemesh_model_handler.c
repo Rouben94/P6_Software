@@ -66,9 +66,16 @@ static struct bt_mesh_cfg_srv cfg_srv = {
 	.gatt_proxy = IS_ENABLED(CONFIG_BT_MESH_GATT_PROXY),
 	.default_ttl = BLE_MESH_TTL,
 
-	/* 3 transmissions with 20ms interval */
+	/* 3 retransmissions with 20ms interval 
 	.net_transmit = BT_MESH_TRANSMIT(2, 20),
 	.relay_retransmit = BT_MESH_TRANSMIT(2, 20),
+	*/
+
+	/* 0 retransmissions with 20ms interval */
+	.net_transmit = BT_MESH_TRANSMIT(0, 20),
+	.relay_retransmit = BT_MESH_TRANSMIT(0, 20),
+	
+
 };
 
 /** Configuration client definition */

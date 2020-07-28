@@ -53,16 +53,16 @@ bool bm_report_msg_subscribe(bm_message_info *message_info) {
   for (int i = 0; i < (CommonCHCnt * NUMBER_OF_BENCHMARK_REPORT_MESSAGES); i++) // There is only one trie to transmitt the Report for a Channel
   {
     bm_radio_setCH(CommonStartCH + i % (CommonCHCnt - 1)); // Set the Channel alternating from StartCH till StopCH
-                                                           //    bm_cli_log("Sent report req %u\n", (uint32_t)synctimer_getSyncTime());
-    bm_radio_send_burst(Radio_Packet_TX, msg_time_ms);     // Send out Report Requests
-                                                           //    bm_cli_log("Wait for report %u\n", (uint32_t)synctimer_getSyncTime());
-    if (bm_radio_receive(&Radio_Packet_RX, msg_time_ms + synced_delay_ms)) {
+//    bm_cli_log("Sent report req %u\n", (uint32_t)synctimer_getSyncTime());
+    bm_radio_send(Radio_Packet_TX);     // Send out Report Requests
+//    bm_cli_log("Wait for report %u\n", (uint32_t)synctimer_getSyncTime());
+    if (bm_radio_receive(&Radio_Packet_RX, msg_time_ms)) {
       rec_cnt++;            // For Safty exit
       synced_delay_ms = 50; // Wait additionial 50ms if last message was received
       // Save Report Entry
       message_info[bm_message_info_entry_ind] = *(bm_message_info *)Radio_Packet_RX.PDU; // Bring the sheep to a dry place
       if (message_info[bm_message_info_entry_ind].net_time == 0) {
-        bm_cli_log("All reports received\n");
+        bm_cli_log("%u Reports received\n",bm_message_info_entry_ind);
         // Publish the reports
         for (int i = 0; i < bm_message_info_entry_ind; i++) {
           //          bm_cli_log("<report> ");
@@ -112,8 +112,7 @@ bool bm_report_msg_subscribe(bm_message_info *message_info) {
     } else if (bm_message_info_entry_ind > 0) {
       bm_cli_log("Warning Sending and Request out of sync...\n");
       synced_delay_ms = 0; // Reset additional Delay
-    }
-    if (i > 500 && rec_cnt == 0) { // If no Node is there it should be equal to 5s...
+    } else if (i > 450 && rec_cnt == 0) { // If no Node is there it should be equal to 5s...
       bm_cli_log("No reports received\n");
       return false;
     }
@@ -142,16 +141,19 @@ bool bm_report_msg_publish(bm_message_info *message_info) {
       Radio_Packet_TX.PDU = (uint8_t *)&(message_info[bm_message_info_entry_ind]);           // Prepare Sending
                                                                                              //      bm_cli_log("Message Index received: %u\n", bm_message_info_entry_ind);
                                                                                              //      bm_cli_log("Time before sending report %u\n", (uint32_t)synctimer_getSyncTime());
-      bm_radio_send_burst(Radio_Packet_TX, msg_time_ms + synced_delay_ms);                   // Send out Report
+      bm_radio_send(Radio_Packet_TX);                   // Send out Report
       // Decrease channel index to keep channel the same
       i--;
       // Check if it was the last report
       if (message_info[bm_message_info_entry_ind].net_time == 0) {
-        bm_cli_log("All Reports send\n");
+        bm_cli_log("%u Reports send\n",bm_message_info_entry_ind);
         return true;
       }
     } else if (bm_message_info_entry_ind > 0) {
       bm_cli_log("Warning Sending and Request out of sync...\n");
+    } else if (bm_message_info_entry_ind == 0 && i > 170){ // Should be a timeout of 5 seconds
+      bm_cli_log("Timeout Sending Reports... Is Master close enough?\n");
+      return false;
     }
   }
   return false;
