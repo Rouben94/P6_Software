@@ -7,7 +7,7 @@ from openpyxl import Workbook
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 
-serial_port = serial.Serial(port="COM76", baudrate=115200, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
+serial_port = serial.Serial(port="COM50", baudrate=115200, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
 
 excel_filename = 'analysis.xlsx'
 excel_sheet_title = ("meas " + datetime.today().strftime('%H.%M %d-%m-%Y'))
