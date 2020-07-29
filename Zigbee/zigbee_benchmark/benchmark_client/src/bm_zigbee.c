@@ -206,9 +206,6 @@ void buttons_handler(bsp_event_t evt) {
   zb_ret_t zb_err_code;
   zb_uint32_t button;
 
-  /* Inform default signal handler about user input at the device. */
-  //  user_input_indicate();
-
   switch (evt) {
   case BSP_EVENT_KEY_0:
     button = DONGLE_BUTTON_ON;
@@ -248,7 +245,6 @@ uint16_t bm_get_overflow_tid_from_overflow_handler(uint8_t tid, uint16_t src_add
       // Add the last seen TID
       bm_tid_overflow_handler[i].last_TID_seen = tid;
       return (uint16_t)(bm_tid_overflow_handler[i].TID_OverflowCnt << 8) | (tid & 0xff);
-      //return bm_tid_overflow_handler[i].TID_OverflowCnt;
     } else if (bm_tid_overflow_handler[i].src_addr == 0) {
       // Add the Src Adress
       bm_tid_overflow_handler[i].src_addr = src_addr;
@@ -263,7 +259,6 @@ uint16_t bm_get_overflow_tid_from_overflow_handler(uint8_t tid, uint16_t src_add
 /* Function to send Benchmark Message */
 void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t level) {
   zb_uint16_t groupID = bm_params.GroupAddress + GROUP_ID;
-  //  bm_cli_log("Benchmark Message Callback send to Group Address: 0x%x, ID: %x\n", groupID, level);
 
   /* Send Move to level request. Level value is uint8. */
   ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,

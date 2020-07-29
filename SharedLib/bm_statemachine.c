@@ -153,8 +153,6 @@ void ST_INIT_fn(void) {
   ST_transition_cb();
 }
 void ST_CONTROL_fn(void) {
-  srand(5);
-  bm_cli_log("Rand Val: %d\n",rand());
   bm_cli_log("Ready for Control Message\n");
   bm_led0_set(true);
   bm_sleep(BM_LED_BLINK_TIME_MS);

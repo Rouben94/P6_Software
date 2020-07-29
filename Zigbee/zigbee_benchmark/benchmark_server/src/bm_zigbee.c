@@ -337,6 +337,7 @@ static void buttons_handler(bsp_event_t evt) {
 
 /************************************ Zigbee LQI request ***********************************************/
 
+
 void bm_get_lqi_cb(zb_bufid_t bufid) {
   bm_cli_log("Callback started\n");
   zb_uint8_t *zdp_cmd = zb_buf_begin(bufid);
@@ -359,26 +360,27 @@ void bm_get_lqi_cb(zb_bufid_t bufid) {
   bm_cli_log("Get LQI done\n");
 }
 
-//static zb_void_t bm_get_lqi(zb_bufid_t bufid) {
-zb_void_t bm_get_lqi(zb_bufid_t bufid) {
+zb_void_t bm_get_lqi(zb_bufid_t bufid, uint8_t start_index) {
   zb_ieee_addr_t ieee_node_addr;
   zb_uint8_t tsn;
   zb_zdo_mgmt_lqi_param_t *req_param;
   bm_cli_log("Get LQI infos\n");
 
   req_param = ZB_BUF_GET_PARAM(bufid, zb_zdo_mgmt_lqi_param_t);
-  //  zb_zdo_mgmt_lqi_param_t req_param;
-  req_param->start_index = 0;
+
+  req_param->start_index = start_index;
   zb_get_long_address(ieee_node_addr);
   req_param->dst_addr = zb_address_short_by_ieee(ieee_node_addr);
-//    req_param->dst_addr = 0;
   tsn = zb_zdo_mgmt_lqi_req(bufid, bm_get_lqi_cb);
+
   bm_cli_log("Get LQI callback registered\n");
 }
 
 zb_void_t bm_schedule_lqi() {
   zb_ret_t zb_err_code;
-  zb_err_code = zb_buf_get_out_delayed(bm_get_lqi);
+  zb_err_code = zb_buf_get_out_delayed_ext(bm_get_lqi, 0, 0);
+  ZB_ERROR_CHECK(zb_err_code);
+  zb_err_code = zb_buf_get_out_delayed_ext(bm_get_lqi, 2, 0);
   ZB_ERROR_CHECK(zb_err_code);
   bm_cli_log("Buffer Allocated Sucessfully\n");
 }
