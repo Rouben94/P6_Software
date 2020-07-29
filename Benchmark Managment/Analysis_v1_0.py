@@ -105,11 +105,15 @@ def doAnalysis(df):
 
     #Create Latency Subplot Data
     last_lat = 0
-    for lat in latency:
-        if lat == '-':
-            lat = last_lat
-        last_lat = lat
-            
+    ind = 0
+    while ind < len(latency):
+        if latency[ind] == '-':
+            latency[ind] = last_lat
+        else:
+            last_lat = latency[ind]
+        ind += 1
+    
+    print(latency)
     
     #Create Time Charts    
     duration_time_us = df['Timestamp (us)'][len(df.index)-1] - df['Timestamp (us)'][0]
