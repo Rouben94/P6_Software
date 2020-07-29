@@ -1,3 +1,23 @@
+/*
+This file is part of Benchamrk-Shared-Library.
+
+Benchamrk-Shared-Library is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Benchamrk-Shared-Library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Benchamrk-Shared-Library.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/* AUTHOR 	   :    Raffael Anklin       */
+
+
 /* =================== README =======================*/
 /* The Timesync requires a HW-Timer Instance with at least 5 CC Registers (eg. TIMER3-5 on the NRF52840 or TIMER1-2 on the nRF5340_NETCORE)*/
 /* Please enable the Timer in Zephyr prj.conf file (CONFIG_NRFX_TIMER2=y) */
@@ -355,7 +375,7 @@ void config_debug_ppi_and_gpiote_radio_state() {
 /* ============================ Timesync Process ===============================*/
 
 #define TimesyncAddress 0x9CE74F9A
-#define CommonMode NRF_RADIO_MODE_BLE_1MBIT           // Common Mode
+#define CommonMode NRF_RADIO_MODE_BLE_LR125KBIT           // Common Mode
 #define CommonStartCH 37                              // Common Start Channel
 #define CommonEndCH 39                                // Common End Channel
 #define CommonCHCnt (CommonEndCH - CommonStartCH + 1) // Common Channel Count
@@ -382,7 +402,7 @@ typedef struct
 
 TimesyncPkt Tsync_pkt_TX, Tsync_pkt_RX, Tsync_pkt_RX_2;
 
-/** Takes ~1500ms if not relayed / Takes ~250ms if relayed*/
+/** Takes ~1500ms if not relayed / Takes ~250ms if relayed */
 void bm_timesync_msg_publish(bool relaying) {
   bm_radio_init();
   bm_radio_setMode(CommonMode);
@@ -435,7 +455,7 @@ bool bm_timesync_msg_subscribe(void (*transition_cb)()) {
               bm_state_synced = true;
               synctimer_setSyncTimeCompareInt(Tsync_pkt_RX_2.NextState_TS_us, transition_cb);
               bm_cli_log("Synced with Time Master: %x\n", Tsync_pkt_RX_2.MAC_Address_LSB);
-              if (Tsync_pkt_RX_2.NextState_TS_us > synctimer_getSyncTime() - 250 * 1000 - bm_rand_32 % backoff_time_timessync_max_ms * 1000) { // Relay if enough time is left ~250ms + random backoff time
+              if (Tsync_pkt_RX_2.NextState_TS_us > (synctimer_getSyncTime() - 250 * 1000 - bm_rand_32 % backoff_time_timessync_max_ms * 1000)) { // Relay if enough time is left ~250ms + random backoff time
                 bm_timesync_msg_publish(true);
               }
               return true;
