@@ -7,7 +7,7 @@ from openpyxl import Workbook
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 
-serial_port = serial.Serial(port="COM44", baudrate=115200, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
+serial_port = serial.Serial(port="COM50", baudrate=115200, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
 
 excel_filename = 'analysis.xlsx'
 excel_sheet_title = ("meas " + datetime.today().strftime('%H.%M %d-%m-%Y'))
@@ -25,10 +25,10 @@ def read():
             if "<report>" in serialString:
                 bm_list = serialString.replace('\x00', '').split()
                 bm_list.pop(0)
-                bm_list.insert(0, datetime.now().strftime("%H:%M:%S:%f"))
+                bm_list[-1] = str(int(bm_list[-1])//8)
                 excel = load_workbook(filename = excel_filename)
                 excel_tab = excel[excel_sheet_title]
-                for i, excel_char_elem in enumerate(string.ascii_lowercase[:-16]):
+                for i, excel_char_elem in enumerate(string.ascii_lowercase[:-17]):
                     excel_tab[excel_char_elem+str(iterator)] = bm_list[i]
                 iterator += 1
                 excel.save(filename = excel_filename)
@@ -43,16 +43,15 @@ def write():
 if __name__ == "__main__":
     excel = load_workbook(filename = excel_filename)
     excel_tab = excel.create_sheet(title=excel_sheet_title)
-    excel_tab['A1'] = "Measurement Time [H:M:S:US]"
-    excel_tab['B1'] = "Message ID [n]"
-    excel_tab['C1'] = "Network Time Unacknowledged [us]"
-    excel_tab['D1'] = "Network Time Acknowledged [us]"
-    excel_tab['E1'] = "Number of Hops [n]"
-    excel_tab['F1'] = "RSSI [dB]"
-    excel_tab['G1'] = "Source Address [n]"
-    excel_tab['H1'] = "Destination Address [n]"
-    excel_tab['I1'] = "Group Address [n]"
-    excel_tab['J1'] = "Data Size Transmited [Bit]"
+    excel_tab['A1'] = "Message ID"
+    excel_tab['B1'] = "Timestamp (us)"
+    excel_tab['C1'] = "Ack Timestamp (us)"
+    excel_tab['D1'] = "Hops"
+    excel_tab['E1'] = "RSSI"
+    excel_tab['F1'] = "Source Address"
+    excel_tab['G1'] = "Destination Address"
+    excel_tab['H1'] = "Group Address"
+    excel_tab['I1'] = "Data Size"
     excel.save(filename = excel_filename)
 
     t_read = threading.Thread(target=read)

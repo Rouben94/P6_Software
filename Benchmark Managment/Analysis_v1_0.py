@@ -41,11 +41,36 @@ path = dirpath + "\\Analysis_Data_Test.csv"
 
 df = pd.read_csv(result[int(x)],sep=';',encoding='utf-8')
 
+
+def clean_and_calc_avg(ls):
+    #Clean Latency, Throughput and PacketLoss Data and Calculate Avg
+    last_val = 0
+    ind = 0
+    avg = 0
+    cnt = 0
+    while ind < len(ls):
+        if ls[ind] == '-':
+            ls[ind] = last_val
+        else:
+            last_val = ls[ind]
+            avg += ls[ind]
+            cnt += 1
+        ind += 1
+    return avg / cnt
+    
+    
+
 def doAnalysis(df):
     df.sort_values(by=['Timestamp (us)'], inplace=True) #Sort by Timestamp
     df = df.reset_index(drop=True) #Recreate Index
+    #Timestamp Nulling
+    offset_us = df['Timestamp (us)'][0]
+    for ind in df.index:
+        df['Timestamp (us)'][ind] = df['Timestamp (us)'][ind] - offset_us
+    
     #Latency LIst init
     latency = ['-' for i in range(len(df.index))]
+    latency_per_hop = ['-' for i in range(len(df.index))]
     throughput = ['-' for i in range(len(df.index))]
     pktloss = ['-' for i in range(len(df.index))]
     server_cnt = ['-' for i in range(len(df.index))]
@@ -61,7 +86,8 @@ def doAnalysis(df):
             srv_addr_seen.clear()
             for ind_srv in df.index:
                 if df['Message ID'][ind_cli] == df['Message ID'][ind_srv] and not ind_cli == ind_srv:
-                    latency[ind_srv] = (df['Timestamp (us)'][ind_srv] - df['Timestamp (us)'][ind_cli]) / 1000 / df['Timestamp (us)'][ind_srv]
+                    latency[ind_srv] = (df['Timestamp (us)'][ind_srv] - df['Timestamp (us)'][ind_cli]) / 1000
+                    latency_per_hop[ind_srv] = (df['Timestamp (us)'][ind_srv] - df['Timestamp (us)'][ind_cli]) / 1000 / (df['Hops'][ind_srv] + 1)
                     if latency[ind_srv] > 0:
                         throughput[ind_srv] = df['Data Size'][ind_srv] / (latency[ind_srv] / 1000)            
                 #Get the Group Matches of servers
@@ -75,8 +101,9 @@ def doAnalysis(df):
             pktloss[ind_cli] = (group_servers_cnt - pkt_arrived_cnt) / group_servers_cnt * 100
         
     #Append Calculated Values
-    df['Latency Time (ms) per Hop'] = latency
-    df['Throughput (B/s) per Hop'] = throughput
+    df['Latency Time (ms)'] = latency
+    df['Latency Time (ms) per Hop'] = latency_per_hop
+    df['Throughput (B/s)'] = throughput
     df['Paket Loss %'] = pktloss
     df['Subscribed Server Count'] = server_cnt
 
@@ -98,29 +125,38 @@ def doAnalysis(df):
     #Append Calculated Values
     df['Ongoing Transactions'] = ongoing_transactions
 
-    #Create Latency Subplot Data
-    last_lat = 0
-    for lat in latency:
-        if lat == '-':
-            lat = last_lat
-        last_lat = lat
-            
+    #Clean and Calculate Average Values    
+    df['Average Latency Time (ms) per Hop'] = [clean_and_calc_avg(latency_per_hop) for i in range(len(df.index))]
+    df['Average Throughput (B/s)'] = [clean_and_calc_avg(throughput) for i in range(len(df.index))]
+    df['Average Paket Loss %'] = [clean_and_calc_avg(pktloss) for i in range(len(df.index))]
     
     #Create Time Charts    
     duration_time_us = df['Timestamp (us)'][len(df.index)-1] - df['Timestamp (us)'][0]
-    fig, axs = plt.subplots(2, 1)
+    fig, axs = plt.subplots(4, 1)
     t_x = df['Timestamp (us)'].to_numpy()
     axs[0].plot(t_x, np.array(ongoing_transactions),drawstyle="steps-post")
     axs[0].set_xlim(df['Timestamp (us)'][0], df['Timestamp (us)'][len(df.index)-1])
     axs[0].set_xlabel('time us')
-    axs[0].set_ylabel('Ongoing Transactions')
+    axs[0].set_ylabel('Ongoing Transactions', fontsize=8)
     axs[0].grid(True)
     #Do Subplot
-    axs[1].plot(t_x, np.array(latency),drawstyle="steps-post")
+    axs[1].plot(t_x, np.array(latency_per_hop),drawstyle="steps-post")
     axs[1].set_xlim(df['Timestamp (us)'][0], df['Timestamp (us)'][len(df.index)-1])
     axs[1].set_xlabel('time us')
-    axs[1].set_ylabel('Latency (ms)')
+    axs[1].set_ylabel('Latency Time (ms) per Hop', fontsize=8)
     axs[1].grid(True)
+    #Do Subplot
+    axs[2].plot(t_x, np.array(throughput),drawstyle="steps-post")
+    axs[2].set_xlim(df['Timestamp (us)'][0], df['Timestamp (us)'][len(df.index)-1])
+    axs[2].set_xlabel('time us')
+    axs[2].set_ylabel('Throughput (B/s)', fontsize=8)
+    axs[2].grid(True)
+    #Do Subplot
+    axs[3].plot(t_x, np.array(pktloss),drawstyle="steps-post")
+    axs[3].set_xlim(df['Timestamp (us)'][0], df['Timestamp (us)'][len(df.index)-1])
+    axs[3].set_xlabel('time us')
+    axs[3].set_ylabel('Paket Loss %', fontsize=8)
+    axs[3].grid(True)
     #Do Double Axis Plot
 ##    axs2 = axs.twinx()
 ##    axs2.plot(t_x, np.array(latency),'r-',drawstyle="steps-post")

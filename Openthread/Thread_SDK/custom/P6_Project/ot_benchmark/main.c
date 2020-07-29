@@ -69,9 +69,9 @@
 #define SCHED_QUEUE_SIZE      32                              /**< Maximum number of events in the scheduler queue. */
 #define SCHED_EVENT_DATA_SIZE APP_TIMER_SCHED_EVENT_DATA_SIZE /**< Maximum app_scheduler event size. */
 
-//#define BM_MASTER
+#define BM_MASTER
 //#define BM_CLIENT
-#define BM_SERVER
+//#define BM_SERVER
 
 #ifdef BM_CLIENT
 bool toggle_data_size = true;
@@ -95,7 +95,6 @@ bm_master_message master_message;
 
 static void bsp_event_handler(bsp_event_t event)
 {
-    uint64_t tempo;
     switch (event)
     {
         case BSP_EVENT_KEY_0:
@@ -158,10 +157,20 @@ static void thread_state_changed_callback(uint32_t flags, void * p_context)
 #if defined(BM_CLIENT) || defined(BM_SERVER)
 static void thread_time_sync_callback(void * p_context) 
 {
-    NRF_LOG_INFO("time sync callback"); 
+    NRF_LOG_INFO("time sync callback: %d", *(int*)p_context); 
     if (*(int*)p_context == OT_NETWORK_TIME_SYNCHRONIZED)
     {
         NRF_LOG_INFO("time sync synchronized"); 
+    }
+
+    if (*(int*)p_context == OT_NETWORK_TIME_UNSYNCHRONIZED)
+    {
+        NRF_LOG_INFO("time sync unsynchronized"); 
+    }
+
+    if (*(int*)p_context == OT_NETWORK_TIME_RESYNC_NEEDED)
+    {
+        NRF_LOG_INFO("time sync resync needed"); 
     }
     
 }
@@ -283,7 +292,7 @@ static void thread_coap_init(void)
  */
 static void thread_time_sync_init(void)
 {
-    otNetworkTimeSetSyncPeriod(thread_ot_instance_get(), 60);
+    otNetworkTimeSetSyncPeriod(thread_ot_instance_get(), 20);
     otNetworkTimeSetXtalThreshold(thread_ot_instance_get(), otPlatTimeGetXtalAccuracy());
     otNetworkTimeSyncSetCallback(thread_ot_instance_get(), thread_time_sync_callback, NULL);
 }

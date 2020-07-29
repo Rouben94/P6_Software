@@ -29,8 +29,15 @@ for ind in df.index:
         continue #Do next Entry if no Dongle conected
 
     #Flash the Firmware
-    print("nrfutil dfu usb-serial -pkg " + dirpath + "\\" + str(df['Firmware'][ind]) + " -p " + COM_PORT_Dongle)
-    os.system("nrfutil dfu usb-serial -pkg " + '"' + dirpath + "\\" + str(df['Firmware'][ind]) + '"' + " -p " + COM_PORT_Dongle)
-    #subprocess.run(["nrfutil", "dfu", "usb-serial", "-pkg " + dirpath + "/" + df['Firmware'][ind] ,"-p " + COM_PORT_Dongle ],capture_output=True)
+    if '.hex' in str(df['Firmware'][ind]):
+        print('Create Package File')
+        print("nrfutil pkg generate --hw-version 52 --sd-req 0x00 --application-version 1 --application  " + '"' + dirpath + "\\" + str(df['Firmware')
+        os.system("nrfutil pkg generate --hw-version 52 --sd-req 0x00 --application-version 1 --application  " + '"' + dirpath + "\\" + str(df['Firmware'][ind]) + '" ' + '"' + dirpath + "\\" + str(df['Firmware'][ind]) + '.zip"')
+        print("nrfutil dfu usb-serial -pkg " + dirpath + "\\" + str(df['Firmware'][ind]) + " -p " + COM_PORT_Dongle)
+        os.system("nrfutil dfu usb-serial -pkg " + '"' + dirpath + "\\" + str(df['Firmware'][ind]) + '.zip"' + " -p " + COM_PORT_Dongle)
+    else:        
+        print("nrfutil dfu usb-serial -pkg " + dirpath + "\\" + str(df['Firmware'][ind]) + " -p " + COM_PORT_Dongle)
+        os.system("nrfutil dfu usb-serial -pkg " + '"' + dirpath + "\\" + str(df['Firmware'][ind]) + '"' + " -p " + COM_PORT_Dongle)
+        #subprocess.run(["nrfutil", "dfu", "usb-serial", "-pkg " + dirpath + "/" + df['Firmware'][ind] ,"-p " + COM_PORT_Dongle ],capture_output=True)
 
             
