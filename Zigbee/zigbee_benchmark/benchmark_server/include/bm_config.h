@@ -39,11 +39,12 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 #define DEFFERED_LOGGING false                        /* Activate Deffered logging. Log data is buffered and can be processed in idle via NRF_LOG_PROCESS() or flushed via NRF_LOG_FLUSH(). If set false logs will be written directly but performance is decreased */
 #define ZBOSS_MAIN_LOOP_ITERATION_TIME_MARGIN_MS 1000 // Time Margin needed because zboss can block timecheck. note this time will be added to the Stack Init Time
 
-#define MAX_CHILDREN 10                          /**< The maximum amount of connected devices. Setting this value to 0 disables association to this device.  */
-#define IEEE_CHANNEL_MASK (1l << ZIGBEE_CHANNEL) /**< Scan only one, predefined channel to find the coordinator. */
-//#define IEEE_CHANNEL_MASK                 0x07fff800U
+#define MAX_CHILDREN 10 /**< The maximum amount of connected devices. Setting this value to 0 disables association to this device.  */
+//#define IEEE_CHANNEL_MASK (1l << ZIGBEE_CHANNEL) /**< Scan only one, predefined channel to find the coordinator. */
+#define IEEE_CHANNEL_MASK 0x07fff800U
+
 //#define HA_DIMMABLE_LIGHT_ENDPOINT 10    /**< Device endpoint, used to receive light controlling commands. */
-#define ERASE_PERSISTENT_CONFIG ZB_FALSE /**< Do not erase NVRAM to save the network parameters after device reboot or power-off. */
+#define ERASE_PERSISTENT_CONFIG ZB_TRUE /**< Do not erase NVRAM to save the network parameters after device reboot or power-off. */
 #define BULB_PWM_NAME PWM1               /**< PWM instance used to drive dimmable light bulb. */
 #define BULB_PWM_TIMER 2                 /**< Timer number used by PWM. */
 

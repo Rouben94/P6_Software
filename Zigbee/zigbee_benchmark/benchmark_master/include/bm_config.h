@@ -40,10 +40,10 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 #define ZBOSS_MAIN_LOOP_ITERATION_TIME_MARGIN_MS 1000 // Time Margin needed because zboss can block timecheck. note this time will be added to the Stack Init Time
 #define MAX_CHILDREN 10                               /**< The maximum amount of connected devices. Setting this value to 0 disables association to this device.  */
 
-#define ERASE_PERSISTENT_CONFIG ZB_TRUE          /**< Do not erase NVRAM to save the network parameters after device reboot or power-off. NOTE: If this option is set to ZB_TRUE then do full device erase for all network devices before running other samples. */
-#define MAX_CHILDREN 10                          /**< The maximum amount of connected devices. Setting this value to 0 disables association to this device.  */
-#define IEEE_CHANNEL_MASK (1l << ZIGBEE_CHANNEL) /**< Scan only one, predefined channel to find the coordinator. */
-//#define IEEE_CHANNEL_MASK                   0x07fff800U
+#define ERASE_PERSISTENT_CONFIG ZB_TRUE /**< Do not erase NVRAM to save the network parameters after device reboot or power-off. NOTE: If this option is set to ZB_TRUE then do full device erase for all network devices before running other samples. */
+#define MAX_CHILDREN 10                 /**< The maximum amount of connected devices. Setting this value to 0 disables association to this device.  */
+//#define IEEE_CHANNEL_MASK (1l << ZIGBEE_CHANNEL) /**< Scan only one, predefined channel to find the coordinator. */
+#define IEEE_CHANNEL_MASK 0x07fff800U
 #define ZB_COORDINATOR_ROLE
 
 #define ZIGBEE_NETWORK_STATE_LED BSP_BOARD_LED_2        /**< LED indicating that network is opened for new nodes. */
@@ -57,8 +57,6 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 #define GROUP_ID 0xB331              /* Group ID to send Benchmark message to.*/
 
 /* =============== CLI Parameters ===================== */
-//#define CLI_EXAMPLE_LOG_QUEUE_SIZE (4) /* Command line interface instance */
-#define USBD_POWER_DETECTION true      /*Enable power USB detection. Configure if example supports USB port connection*/
-//#define NRF_LOG_SUBMODULE_NAME cli     /* Name of the submodule used for logger messaging.*/
+#define USBD_POWER_DETECTION true /*Enable power USB detection. Configure if example supports USB port connection*/
 
 #endif //BM_ZIGBEE_H

@@ -42,6 +42,7 @@
 "Output/zigbee_benchmark_client Release/Obj/nrf_strerror.o"
 "Output/zigbee_benchmark_client Release/Obj/crc16.o"
 "Output/zigbee_benchmark_client Release/Obj/fds.o"
+"Output/zigbee_benchmark_client Release/Obj/nrf_802154.o"
 "Output/zigbee_benchmark_client Release/Obj/nrf_drv_clock.o"
 "Output/zigbee_benchmark_client Release/Obj/nrf_drv_rng.o"
 "Output/zigbee_benchmark_client Release/Obj/nrf_drv_uart.o"

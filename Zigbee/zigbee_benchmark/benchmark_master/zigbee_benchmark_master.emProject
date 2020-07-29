@@ -125,6 +125,7 @@
       <file file_name="$(SDK)/integration/nrfx/legacy/nrf_drv_power.c" />
       <file file_name="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/modules/nrfx/drivers/src/nrfx_rtc.c" />
       <file file_name="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/modules/nrfx/drivers/src/nrfx_ppi.c" />
+      <file file_name="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/external/nRF-IEEE-802.15.4-radio-driver/src/nrf_802154.c" />
     </folder>
     <folder Name="Board Support">
       <file file_name="$(SDK)/components/libraries/bsp/bsp.c" />

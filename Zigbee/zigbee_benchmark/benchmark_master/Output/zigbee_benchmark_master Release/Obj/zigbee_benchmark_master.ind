@@ -78,6 +78,7 @@
 "Output/zigbee_benchmark_master Release/Obj/nrf_drv_power.o"
 "Output/zigbee_benchmark_master Release/Obj/nrfx_rtc.o"
 "Output/zigbee_benchmark_master Release/Obj/nrfx_ppi.o"
+"Output/zigbee_benchmark_master Release/Obj/nrf_802154.o"
 "Output/zigbee_benchmark_master Release/Obj/bsp.o"
 "Output/zigbee_benchmark_master Release/Obj/main.o"
 "Output/zigbee_benchmark_master Release/Obj/bm_zigbee.o"

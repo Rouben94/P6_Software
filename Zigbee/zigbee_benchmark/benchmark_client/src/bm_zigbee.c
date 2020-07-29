@@ -1,4 +1,5 @@
 
+#include "nrf_802154.h"
 #include "sdk_config.h"
 #include "zb_error_handler.h"
 #include "zb_mem_config_max.h"
@@ -376,18 +377,20 @@ void zboss_signal_handler(zb_bufid_t bufid) {
   zb_zdo_app_signal_type_t sig = zb_get_app_signal(bufid, &p_sg_p);
   zb_ret_t status = ZB_GET_APP_SIGNAL_STATUS(bufid);
   zb_ret_t zb_err_code;
+  zb_uint32_t active_channel_msk;
+  uint8_t active_channel;
 
   /* Update network status LED */
   zigbee_led_status_update(bufid, ZIGBEE_NETWORK_STATE_LED);
 
   switch (sig) {
-  case ZB_BDB_SIGNAL_DEVICE_REBOOT:
-    /* fall-through */
   case ZB_BDB_SIGNAL_STEERING:
     /* Call default signal handler. */
     ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
-    if (status == RET_OK) {
+    bm_cli_log("Zigbee Network Steering\n");
+    bm_cli_log("Active channel %d\n", nrf_802154_channel_get());
 
+    if (status == RET_OK) {
       /* Read local node address */
       zb_get_long_address(local_node_ieee_addr);
       local_node_short_addr = zb_address_short_by_ieee(local_node_ieee_addr);
@@ -395,17 +398,7 @@ void zboss_signal_handler(zb_bufid_t bufid) {
       bm_cli_log("Network Steering finished with Local Node Address: Short: 0x%x, IEEE/Long: 0x%s\n", local_node_short_addr, local_nodel_ieee_addr_buf);
     }
     break;
-    //  case ZB_BDB_SIGNAL_DEVICE_REBOOT:
-    //    /* Call default signal handler. */
-    //    ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
-    //    if (status == RET_OK) {
-    //      /* Read local node address */
-    //      zb_get_long_address(local_node_ieee_addr);
-    //      local_node_short_addr = zb_address_short_by_ieee(local_node_ieee_addr);
-    //      local_node_addr_len = ieee_addr_to_str(local_nodel_ieee_addr_buf, sizeof(local_nodel_ieee_addr_buf), local_node_ieee_addr);
-    //      bm_cli_log("Node restarted with Local Node Address: Short: 0x%x, IEEE/Long: 0x%s", local_node_short_addr, local_nodel_ieee_addr_buf);
-    //    }
-    //    break;
+
   default:
     /* Call default signal handler. */
     ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));

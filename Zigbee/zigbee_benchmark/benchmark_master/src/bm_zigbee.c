@@ -1,4 +1,5 @@
 
+#include "nrf_802154.h"
 #include "sdk_config.h"
 #include "zb_error_handler.h"
 #include "zb_mem_config_max.h"
@@ -22,7 +23,6 @@
 #include "bm_zigbee.h"
 
 /************************************ General Init Functions ***********************************************/
-
 
 /**@brief Callback used in order to visualise network steering period.
  *
@@ -57,14 +57,11 @@ static void buttons_handler(bsp_event_t evt) {
     }
     break;
 
-
   default:
     bm_cli_log("Unhandled BSP Event received: %d\n", evt);
     break;
   }
 }
-
-
 
 /**************************************** Zigbee event handler ***********************************************/
 
@@ -80,9 +77,12 @@ void zboss_signal_handler(zb_bufid_t bufid) {
   zb_ret_t zb_err_code;
   zb_bool_t comm_status;
   zb_time_t timeout_bi;
+  zb_uint32_t active_channel_msk;
+  uint8_t active_channel;
 
   switch (sig) {
   case ZB_BDB_SIGNAL_DEVICE_REBOOT:
+    ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
     // BDB initialization completed after device reboot, use NVRAM contents during initialization. Device joined/rejoined and started.
     if (status == RET_OK) {
       if (ZIGBEE_MANUAL_STEERING == ZB_FALSE) {
@@ -96,6 +96,13 @@ void zboss_signal_handler(zb_bufid_t bufid) {
       NRF_LOG_ERROR("Failed to initialize Zigbee stack using NVRAM data (status: %d)", status);
     }
     break;
+  case ZB_BDB_SIGNAL_FORMATION:
+    if (status == RET_OK) {
+      ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
+      bm_cli_log("Network Formation completed\n");
+      bm_cli_log("Active channel %d\n", nrf_802154_channel_get());
+    }
+    break;
 
   case ZB_BDB_SIGNAL_STEERING:
     if (status == RET_OK) {
@@ -103,26 +110,22 @@ void zboss_signal_handler(zb_bufid_t bufid) {
         bm_cli_log("Allow pre-Zigbee 3.0 devices to join the network\n");
         zb_bdb_set_legacy_device_support(1);
       }
-
       /* Schedule an alarm to notify about the end of steering period */
       bm_cli_log("Network steering started\n");
       zb_err_code = ZB_SCHEDULE_APP_ALARM(steering_finished, 0, ZB_TIME_ONE_SECOND * ZB_ZGP_DEFAULT_COMMISSIONING_WINDOW);
       ZB_ERROR_CHECK(zb_err_code);
     }
-
+    zb_enable_auto_pan_id_conflict_resolution(ZB_FALSE);
     break;
 
-  case ZB_ZDO_SIGNAL_DEVICE_ANNCE: {
-    zb_zdo_signal_device_annce_params_t *dev_annce_params = ZB_ZDO_SIGNAL_GET_PARAMS(p_sg_p, zb_zdo_signal_device_annce_params_t);
-    bm_cli_log("New device commissioned or rejoined (short: 0x%04hx)\n", dev_annce_params->device_short_addr);
+  case ZB_ZDO_SIGNAL_DEVICE_ANNCE:
+    if (status == RET_OK) {
+      zb_zdo_signal_device_annce_params_t *dev_annce_params = ZB_ZDO_SIGNAL_GET_PARAMS(p_sg_p, zb_zdo_signal_device_annce_params_t);
+      bm_cli_log("New device commissioned or rejoined (short: 0x%04hx)\n", dev_annce_params->device_short_addr);
 
-    zb_err_code = ZB_SCHEDULE_APP_ALARM_CANCEL(steering_finished, ZB_ALARM_ANY_PARAM);
-    if (zb_err_code == RET_OK) {
-      bm_cli_log("Joining period extended.\n");
-      zb_err_code = ZB_SCHEDULE_APP_ALARM(steering_finished, 0, ZB_TIME_ONE_SECOND * ZB_ZGP_DEFAULT_COMMISSIONING_WINDOW);
-      ZB_ERROR_CHECK(zb_err_code);
+      zb_err_code = ZB_SCHEDULE_APP_ALARM_CANCEL(steering_finished, ZB_ALARM_ANY_PARAM);
     }
-  } break;
+    break;
 
   default:
     /* Call default signal handler. */

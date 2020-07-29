@@ -44,7 +44,7 @@ IV.    if yess -> change to next state*/
 #define ST_SAVE_FLASH 80
 // Timeslots for the Sates in ms. The Timesync has to be accurate enough.
 #define ST_TIMESYNC_TIME_MS 5000        // -> Optimized for 50 Nodes, 3 Channels and BLE LR125kBit
-#define ST_INIT_BENCHMARK_TIME_MS 10000 // Time required to init the Mesh Stack
+#define ST_INIT_BENCHMARK_TIME_MS 20000 // Time required to init the Mesh Stack
 // The Benchmark time is obtained by the arameters from Timesync
 #define ST_BENCHMARK_MIN_GAP_TIME_US 1000 // Minimal Gap Time to not exit the interrupt context while waiting for another package.
 #define ST_SAVE_FLASH_TIME_MS 1000        // Time required to Save Log to Flash
@@ -293,7 +293,6 @@ void ST_INIT_BENCHMARK_fn(void) {
   Note that the check for time left slows down the Zboss stack a bit. Since we are still init the stack this shouldnt be a big deal. */
   while ((synctimer_getSyncTime() - start_time_ts_us) < ST_INIT_BENCHMARK_TIME_MS * 1000) {
     zboss_main_loop_iteration();
-//    UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
 #ifdef BENCHMARK_MASTER
     bm_cli_process();
     UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
@@ -323,7 +322,6 @@ void ST_BENCHMARK_fn(void) {
   Note that the check forcurrent slows down the Zboss stack a bit... this shouldnt be a big deal. */
   while (currentState == ST_BENCHMARK) {
     zboss_main_loop_iteration();
-//    UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
 #ifdef BENCHMARK_MASTER
     bm_cli_process();
     UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());

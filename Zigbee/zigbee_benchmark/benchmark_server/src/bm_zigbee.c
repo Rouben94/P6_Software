@@ -1,4 +1,5 @@
 
+#include "nrf_802154.h"
 #include "sdk_config.h"
 #include "zb_error_handler.h"
 #include "zb_ha_dimmable_light.h"
@@ -393,6 +394,7 @@ void bm_receive_message(zb_bufid_t bufid, zb_uint8_t seq_num) {
   zb_uint8_t lqi = ZB_MAC_LQI_UNDEFINED;
   zb_int8_t rssi = ZB_MAC_RSSI_UNDEFINED;
   zb_uint8_t addr_type;
+  zb_uint8_t random_level;
   zb_ieee_addr_t ieee_dst_addr;
 
   zb_zcl_parsed_hdr_t cmd_info;
@@ -408,7 +410,6 @@ void bm_receive_message(zb_bufid_t bufid, zb_uint8_t seq_num) {
   message.group_addr = bm_params.GroupAddress + GROUP_ID;
 
   message.message_id = bm_get_overflow_tid_from_overflow_handler(seq_num, message.src_addr);
-  //  message.message_id = cmd_info.seq_number;
 
   /* TODO: Number of hops is not yet available from the ZBOSS API */
   message.number_of_hops = 0;
@@ -417,48 +418,41 @@ void bm_receive_message(zb_bufid_t bufid, zb_uint8_t seq_num) {
   zb_zdo_get_diag_data(message.src_addr, &lqi, &rssi);
   message.rssi = rssi;
 
-  bm_cli_log("Benchmark Packet received with ID: %d (%d) from Src Address: 0x%x to Destination 0x%x with RSSI: %d, Time: %llu\n", message.message_id, seq_num, message.src_addr, message.dst_addr, rssi, message.net_time);
-  
-  level_control_set_value(0);
+  //  zb_zdo_neighbor_table_record_t ret = ZB_ZDO_RECORD_GET_RELATIONSHIP(0);
+
+  //  bm_cli_log("Depth: %d, LQI: %d, Address: 0x%x", ret.depth, ret.lqi, ret.network_addr);
+  bm_cli_log("Benchmark Packet received with ID: %d from Src Address: 0x%x to Destination 0x%x with RSSI: %d (dB), LQI: %d, Time: %llu\n", message.message_id, message.src_addr, message.dst_addr, rssi, lqi, message.net_time);
+
+  random_level = ZB_RANDOM_VALUE(255);
+  level_control_set_value(random_level);
   bm_log_append_ram(message);
 }
 
+/************************************ Zigbee LQI request ***********************************************/
+
+void get_lqi_cb(zb_bufid_t bufid) {
+  //  zb_bufid_t buf = ZB_BUF_FROM_REF(param);
+  zb_uint8_t *zdp_cmd = zb_buf_begin(bufid);
+  zb_zdo_mgmt_lqi_resp_t *resp = (zb_zdo_mgmt_lqi_resp_t *)(zdp_cmd);
+  zb_zdo_neighbor_table_record_t *record = (zb_zdo_neighbor_table_record_t *)(resp + 1);
+  zb_uint_t i;
+  bm_cli_log("get_lqi_cb status %hd, neighbor_table_entries %hd, start_index %hd, neighbor_table_list_count %d\n",
+      resp->status, resp->neighbor_table_entries, resp->start_index, resp->neighbor_table_list_count);
+
+  for (i = 0; i < resp->neighbor_table_list_count; i++) {
+    bm_cli_log("long addr: 0x%x:  pan id: 0x%x\n", zb_address_short_by_ieee(record->ext_addr), zb_address_short_by_ieee(record->ext_pan_id));
+
+    bm_cli_log("#%hd: network_addr 0x%x, dev_type %hd, rx_on_wen_idle %hd\n", i, record->network_addr,
+        ZB_ZDO_RECORD_GET_DEVICE_TYPE(record->type_flags),
+        ZB_ZDO_RECORD_GET_RX_ON_WHEN_IDLE(record->type_flags));
+    bm_cli_log("relationship %hd, permit_join %hd, depth %hd, lqi %hd\n", ZB_ZDO_RECORD_GET_RELATIONSHIP(record->type_flags),
+        record->permit_join, record->depth, record->lqi);
+
+    record++;
+  }
+}
+
 /************************************ Zigbee event handler ***********************************************/
-
-/* TODO: Separate ZCL Handler for each endpoint */
-
-/**@brief Callback function for handling custom ZCL commands.
- *
- * @param[in]   bufid   Reference to Zigbee stack buffer
- *                      used to pass received data.
- */
-//static zb_uint8_t bm_zcl_handler(zb_bufid_t bufid) {
-//  zb_uint8_t new_level;
-//  zb_zcl_parsed_hdr_t cmd_info;
-//  ZB_ZCL_COPY_PARSED_HEADER(bufid, &cmd_info);
-//  zb_zcl_device_callback_param_t *p_device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
-//
-//  new_level = p_device_cb_param->cb_param.level_control_set_value_param.new_value;
-//  bm_cli_log("Level control setting to %d\n", new_level);
-//
-//  if (cmd_info.cluster_id == ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL) {
-//
-//    switch (cmd_info.addr_data.common_data.dst_endpoint) {
-//
-//    case BENCHMARK_SERVER_ENDPOINT:
-//      ZB_SCHEDULE_APP_CALLBACK(bm_receive_message, bufid);
-//      ZB_SCHEDULE_APP_CALLBACK2(bm_receive_message, bufid, new_level);
-//      ZB_SCHEDULE_APP_ALARM(bm_receive_message, (uint8_t *)(&p_device_cb_param->cb_param.level_control_set_value_param.new_value), 0);
-//      bm_cli_log("Level control setting to %d\n", new_level);
-//      level_control_set_value(new_level);
-//      break;
-//
-//    default:
-//      break;
-//    }
-//  }
-//  return ZB_FALSE;
-//}
 
 /**@brief Callback function for handling ZCL commands.
  *
@@ -469,40 +463,12 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid) {
   zb_uint8_t attr_id;
   zb_zcl_device_callback_param_t *p_device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
 
-  //  bm_cli_log("zcl_device_cb id %hd\n", p_device_cb_param->device_cb_id);
-
   /* Set default response value. */
   p_device_cb_param->status = RET_OK;
 
   switch (p_device_cb_param->device_cb_id) {
   case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
-    //    bm_cli_log("Level control setting to %d\n", p_device_cb_param->cb_param.level_control_set_value_param.new_value);
     ZB_SCHEDULE_APP_CALLBACK2(bm_receive_message, bufid, p_device_cb_param->cb_param.level_control_set_value_param.new_value);
-    level_control_set_value(p_device_cb_param->cb_param.level_control_set_value_param.new_value);
-    break;
-
-  case ZB_ZCL_SET_ATTR_VALUE_CB_ID:
-    cluster_id = p_device_cb_param->cb_param.set_attr_value_param.cluster_id;
-    attr_id = p_device_cb_param->cb_param.set_attr_value_param.attr_id;
-
-    if (cluster_id == ZB_ZCL_CLUSTER_ID_ON_OFF) {
-      uint8_t value = p_device_cb_param->cb_param.set_attr_value_param.values.data8;
-
-      bm_cli_log("on/off attribute setting to %hd\n", value);
-      if (attr_id == ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID) {
-        on_off_set_value((zb_bool_t)value);
-      }
-    } else if (cluster_id == ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL) {
-      uint16_t value = p_device_cb_param->cb_param.set_attr_value_param.values.data16;
-
-      bm_cli_log("level control attribute setting to %hd\n", value);
-      if (attr_id == ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID) {
-        level_control_set_value(value);
-      }
-    } else {
-      /* Other clusters can be processed here */
-      bm_cli_log("Unhandled cluster attribute id: %d\n", cluster_id);
-    }
     break;
 
   default:
@@ -521,14 +487,39 @@ void zboss_signal_handler(zb_bufid_t bufid) {
   zb_zdo_app_signal_type_t sig = zb_get_app_signal(bufid, &sig_hndler);
   zb_ret_t status = ZB_GET_APP_SIGNAL_STATUS(bufid);
   zb_ret_t zb_err_code;
+  zb_uint32_t active_channel_msk;
+  uint8_t active_channel;
 
   /* Update network status LED */
   zigbee_led_status_update(bufid, ZIGBEE_NETWORK_STATE_LED);
 
   switch (sig) {
   case ZB_BDB_SIGNAL_STEERING:
-    bm_cli_log("Zigbee Network Steering\n");
     ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid)); /* Call default signal handler. */
+    bm_cli_log("Zigbee Network Steering\n");
+    bm_cli_log("Active channel %d\n", nrf_802154_channel_get());
+
+    if (status == RET_OK) {
+      /* Schedule Add Group ID request */
+      zb_err_code = ZB_SCHEDULE_APP_ALARM(add_group_id, bufid, 2 * ZB_TIME_ONE_SECOND);
+      ZB_ERROR_CHECK(zb_err_code);
+
+      zb_uint8_t tsn;
+      zb_zdo_mgmt_lqi_param_t *req_param;
+      req_param = ZB_BUF_GET_PARAM(bufid, zb_zdo_mgmt_lqi_param_t);
+      req_param->start_index = 0;
+      req_param->dst_addr = 0; //coord short addr
+      tsn = zb_zdo_mgmt_lqi_req(bufid, get_lqi_cb);
+
+      bufid = 0; // Do not free buffer - it will be reused by find_light_bulb callback.
+    }
+    break;
+
+  case ZB_BDB_SIGNAL_DEVICE_REBOOT:
+    ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid)); /* Call default signal handler. */
+    bm_cli_log("Zigbee device restarted\n");
+    bm_cli_log("Active channel %d\n", nrf_802154_channel_get());
+
     if (status == RET_OK) {
       /* Schedule Add Group ID request */
       zb_err_code = ZB_SCHEDULE_APP_ALARM(add_group_id, bufid, 2 * ZB_TIME_ONE_SECOND);
@@ -537,6 +528,12 @@ void zboss_signal_handler(zb_bufid_t bufid) {
       bufid = 0; // Do not free buffer - it will be reused by find_light_bulb callback.
     }
     break;
+
+  case ZB_NWK_SIGNAL_NO_ACTIVE_LINKS_LEFT:
+    /* Fall through */
+    bufid = 0;
+    break;
+
   default:
     /* No application-specific behavior is required. Call default signal handler. */
     ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
