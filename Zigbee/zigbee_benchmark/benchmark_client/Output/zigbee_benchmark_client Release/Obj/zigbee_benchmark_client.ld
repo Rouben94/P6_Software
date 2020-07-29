@@ -23,7 +23,7 @@ SECTIONS
   {
     __reserved_ram_start__ = .;
     *(.reserved_ram .reserved_ram.*)
-    . = MAX(__reserved_ram_start__ + 0x20000000-0x20000000 , .);
+    . = MAX(__reserved_ram_start__ + 0x20000008-0x20000000 , .);
   }
   __reserved_ram_end__ = __reserved_ram_start__ + SIZEOF(.reserved_ram);
   __reserved_ram_size__ = SIZEOF(.reserved_ram);
@@ -31,8 +31,8 @@ SECTIONS
 
   . = ASSERT(__reserved_ram_start__ == __reserved_ram_end__ || (__reserved_ram_end__ - __RAM_segment_start__) <= __RAM_segment_size__ , "error: .reserved_ram is too large to fit in RAM memory segment");
 
-  __vectors_ram_load_start__ = 0x20000000;
-  .vectors_ram 0x20000000 (NOLOAD) : AT(0x20000000)
+  __vectors_ram_load_start__ = 0x20000008;
+  .vectors_ram 0x20000008 (NOLOAD) : AT(0x20000008)
   {
     __vectors_ram_start__ = .;
     __app_ram_start__ =   __vectors_ram_start__;
@@ -58,12 +58,12 @@ SECTIONS
 
   . = ASSERT(__nrf_sections_run_start__ == __nrf_sections_run_end__ || (__nrf_sections_run_end__ - __RAM_segment_start__) <= __RAM_segment_size__ , "error: .nrf_sections_run is too large to fit in RAM memory segment");
 
-  __reserved_flash_load_start__ = 0x0;
-  .reserved_flash 0x0 (NOLOAD) : AT(0x0)
+  __reserved_flash_load_start__ = 0x0 ;
+  .reserved_flash 0x0  (NOLOAD) : AT(0x0 )
   {
     __reserved_flash_start__ = .;
     *(.reserved_flash .reserved_flash.*)
-    . = MAX(__reserved_flash_start__ + 0x0-0x0 , .);
+    . = MAX(__reserved_flash_start__ + 0x1000-0x0  , .);
   }
   __reserved_flash_end__ = __reserved_flash_start__ + SIZEOF(.reserved_flash);
   __reserved_flash_size__ = SIZEOF(.reserved_flash);
@@ -71,8 +71,8 @@ SECTIONS
 
   . = ASSERT(__reserved_flash_start__ == __reserved_flash_end__ || (__reserved_flash_end__ - __FLASH_segment_start__) <= __FLASH_segment_size__ , "error: .reserved_flash is too large to fit in FLASH memory segment");
 
-  __vectors_load_start__ = 0x0;
-  .vectors 0x0 : AT(0x0)
+  __vectors_load_start__ = 0x1000;
+  .vectors 0x1000 : AT(0x1000)
   {
     __vectors_start__ = .;
     *(.vectors .vectors.*)

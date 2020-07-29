@@ -335,6 +335,54 @@ static void buttons_handler(bsp_event_t evt) {
   }
 }
 
+/************************************ Zigbee LQI request ***********************************************/
+
+void bm_get_lqi_cb(zb_bufid_t bufid) {
+  bm_cli_log("Callback started\n");
+  zb_uint8_t *zdp_cmd = zb_buf_begin(bufid);
+  zb_zdo_mgmt_lqi_resp_t *resp = (zb_zdo_mgmt_lqi_resp_t *)(zdp_cmd);
+  zb_zdo_neighbor_table_record_t *record = (zb_zdo_neighbor_table_record_t *)(resp + 1);
+  zb_uint_t i;
+
+  bm_cli_log("bm_get_lqi_cb status %hd, neighbor_table_entries %hd, start_index %hd, neighbor_table_list_count %d\n",
+      resp->status, resp->neighbor_table_entries, resp->start_index, resp->neighbor_table_list_count);
+
+  for (i = 0; i < resp->neighbor_table_list_count; i++) {
+    bm_cli_log("Neighbor Table Record: #%hd: network_addr 0x%x, dev_type %hd, rx_on_wen_idle %hd\n", i, record->network_addr,
+        ZB_ZDO_RECORD_GET_DEVICE_TYPE(record->type_flags),
+        ZB_ZDO_RECORD_GET_RX_ON_WHEN_IDLE(record->type_flags));
+    bm_cli_log("relationship %hd, permit_join %hd, depth %hd, lqi %hd\n", ZB_ZDO_RECORD_GET_RELATIONSHIP(record->type_flags),
+        record->permit_join, record->depth, record->lqi);
+
+    record++;
+  }
+  bm_cli_log("Get LQI done\n");
+}
+
+//static zb_void_t bm_get_lqi(zb_bufid_t bufid) {
+zb_void_t bm_get_lqi(zb_bufid_t bufid) {
+  zb_ieee_addr_t ieee_node_addr;
+  zb_uint8_t tsn;
+  zb_zdo_mgmt_lqi_param_t *req_param;
+  bm_cli_log("Get LQI infos\n");
+
+  req_param = ZB_BUF_GET_PARAM(bufid, zb_zdo_mgmt_lqi_param_t);
+  //  zb_zdo_mgmt_lqi_param_t req_param;
+  req_param->start_index = 0;
+  zb_get_long_address(ieee_node_addr);
+  req_param->dst_addr = zb_address_short_by_ieee(ieee_node_addr);
+//    req_param->dst_addr = 0;
+  tsn = zb_zdo_mgmt_lqi_req(bufid, bm_get_lqi_cb);
+  bm_cli_log("Get LQI callback registered\n");
+}
+
+zb_void_t bm_schedule_lqi() {
+  zb_ret_t zb_err_code;
+  zb_err_code = zb_buf_get_out_delayed(bm_get_lqi);
+  ZB_ERROR_CHECK(zb_err_code);
+  bm_cli_log("Buffer Allocated Sucessfully\n");
+}
+
 /************************************ Benchmark Functions ***********************************************/
 
 /* Insert the tid and src address to get the merged tid with the tid overflow cnt -> resulting in a uint16_t */
@@ -418,38 +466,11 @@ void bm_receive_message(zb_bufid_t bufid, zb_uint8_t seq_num) {
   zb_zdo_get_diag_data(message.src_addr, &lqi, &rssi);
   message.rssi = rssi;
 
-  //  zb_zdo_neighbor_table_record_t ret = ZB_ZDO_RECORD_GET_RELATIONSHIP(0);
-
-  //  bm_cli_log("Depth: %d, LQI: %d, Address: 0x%x", ret.depth, ret.lqi, ret.network_addr);
   bm_cli_log("Benchmark Packet received with ID: %d from Src Address: 0x%x to Destination 0x%x with RSSI: %d (dB), LQI: %d, Time: %llu\n", message.message_id, message.src_addr, message.dst_addr, rssi, lqi, message.net_time);
 
   random_level = ZB_RANDOM_VALUE(255);
   level_control_set_value(random_level);
   bm_log_append_ram(message);
-}
-
-/************************************ Zigbee LQI request ***********************************************/
-
-void get_lqi_cb(zb_bufid_t bufid) {
-  //  zb_bufid_t buf = ZB_BUF_FROM_REF(param);
-  zb_uint8_t *zdp_cmd = zb_buf_begin(bufid);
-  zb_zdo_mgmt_lqi_resp_t *resp = (zb_zdo_mgmt_lqi_resp_t *)(zdp_cmd);
-  zb_zdo_neighbor_table_record_t *record = (zb_zdo_neighbor_table_record_t *)(resp + 1);
-  zb_uint_t i;
-  bm_cli_log("get_lqi_cb status %hd, neighbor_table_entries %hd, start_index %hd, neighbor_table_list_count %d\n",
-      resp->status, resp->neighbor_table_entries, resp->start_index, resp->neighbor_table_list_count);
-
-  for (i = 0; i < resp->neighbor_table_list_count; i++) {
-    bm_cli_log("long addr: 0x%x:  pan id: 0x%x\n", zb_address_short_by_ieee(record->ext_addr), zb_address_short_by_ieee(record->ext_pan_id));
-
-    bm_cli_log("#%hd: network_addr 0x%x, dev_type %hd, rx_on_wen_idle %hd\n", i, record->network_addr,
-        ZB_ZDO_RECORD_GET_DEVICE_TYPE(record->type_flags),
-        ZB_ZDO_RECORD_GET_RX_ON_WHEN_IDLE(record->type_flags));
-    bm_cli_log("relationship %hd, permit_join %hd, depth %hd, lqi %hd\n", ZB_ZDO_RECORD_GET_RELATIONSHIP(record->type_flags),
-        record->permit_join, record->depth, record->lqi);
-
-    record++;
-  }
 }
 
 /************************************ Zigbee event handler ***********************************************/
@@ -504,14 +525,17 @@ void zboss_signal_handler(zb_bufid_t bufid) {
       zb_err_code = ZB_SCHEDULE_APP_ALARM(add_group_id, bufid, 2 * ZB_TIME_ONE_SECOND);
       ZB_ERROR_CHECK(zb_err_code);
 
-      zb_uint8_t tsn;
-      zb_zdo_mgmt_lqi_param_t *req_param;
-      req_param = ZB_BUF_GET_PARAM(bufid, zb_zdo_mgmt_lqi_param_t);
-      req_param->start_index = 0;
-      req_param->dst_addr = 0; //coord short addr
-      tsn = zb_zdo_mgmt_lqi_req(bufid, get_lqi_cb);
+      //      zb_err_code = ZB_SCHEDULE_APP_ALARM(bm_get_lqi, bufid, 15 * ZB_TIME_ONE_SECOND);
+      //      ZB_ERROR_CHECK(zb_err_code);
 
-      bufid = 0; // Do not free buffer - it will be reused by find_light_bulb callback.
+      //      zb_uint8_t tsn;
+      //      zb_zdo_mgmt_lqi_param_t *req_param;
+      //      req_param = ZB_BUF_GET_PARAM(bufid, zb_zdo_mgmt_lqi_param_t);
+      //      req_param->start_index = 0;
+      //      req_param->dst_addr = 0; //coord short addr
+      //      tsn = zb_zdo_mgmt_lqi_req(bufid, bm_get_lqi_cb);
+
+      bufid = 0;
     }
     break;
 
@@ -525,7 +549,10 @@ void zboss_signal_handler(zb_bufid_t bufid) {
       zb_err_code = ZB_SCHEDULE_APP_ALARM(add_group_id, bufid, 2 * ZB_TIME_ONE_SECOND);
       ZB_ERROR_CHECK(zb_err_code);
 
-      bufid = 0; // Do not free buffer - it will be reused by find_light_bulb callback.
+      //      zb_err_code = ZB_SCHEDULE_APP_ALARM(bm_get_lqi, bufid, 15 * ZB_TIME_ONE_SECOND);
+      //      ZB_ERROR_CHECK(zb_err_code);
+
+      bufid = 0;
     }
     break;
 
