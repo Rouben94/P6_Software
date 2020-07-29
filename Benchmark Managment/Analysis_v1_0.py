@@ -108,13 +108,19 @@ def doAnalysis(df):
     
     #Create Time Charts    
     duration_time_us = df['Timestamp (us)'][len(df.index)-1] - df['Timestamp (us)'][0]
-    fig, axs = plt.subplots(1, 1)
+    fig, axs = plt.subplots(2, 1)
     t_x = df['Timestamp (us)'].to_numpy()
-    axs.plot(t_x, np.array(ongoing_transactions),drawstyle="steps-post")
-    axs.set_xlim(df['Timestamp (us)'][0], df['Timestamp (us)'][len(df.index)-1])
-    axs.set_xlabel('time us')
-    axs.set_ylabel('Ongoing Transactions')
-    axs.grid(True)
+    axs[0].plot(t_x, np.array(ongoing_transactions),drawstyle="steps-post")
+    axs[0].set_xlim(df['Timestamp (us)'][0], df['Timestamp (us)'][len(df.index)-1])
+    axs[0].set_xlabel('time us')
+    axs[0].set_ylabel('Ongoing Transactions')
+    axs[0].grid(True)
+    #Do Subplot
+    axs[1].plot(t_x, np.array(latency),drawstyle="steps-post")
+    axs[1].set_xlim(df['Timestamp (us)'][0], df['Timestamp (us)'][len(df.index)-1])
+    axs[1].set_xlabel('time us')
+    axs[1].set_ylabel('Latency (ms)')
+    axs[1].grid(True)
     #Do Double Axis Plot
 ##    axs2 = axs.twinx()
 ##    axs2.plot(t_x, np.array(latency),'r-',drawstyle="steps-post")
