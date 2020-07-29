@@ -44,6 +44,11 @@ df = pd.read_csv(result[int(x)],sep=';',encoding='utf-8')
 def doAnalysis(df):
     df.sort_values(by=['Timestamp (us)'], inplace=True) #Sort by Timestamp
     df = df.reset_index(drop=True) #Recreate Index
+    #Timestamp Nulling
+    offset_us = df['Timestamp (us)'][0]
+    for ind in df.index:
+        df['Timestamp (us)'][ind] = df['Timestamp (us)'][ind] - offset_us
+    
     #Latency LIst init
     latency = ['-' for i in range(len(df.index))]
     throughput = ['-' for i in range(len(df.index))]
@@ -61,7 +66,7 @@ def doAnalysis(df):
             srv_addr_seen.clear()
             for ind_srv in df.index:
                 if df['Message ID'][ind_cli] == df['Message ID'][ind_srv] and not ind_cli == ind_srv:
-                    latency[ind_srv] = (df['Timestamp (us)'][ind_srv] - df['Timestamp (us)'][ind_cli]) / 1000 / df['Timestamp (us)'][ind_srv]
+                    latency[ind_srv] = (df['Timestamp (us)'][ind_srv] - df['Timestamp (us)'][ind_cli]) / 1000
                     if latency[ind_srv] > 0:
                         throughput[ind_srv] = df['Data Size'][ind_srv] / (latency[ind_srv] / 1000)            
                 #Get the Group Matches of servers
