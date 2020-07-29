@@ -40,8 +40,8 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 #define ZBOSS_MAIN_LOOP_ITERATION_TIME_MARGIN_MS 1000 /* Time Margin needed because zboss can block timecheck. note this time will be added to the Stack Init Time */
 #define MAX_CHILDREN 10                               /* The maximum amount of connected devices. Setting this value to 0 disables association to this device.  */
 
-//#define IEEE_CHANNEL_MASK (1l << ZIGBEE_CHANNEL) /**< Scan only one, predefined channel to find the coordinator. */
-#define IEEE_CHANNEL_MASK 0x07fff800U
+#define IEEE_CHANNEL_MASK (1l << ZIGBEE_CHANNEL) /**< Scan only one, predefined channel to find the coordinator. */
+//#define IEEE_CHANNEL_MASK 0x07fff800U
 
 #define MATCH_DESC_REQ_START_DELAY (2 * ZB_TIME_ONE_SECOND)  /**< Delay between the light switch startup and light bulb finding procedure. */
 #define MATCH_DESC_REQ_TIMEOUT (5 * ZB_TIME_ONE_SECOND)      /**< Timeout for finding procedure. */

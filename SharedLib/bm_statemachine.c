@@ -147,6 +147,7 @@ void ST_INIT_fn(void) {
   bm_rand_init();
   bm_radio_init();
   bm_log_init();
+
 #ifdef NRF_SDK_ZIGBEE
   bm_cli_init();
 #endif
@@ -163,7 +164,7 @@ void ST_INIT_fn(void) {
 
 // Delete Old COnfig in Settings Storage (clean BLE Mesh)
 #ifdef ZEPHYR_BLE_MESH
-bm_log_clear_storage_flash();
+  bm_log_clear_storage_flash();
 #endif
   /* Test read FLASH Data */
   uint32_t restored_cnt = bm_log_load_from_flash(); // Restor Log Data from FLASH
@@ -265,10 +266,10 @@ void ST_REPORT_fn(void) {
   memset(message_info, 0, sizeof(message_info)); // Erase old Log Buffer Content
   bm_report_msg_subscribe(message_info);         // Get the Reports
 #else                                            // Servers and Clients wait for Reports
-  if(bm_report_msg_publish(message_info)){ // Send out Reports
-    memset(message_info, 0, sizeof(message_info)); // Erase old Log Buffer Content                                                        
-    bm_log_clear_flash(); // Erase old Log Buffer Content   
-  }                                                                           
+  if (bm_report_msg_publish(message_info)) {       // Send out Reports
+    memset(message_info, 0, sizeof(message_info)); // Erase old Log Buffer Content
+    bm_log_clear_flash();                          // Erase old Log Buffer Content
+  }
 #endif
   wait_for_transition = true; // Self trigger Transition
   ST_transition_cb();
@@ -329,6 +330,11 @@ void ST_INIT_BENCHMARK_fn(void) {
 }
 
 void ST_BENCHMARK_fn(void) {
+#ifdef NRF_SDK_ZIGBEE
+#ifdef BENCHMARK_SERVER
+  bm_schedule_lqi();
+#endif
+#endif
   bm_rand_msg_ts_ind = 0; // Init the Random Timestamp Array INdex
   benchmark_messageing_done = false;
   start_time_ts_us = synctimer_getSyncTime(); // Get the current Timestamp
@@ -388,6 +394,8 @@ void ST_SAVE_FLASH_fn(void) {
   synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb); // Shedule the Timestamp event
   start_time_ts_us = synctimer_getSyncTime();                          // Get the current Timestamp
   bm_log_save_to_flash();                                              // Save the log to FLASH;
+
+
   bm_sleep(1000);
   /* Do a System Reset */
   NVIC_SystemReset();
