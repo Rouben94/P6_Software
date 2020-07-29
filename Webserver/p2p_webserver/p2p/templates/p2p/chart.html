@@ -2,21 +2,36 @@
 {% block content %}
 
 <!-- <script>
-  setInterval(function(){
-    $( "#accordion" ).load( "chart #accordion" );
+  setInterval(function () {
+    $("#node_chart").load("chart #node_chart");
+    const csrftoken = Cookies.get('csrftoken');
   }, 1000); //refresh every second
 </script> -->
 
+<script>
+  function refresh() {
+    $.ajax({
+      url: "{% url 'chart' %}",
+      success: function (data) {
+        $('#node_chart').html(data);
+        setTimeout(refresh, 1000);
+      }
+    });
+  }
 
-{% for bar_div, node in bar_list %}
-<div class="accordion">
-  <h3>Node MAC Address: {{ node.mac }}</h3>
+  $(function () {
+    refresh();
+  });
+</script>
 
+<div id="node_chart">
+  {% for bar_div, node in bar_list %}
+  <div class="accordion">
+    <h3>Node MAC Address: {{ node.mac }}</h3>
     {% autoescape off %}
     {{ bar_div }}
     {% endautoescape %}
+  </div>
+  {% endfor %}
 </div>
-{% endfor %}
-
-
 {% endblock %}
