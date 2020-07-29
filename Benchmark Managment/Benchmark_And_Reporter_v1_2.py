@@ -135,10 +135,10 @@ if len(report) > 0:
     Sort(report) #Sort by message ID
     df = pd.DataFrame(report, columns = ['Message ID', 'Timestamp (us)','Ack Timestamp (us)', 'Hops','RSSI','Source Address','Destination Address','Group Address','Data Size'])
     #Prepare Writing to File
-    path = dirpath + "\\Results_" + str(datetime.datetime.now().strftime("%I_%M%p_on_%B_%d_%Y")) + ".xlsx"
-    writer = pd.ExcelWriter(path, engine = 'openpyxl')
-    df.to_excel(writer, sheet_name = str(datetime.datetime.now().strftime("%I_%M%p on %B %d, %Y")))
+    path = dirpath + "\\Results_" + str(datetime.datetime.now().strftime("%I_%M%p_on_%B_%d_%Y")) + ".csv"
+    #writer = pd.ExcelWriter(path, engine = 'openpyxl')
+    df.to_csv(path,,index=False,sep=';',encoding='utf-8'))
 
-    writer.save()
-    writer.close()
+    #writer.save()
+    #writer.close()
             

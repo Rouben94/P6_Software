@@ -159,9 +159,9 @@ static void led_set(struct bt_mesh_onoff_srv *srv, struct bt_mesh_msg_ctx *ctx,
 	msg.number_of_hops = (uint8_t)BLE_MESH_TTL-ctx->recv_ttl;
 	msg.rssi = (uint8_t)ctx->recv_rssi;
 	msg.src_addr = ctx->addr;
-	msg.dst_addr = ctx->recv_dst;
+	msg.dst_addr = addr;
 	msg.group_addr = ctx->recv_dst;
-	msg.data_size = srv->model->pub->msg->len;
+	msg.data_size = 4; // Fix the Size to the same as sent size...
 	bm_log_append_ram(msg);
 	#endif
 	/*
