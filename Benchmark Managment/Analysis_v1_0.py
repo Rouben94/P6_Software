@@ -162,7 +162,8 @@ def doAnalysis(df):
 ##    axs2.plot(t_x, np.array(latency),'r-',drawstyle="steps-post")
 ##    axs2.set_ylabel('Latency (ms)', color='r')
         
-    fig.tight_layout()
+    #fig.tight_layout()
+    fig.subplots_adjust(hspace=0)
     plt.show()
     
     return df
