@@ -33,7 +33,7 @@ along with Benchamrk-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 #elif defined NRF_SDK_ZIGBEE
 #endif
 
-#define msg_time_ms 5            // Time needed for one message
+#define msg_time_ms 10            // Time needed for one message
 #define msg_cnt 5                // Messages count used to transmit
 #define backoff_time_max_ms 1000 // Calculate with probability of collisions
 

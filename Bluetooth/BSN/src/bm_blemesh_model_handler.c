@@ -111,6 +111,11 @@ static void button0_cb(){
 	struct bt_mesh_onoff_set set = {
 		.on_off = bm_button0_toggle_state_get(),
 	};
+	msg.net_time = synctimer_getSyncTime();
+	msg.ack_net_time = 0;
+	err = bt_mesh_onoff_cli_set_unack(&on_off_cli, NULL, &set);
+	bm_led3_set(!bm_led3_get()); // Toggle the Blue LED
+	//err = bt_mesh_onoff_cli_set(&on_off_cli, NULL, &set, NULL);
 	msg.message_id = bm_get_overflow_tid_from_overflow_handler(on_off_cli.tid,addr);
 	msg.number_of_hops = on_off_cli.model->pub->ttl;
 	msg.rssi = 0;
@@ -118,12 +123,8 @@ static void button0_cb(){
 	msg.dst_addr = on_off_cli.model->pub->addr;
 	msg.group_addr = on_off_cli.model->pub->addr;
 	msg.data_size = on_off_cli.pub.msg->len;
-	msg.net_time = synctimer_getSyncTime();
-	msg.ack_net_time = 0;
+	//msg.data_size = 4; // Fix the Size because its only available after the first pub mesg...
 	bm_log_append_ram(msg);	
-	err = bt_mesh_onoff_cli_set_unack(&on_off_cli, NULL, &set);
-	bm_led3_set(!bm_led3_get()) // Toggle the Blue LED
-	//err = bt_mesh_onoff_cli_set(&on_off_cli, NULL, &set, NULL);
 	/*
 	printk("Sent TID %u\n",on_off_cli.tid);
 	printk("Sent Time %u%u\n",(uint32_t)(synctimer_getSyncTime() >> 32 ),(uint32_t)synctimer_getSyncTime());
@@ -218,11 +219,15 @@ static struct bt_mesh_elem elements[] = {
 		1, BT_MESH_MODEL_LIST(
 			BT_MESH_MODEL_CFG_SRV(&cfg_srv),
 			BT_MESH_MODEL_CFG_CLI(&cfg_cli),
-			BT_MESH_MODEL_HEALTH_SRV(&health_srv, &health_pub),
+#ifdef BENCHMARK_MASTER
+			BT_MESH_MODEL_HEALTH_SRV(&health_srv, &health_pub)),
+#endif
 #ifdef BENCHMARK_CLIENT
+			BT_MESH_MODEL_HEALTH_SRV(&health_srv, &health_pub),
 			BT_MESH_MODEL_ONOFF_CLI(&on_off_cli)),
 #endif
 #ifdef BENCHMARK_SERVER
+			BT_MESH_MODEL_HEALTH_SRV(&health_srv, &health_pub),
 			BT_MESH_MODEL_ONOFF_SRV(&on_off_srv)),
 #endif
 		BT_MESH_MODEL_NONE)

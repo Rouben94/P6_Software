@@ -29,8 +29,8 @@ for ind in df.index:
     #Configure the Device
     print("Set node settings for Node " + str(df['Dev ID'][ind]))
     #time.sleep(3)
-    print("setNodeSettings " + str(int(str(df['Dev ID'][ind]), 16)) + " " + str(df['Group ID'][ind]))
-    serialcmd = "setNodeSettings " + str(int(str(df['Dev ID'][ind]), 16)) + " " + str(df['Group ID'][ind]) + "\r"
+    print("setNodeSettings " + str(int(str(df['Dev ID'][ind]), 16)) + " " + str(df['Group ID'][ind]) + " " + str(df['Node Id'][ind]))
+    serialcmd = "setNodeSettings " + str(int(str(df['Dev ID'][ind]), 16)) + " " + str(df['Group ID'][ind]) + " " + str(df['Node Id'][ind]) + "\r"
     ser.write(serialcmd.encode("ascii"))
     ser.flushInput()
     while True:        

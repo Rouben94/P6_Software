@@ -447,12 +447,12 @@ bool bm_timesync_msg_subscribe(uint64_t end_ts_us, void (*state_transition_cb)()
   bm_radio_setAA(TimesyncAddress);
   bm_radio_setTxP(CommonTxPower);
   bm_state_synced = false;
-  synctimer_TimeStampCapture_clear();
-  synctimer_TimeStampCapture_enable();
   sub_time_end_us =(pub_sub_time_ms + pub_time_on_ch_ms + pub_time_on_ch_ms) * 1000; // Time it Takes for one Publishing Cycle
   while((end_ts_us - sub_time_end_us) > synctimer_getSyncTime()){ // Do while there is enough time left for Pulishing
     for (int ch = CommonStartCH; ch <= CommonEndCH; ch++) {
       bm_radio_setCH(ch);
+      synctimer_TimeStampCapture_clear();
+      synctimer_TimeStampCapture_enable();
       if (bm_radio_receive(&Radio_Packet_RX, sub_time_on_ch_ms)) {
         synctimer_TimeStampCapture_disable();
         Tsync_pkt_RX = *(TimesyncPkt *)Radio_Packet_RX.PDU;      // Bring the sheep to a dry place
@@ -475,7 +475,6 @@ bool bm_timesync_msg_subscribe(uint64_t end_ts_us, void (*state_transition_cb)()
             }
           }
         }
-        synctimer_TimeStampCapture_clear();
       }
     }
   }
