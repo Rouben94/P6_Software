@@ -27,10 +27,10 @@ void bm_cli_write_result(bm_message_info message_info)
 
     if (message_info.data_size)
     {
-        sprintf(buf[8], "8192\r\n");
+        sprintf(buf[8], "1024\r\n");
     } else if (!message_info.data_size)
     {
-        sprintf(buf[8], "16\r\n");
+        sprintf(buf[8], "3\r\n");
     }
 
     for(int i=0; i<9; i++)
