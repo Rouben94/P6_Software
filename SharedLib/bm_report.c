@@ -66,23 +66,8 @@ bool bm_report_msg_subscribe(bm_message_info *message_info) {
         bm_cli_log("%u Reports received\n",bm_message_info_entry_ind);
         // Publish the reports
         for (int i = 0; i < bm_message_info_entry_ind; i++) {
-            /*
-                    bm_cli_log("<report> ");
-                    bm_cli_log("%u ", message_info[i].message_id);
-                    bm_cli_log("%u", (uint32_t)(message_info[i].net_time >> 32));
-                    bm_cli_log("%u ", (uint32_t)message_info[i].net_time);
-                    bm_cli_log("%u", (uint32_t)(message_info[i].ack_net_time >> 32));
-                    bm_cli_log("%u ", (uint32_t)message_info[i].ack_net_time);
-                    bm_cli_log("%u ", message_info[i].number_of_hops);
-                    bm_cli_log("%d ", message_info[i].rssi);
-                    bm_cli_log("%x ", message_info[i].src_addr);
-                    bm_cli_log("%x ", message_info[i].dst_addr);
-                    bm_cli_log("%x ", message_info[i].group_addr);
-                    bm_cli_log("\r\n");
-          */
           char buf[11][50] = {"\0"};
           char str_output[150] = {"\0"};
-
           strcpy(str_output, "<report> ");
           sprintf(buf[0], "%u ", message_info[i].message_id);
           sprintf(buf[1], "%u", (uint32_t)(message_info[i].net_time >> 32));
