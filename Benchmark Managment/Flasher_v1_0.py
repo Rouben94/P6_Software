@@ -8,7 +8,7 @@ import subprocess
 
 COM_PORT_Dongle = ''
 
-dirpath = os.getcwd()
+dirpath = os.getcwd() + '\\flash_files'
 
 #Open COnfig File
 df = pd.read_excel('Config.xlsx', sheet_name='Config')

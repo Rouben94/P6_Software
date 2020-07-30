@@ -27,17 +27,17 @@ def Sort(sub_li):
 #Open Results File
 print('Search for *.csv Files...')
 extension = 'csv'
-result = glob.glob('*.{}'.format(extension))
+result = glob.glob('result_files\*.{}'.format(extension))
 ind = 0
 for res in result:
-    print(str(ind) + " for File: " + str(res))
+    print(str(ind) + " for File: " + str(res[13:]))
     ind+= 1
 
 x = input("Plese type Number followed by enter to choose a file as Results file: ")
 print(str(result[int(x)]) + " Will be loaded...")
 
 #path = dirpath + "\\Analysis_Data_" + str(result[int(x)])
-path = dirpath + "\\Analysis_Data_Test.csv"
+path = dirpath + "\\result_files\Analysis_Data_Test.csv"
 
 df = pd.read_csv(result[int(x)],sep=';',encoding='utf-8')
 

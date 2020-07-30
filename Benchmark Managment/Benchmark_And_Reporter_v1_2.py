@@ -9,7 +9,7 @@ import numpy as np
 
 COM_PORT_Master = ''
 
-dirpath = os.getcwd()
+dirpath = os.getcwd() + '\\result_files'
 
 report = []
 
@@ -137,7 +137,7 @@ if len(report) > 0:
     #Prepare Writing to File
     path = dirpath + "\\Results_" + str(datetime.datetime.now().strftime("%I_%M%p_on_%B_%d_%Y")) + ".csv"
     #writer = pd.ExcelWriter(path, engine = 'openpyxl')
-    df.to_csv(path,,index=False,sep=';',encoding='utf-8'))
+    df.to_csv(path,index=False,sep=';',encoding='utf-8')
 
     #writer.save()
     #writer.close()
