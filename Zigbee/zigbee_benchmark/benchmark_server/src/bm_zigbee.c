@@ -399,7 +399,6 @@ uint16_t bm_get_overflow_tid_from_overflow_handler(uint8_t tid, uint16_t src_add
       // Add the last seen TID
       bm_tid_overflow_handler[i].last_TID_seen = tid;
       return (uint16_t)(bm_tid_overflow_handler[i].TID_OverflowCnt << 8) | (tid & 0xff);
-      //return bm_tid_overflow_handler[i].TID_OverflowCnt;
     } else if (bm_tid_overflow_handler[i].src_addr == 0) {
       // Add the Src Adress
       bm_tid_overflow_handler[i].src_addr = src_addr;
@@ -408,7 +407,7 @@ uint16_t bm_get_overflow_tid_from_overflow_handler(uint8_t tid, uint16_t src_add
       return (uint16_t)(bm_tid_overflow_handler[i].TID_OverflowCnt << 8) | (tid & 0xff);
     }
   }
-  return 0; // Default return 0
+  return 0;
 }
 
 /**@brief Function for sending add group request to the local node.
