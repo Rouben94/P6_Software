@@ -119,7 +119,8 @@ def doAnalysis(df):
         #Is a Server Message
         else:
             #Update
-            ongoing_transactions[ind] = last_ongoing_transactions - 1 
+            if ongoing_transactions[ind] > 0:
+                ongoing_transactions[ind] = last_ongoing_transactions - 1 
             last_ongoing_transactions = ongoing_transactions[ind]
 
     #Append Calculated Values
@@ -130,8 +131,7 @@ def doAnalysis(df):
     df['Average Throughput (B/s)'] = [clean_and_calc_avg(throughput) for i in range(len(df.index))]
     df['Average Paket Loss %'] = [clean_and_calc_avg(pktloss) for i in range(len(df.index))]
     
-    #Create Time Charts    
-    duration_time_us = df['Timestamp (us)'][len(df.index)-1] - df['Timestamp (us)'][0]
+    #Create Time Charts
     fig, axs = plt.subplots(4, 1)
     t_x = df['Timestamp (us)'].to_numpy()
     axs[0].plot(t_x, np.array(ongoing_transactions),drawstyle="steps-post")

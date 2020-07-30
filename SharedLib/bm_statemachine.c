@@ -18,8 +18,6 @@ along with Benchamrk-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 /* AUTHOR 	   :    Raffael Anklin       */
 /* Co-AUTHOR 	 :    Cyrill Horath       */
 
-
-
 #include "bm_cli.h"
 #include "bm_config.h"
 #include "bm_control.h"
@@ -65,8 +63,12 @@ IV.    if yess -> change to next state*/
 // Save the Logged Data to Flash and Reset Device to shut down the Mesh Stack
 #define ST_SAVE_FLASH 80
 // Timeslots for the Sates in ms. The Timesync has to be accurate enough.
-#define ST_TIMESYNC_TIME_MS 10000        // -> Regard that the for one hop it needs ~1s (see Timesync defines) (this value constrains the max hops a Timesync Package will be relayed...)
-#define ST_INIT_BENCHMARK_TIME_MS 20000 // Time required to init the Mesh Stack
+#define ST_TIMESYNC_TIME_MS 5000        // -> Optimized for 50 Nodes, 3 Channels and BLE LR125kBit
+#ifdef NRF_SDK_ZIGBEE
+#define ST_INIT_BENCHMARK_TIME_MS 25000 // Time required to init the Zigbee Mesh Stack
+#elif defined ZEPHYR_BLE_MESH
+#define ST_INIT_BENCHMARK_TIME_MS 10000 // Time required to init the BLE Mesh Stack
+#endif
 // The Benchmark time is obtained by the arameters from Timesync
 #define ST_BENCHMARK_MIN_GAP_TIME_US 1000 // Minimal Gap Time to not exit the interrupt context while waiting for another package.
 #define ST_SAVE_FLASH_TIME_MS 1000        // Time required to Save Log to Flash
@@ -300,8 +302,6 @@ void ST_INIT_BENCHMARK_fn(void) {
   bm_log_clear_ram();
   bm_log_clear_flash();
 
-  
-
 #ifdef ZEPHYR_BLE_MESH
   bm_blemesh_enable(); // Will return faster than the Stack is realy ready... keep on waiting in the transition.
 #elif defined NRF_SDK_ZIGBEE
@@ -387,7 +387,6 @@ void ST_SAVE_FLASH_fn(void) {
   synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb); // Shedule the Timestamp event
   start_time_ts_us = synctimer_getSyncTime();                          // Get the current Timestamp
   bm_log_save_to_flash();                                              // Save the log to FLASH;
-
 
   bm_sleep(1000);
   /* Do a System Reset */

@@ -73,7 +73,7 @@ extern "C" {
 
 // There is only one button for the application
 // as the second button is used for a RESET.
-#define BUTTONS_NUMBER 2
+#define BUTTONS_NUMBER 1
 
 #define BUTTON_1       NRF_GPIO_PIN_MAP(1,6)
 #define BUTTON_PULL    NRF_GPIO_PIN_PULLUP
