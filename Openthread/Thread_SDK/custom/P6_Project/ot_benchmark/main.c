@@ -69,9 +69,9 @@
 #define SCHED_QUEUE_SIZE      32                              /**< Maximum number of events in the scheduler queue. */
 #define SCHED_EVENT_DATA_SIZE APP_TIMER_SCHED_EVENT_DATA_SIZE /**< Maximum app_scheduler event size. */
 
-#define BM_MASTER
+//#define BM_MASTER
 //#define BM_CLIENT
-//#define BM_SERVER
+#define BM_SERVER
 
 #ifdef BM_CLIENT
 bool toggle_data_size = true;
@@ -154,7 +154,6 @@ static void thread_state_changed_callback(uint32_t flags, void * p_context)
         otThreadGetDeviceRole(p_context));
 }
 
-#if defined(BM_CLIENT) || defined(BM_SERVER)
 static void thread_time_sync_callback(void * p_context) 
 {
     NRF_LOG_INFO("time sync callback: %d", *(int*)p_context); 
@@ -165,7 +164,7 @@ static void thread_time_sync_callback(void * p_context)
 
     if (*(int*)p_context == OT_NETWORK_TIME_UNSYNCHRONIZED)
     {
-        NRF_LOG_INFO("time sync unsynchronized"); 
+        NRF_LOG_INFO("time sync unsynchronized");
     }
 
     if (*(int*)p_context == OT_NETWORK_TIME_RESYNC_NEEDED)
@@ -174,7 +173,6 @@ static void thread_time_sync_callback(void * p_context)
     }
     
 }
-#endif //BM_CLIENT || BM_SERVER
 
 #ifdef BM_MASTER
 static void bm_cli_benchmark_start(uint8_t aArgsLength, char *aArgs[]) {
@@ -286,17 +284,12 @@ static void thread_coap_init(void)
   thread_coap_utils_init(&thread_coap_configuration);
 }
 
-
-#if defined(BM_CLIENT) || defined(BM_SERVER)
 /**@brief Function for initializing the Thread Time Synchronizationt Package
  */
 static void thread_time_sync_init(void)
 {
-    otNetworkTimeSetSyncPeriod(thread_ot_instance_get(), 20);
-    otNetworkTimeSetXtalThreshold(thread_ot_instance_get(), otPlatTimeGetXtalAccuracy());
     otNetworkTimeSyncSetCallback(thread_ot_instance_get(), thread_time_sync_callback, NULL);
 }
-#endif //BM_CLIENT || BM_SERVER
 
 
 #ifdef BM_MASTER
@@ -304,6 +297,7 @@ static void thread_time_sync_init(void)
 void bm_custom_cli_init(void){
     otCliSetUserCommands(bm_cli_usercommands, 2 * sizeof(bm_cli_usercommands[0]));
 }
+#endif //BM_MASTER
 
 /**@brief Function for initialize the auto channel manager */
 void bm_channel_manager_init(void)
@@ -316,7 +310,7 @@ void bm_channel_manager_init(void)
     error = otChannelManagerSetAutoChannelSelectionInterval(thread_ot_instance_get(), 60);
     ASSERT(error == OT_ERROR_NONE);
 }
-#endif //BM_MASTER
+//#endif //BM_MASTER
 
 
 /**@brief Function for initializing scheduler module.
@@ -338,6 +332,7 @@ int main(int argc, char *argv[])
 
     NRF_LOG_INFO("Start APP");
 
+    thread_time_sync_init();
     thread_instance_init();
     thread_coap_init();
 
@@ -347,10 +342,7 @@ int main(int argc, char *argv[])
 #endif //BM_MASTER
 
     thread_bsp_init();
-
-#if defined(BM_CLIENT) || defined(BM_SERVER)
     thread_time_sync_init();
-#endif //BM_CLIENT || BM_SERVER   
     bm_statemachine_init();
  
 
