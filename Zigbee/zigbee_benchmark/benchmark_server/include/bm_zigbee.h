@@ -52,7 +52,7 @@ void bm_receive_message(zb_bufid_t bufid, zb_uint8_t seq_num);
 
 void bm_read_message_info(zb_uint16_t timeout);
 
-zb_void_t bm_schedule_lqi();
+zb_void_t bm_schedule_lqi(zb_bufid_t bufid);
 
 //void bm_report_data(zb_uint8_t param);
 
