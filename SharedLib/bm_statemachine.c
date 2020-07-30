@@ -63,9 +63,9 @@ IV.    if yess -> change to next state*/
 // Save the Logged Data to Flash and Reset Device to shut down the Mesh Stack
 #define ST_SAVE_FLASH 80
 // Timeslots for the Sates in ms. The Timesync has to be accurate enough.
-#define ST_TIMESYNC_TIME_MS 5000        // -> Optimized for 50 Nodes, 3 Channels and BLE LR125kBit
+#define ST_TIMESYNC_TIME_MS 5000 // -> Optimized for 50 Nodes, 3 Channels and BLE LR125kBit
 #ifdef NRF_SDK_ZIGBEE
-#define ST_INIT_BENCHMARK_TIME_MS 25000 // Time required to init the Zigbee Mesh Stack
+#define ST_INIT_BENCHMARK_TIME_MS 30000 // Time required to init the Zigbee Mesh Stack
 #elif defined ZEPHYR_BLE_MESH
 #define ST_INIT_BENCHMARK_TIME_MS 10000 // Time required to init the BLE Mesh Stack
 #endif
@@ -324,11 +324,6 @@ void ST_INIT_BENCHMARK_fn(void) {
 }
 
 void ST_BENCHMARK_fn(void) {
-#ifdef NRF_SDK_ZIGBEE
-#ifdef BENCHMARK_SERVER
-  bm_schedule_lqi();
-#endif
-#endif
   bm_rand_msg_ts_ind = 0; // Init the Random Timestamp Array INdex
   benchmark_messageing_done = false;
   start_time_ts_us = synctimer_getSyncTime(); // Get the current Timestamp
@@ -353,6 +348,7 @@ void ST_BENCHMARK_fn(void) {
     UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
 #endif
   }
+  bm_cli_log("Abort Zigbee Stack\n");
 #endif
   return;
 }
@@ -371,8 +367,8 @@ void ST_BENCHMARK_msg_cb(void) {
   }
   if (bm_rand_msg_ts_ind < bm_params.benchmark_packet_cnt) {
     next_state_ts_us = start_time_ts_us + bm_rand_msg_ts[bm_rand_msg_ts_ind];
-    synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb); // Shedule the next Timestamp event
-    return;                                                              // Return immidiatly to save time and prevent wait for transition errors
+    synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb); // Schedule the next Timestamp event
+    return;                                                              // Return immediately to save time and prevent wait for transition errors
   } else {
     //Finish Benchmark
     next_state_ts_us = (start_time_ts_us + bm_params.benchmark_time_s * 1e6 + ST_MARGIN_TIME_MS * 1000 + ST_BENCHMARK_ADDITIONAL_WAIT_TIME_MS * 1000);
@@ -385,7 +381,7 @@ void ST_BENCHMARK_msg_cb(void) {
 
 void ST_SAVE_FLASH_fn(void) {
   next_state_ts_us = (synctimer_getSyncTime() + ST_SAVE_FLASH_TIME_MS * 1000 + ST_MARGIN_TIME_MS * 1000);
-  synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb); // Shedule the Timestamp event
+  synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb); // Schedule the Timestamp event
   start_time_ts_us = synctimer_getSyncTime();                          // Get the current Timestamp
   bm_log_save_to_flash();                                              // Save the log to FLASH;
 
