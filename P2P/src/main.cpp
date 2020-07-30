@@ -813,6 +813,7 @@ void ST_PUBLISH_fn(void)
 				*/
 			}
 		}
+		printk("<NODE_REPORT_END>\r\n");
 	}
 	else
 	{
