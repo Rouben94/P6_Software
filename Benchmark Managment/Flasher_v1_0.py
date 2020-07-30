@@ -31,7 +31,7 @@ for ind in df.index:
     #Flash the Firmware
     if '.hex' in str(df['Firmware'][ind]):
         print('Create Package File')
-        print("nrfutil pkg generate --hw-version 52 --sd-req 0x00 --application-version 1 --application  " + '"' + dirpath + "\\" + str(df['Firmware')
+        print("nrfutil pkg generate --hw-version 52 --sd-req 0x00 --application-version 1 --application  " + '"' + dirpath + "\\" + str(df['Firmware']))
         os.system("nrfutil pkg generate --hw-version 52 --sd-req 0x00 --application-version 1 --application  " + '"' + dirpath + "\\" + str(df['Firmware'][ind]) + '" ' + '"' + dirpath + "\\" + str(df['Firmware'][ind]) + '.zip"')
         print("nrfutil dfu usb-serial -pkg " + dirpath + "\\" + str(df['Firmware'][ind]) + " -p " + COM_PORT_Dongle)
         os.system("nrfutil dfu usb-serial -pkg " + '"' + dirpath + "\\" + str(df['Firmware'][ind]) + '.zip"' + " -p " + COM_PORT_Dongle)

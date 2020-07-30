@@ -54,7 +54,7 @@ def clean_and_calc_avg(ls):
         else:
             last_val = ls[ind]
             avg += ls[ind]
-            cnt += 1
+            cnt += 11
         ind += 1
     return avg / cnt
     

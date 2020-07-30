@@ -7,7 +7,7 @@ from openpyxl import Workbook
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 
-serial_port = serial.Serial(port="COM50", baudrate=115200, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
+serial_port = serial.Serial(port="COM78", baudrate=115200, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
 
 excel_filename = 'analysis.xlsx'
 excel_sheet_title = ("meas " + datetime.today().strftime('%H.%M %d-%m-%Y'))
@@ -18,6 +18,8 @@ def bm_start(time):
 
 def read():
     iterator = 2
+    excel = load_workbook(filename = excel_filename)
+    excel_tab = excel[excel_sheet_title]
     while(1):
         # Wait until there is data waiting in the serial buffer
         if(serial_port.in_waiting > 0):
@@ -26,8 +28,6 @@ def read():
                 bm_list = serialString.replace('\x00', '').split()
                 bm_list.pop(0)
                 bm_list[-1] = str(int(bm_list[-1])//8)
-                excel = load_workbook(filename = excel_filename)
-                excel_tab = excel[excel_sheet_title]
                 for i, excel_char_elem in enumerate(string.ascii_lowercase[:-17]):
                     excel_tab[excel_char_elem+str(iterator)] = bm_list[i]
                 iterator += 1
