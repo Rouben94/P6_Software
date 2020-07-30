@@ -91,6 +91,9 @@ void bm_read_message_info(zb_uint8_t seq_num);
 void bm_report_data(zb_uint8_t param);
 
 zb_uint8_t seq_num = 0;
+zb_uint16_t msg_receive_cnt = 0;
+zb_bufid_t buffer_id;
+zb_bool_t init_buf = false;
 
 zb_ieee_addr_t local_node_ieee_addr;
 zb_uint16_t local_node_short_addr;
@@ -253,7 +256,16 @@ uint16_t bm_get_overflow_tid_from_overflow_handler(uint8_t tid, uint16_t src_add
       return (uint16_t)(bm_tid_overflow_handler[i].TID_OverflowCnt << 8) | (tid & 0xff);
     }
   }
-  return 0; // Default return 0
+  return 0;
+}
+
+void bm_send_message_status_cb(zb_bufid_t bufid) {
+  msg_receive_cnt++;
+  bm_cli_log("Message successfully sent: %d\n", msg_receive_cnt);
+
+  if (bufid) {
+    zb_buf_free(bufid);
+  }
 }
 
 /* Function to send Benchmark Message */
@@ -268,7 +280,7 @@ void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t level) {
       BENCHMARK_CLIENT_ENDPOINT,
       ZB_AF_HA_PROFILE_ID,
       ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
-      NULL,
+      bm_send_message_status_cb,
       level,
       0);
 }
@@ -276,10 +288,8 @@ void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t level) {
 void bm_send_message(void) {
   zb_ret_t zb_err_code;
   seq_num++;
-
   bm_read_message_info(seq_num);
   zb_err_code = zb_buf_get_out_delayed_ext(bm_send_message_cb, seq_num, 0);
-  //  zb_err_code = zb_buf_get_out_delayed_ext(bm_send_message_cb, random_level_value, 0);
   ZB_ERROR_CHECK(zb_err_code);
 }
 
@@ -287,25 +297,20 @@ void bm_send_message(void) {
 void bm_read_message_info(zb_uint8_t seq_num) {
   bm_message_info message;
   zb_ieee_addr_t ieee_src_addr;
-  zb_uint8_t lqi = ZB_MAC_LQI_UNDEFINED;
-  zb_int8_t rssi = ZB_MAC_RSSI_UNDEFINED;
 
   message.number_of_hops = 0;
   message.data_size = 0;
+  message.rssi = 0;
+  message.ack_net_time = 0;
 
   zb_get_long_address(ieee_src_addr);
   message.src_addr = zb_address_short_by_ieee(ieee_src_addr);
   message.group_addr = bm_params.GroupAddress + GROUP_ID;
   message.dst_addr = message.group_addr;
 
-  message.net_time = synctimer_getSyncTime();
-  message.ack_net_time = 0;
-
   message.message_id = bm_get_overflow_tid_from_overflow_handler(seq_num, message.src_addr);
-  //  message.message_id = ZB_ZCL_GET_SEQ_NUM() + 1;
 
-  zb_zdo_get_diag_data(message.src_addr, &lqi, &rssi);
-  message.rssi = rssi;
+  message.net_time = synctimer_getSyncTime();
 
   bm_cli_log("Benchmark Message send to Group Address: 0x%x TimeStamp: %lld, MessageID: %d (%d)\n", message.group_addr, message.net_time, message.message_id, seq_num);
 
@@ -313,31 +318,6 @@ void bm_read_message_info(zb_uint8_t seq_num) {
 }
 
 /************************************ Zigbee event handler ***********************************************/
-
-/**@brief Callback function for handling custom ZCL commands.
- *
- * @param[in]   bufid   Reference to Zigbee stack buffer
- *                      used to pass received data.
- */
-//static zb_uint8_t bm_zcl_handler(zb_bufid_t bufid) {
-//  zb_zcl_parsed_hdr_t cmd_info;
-//
-//  ZB_ZCL_COPY_PARSED_HEADER(bufid, &cmd_info);
-//  bm_cli_log("%s with Endpoint ID: %hd, Cluster ID: %d", __func__, cmd_info.addr_data.common_data.dst_endpoint, cmd_info.cluster_id);
-//
-//  switch (cmd_info.cluster_id) {
-//  case ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL:
-//    ZB_SCHEDULE_APP_ALARM(bm_receive_config, bufid, 0);
-//    break;
-//  case ZB_ZCL_CLUSTER_ID_ON_OFF:
-//    ZB_SCHEDULE_APP_ALARM(bm_receive_config, bufid, 0);
-//    break;
-//  default:
-//    break;
-//  }
-//
-//  return ZB_FALSE;
-//}
 
 /**@brief Callback function for handling ZCL commands.
  *

@@ -98,6 +98,7 @@ zb_ieee_addr_t local_node_ieee_addr;
 zb_uint16_t local_node_short_addr;
 
 zb_uint8_t seq_num = 0;
+zb_uint16_t msg_receive_cnt = 0;
 bm_tid_overflow_handler_t bm_tid_overflow_handler[max_number_of_nodes]; /* Excpect not more than max_number_of_nodes Different Adresses */
 
 static void buttons_handler(bsp_event_t evt);
@@ -337,9 +338,7 @@ static void buttons_handler(bsp_event_t evt) {
 
 /************************************ Zigbee LQI request ***********************************************/
 
-
 void bm_get_lqi_cb(zb_bufid_t bufid) {
-  bm_cli_log("Callback started\n");
   zb_uint8_t *zdp_cmd = zb_buf_begin(bufid);
   zb_zdo_mgmt_lqi_resp_t *resp = (zb_zdo_mgmt_lqi_resp_t *)(zdp_cmd);
   zb_zdo_neighbor_table_record_t *record = (zb_zdo_neighbor_table_record_t *)(resp + 1);
@@ -349,22 +348,15 @@ void bm_get_lqi_cb(zb_bufid_t bufid) {
       resp->status, resp->neighbor_table_entries, resp->start_index, resp->neighbor_table_list_count);
 
   for (i = 0; i < resp->neighbor_table_list_count; i++) {
-    bm_cli_log("Neighbor Table Record: #%hd: network_addr 0x%x, dev_type %hd, rx_on_wen_idle %hd\n", i, record->network_addr,
-        ZB_ZDO_RECORD_GET_DEVICE_TYPE(record->type_flags),
-        ZB_ZDO_RECORD_GET_RX_ON_WHEN_IDLE(record->type_flags));
-    bm_cli_log("relationship %hd, permit_join %hd, depth %hd, lqi %hd\n", ZB_ZDO_RECORD_GET_RELATIONSHIP(record->type_flags),
-        record->permit_join, record->depth, record->lqi);
-
+    bm_cli_log("Neighbor Table Record: #%hd: network_addr 0x%x, lqi %hd\n", i, record->network_addr, record->lqi);
     record++;
   }
-  bm_cli_log("Get LQI done\n");
 }
 
-zb_void_t bm_get_lqi(zb_bufid_t bufid, uint8_t start_index) {
+zb_void_t bm_get_lqi(zb_bufid_t bufid, uint16_t start_index) {
   zb_ieee_addr_t ieee_node_addr;
   zb_uint8_t tsn;
   zb_zdo_mgmt_lqi_param_t *req_param;
-  bm_cli_log("Get LQI infos\n");
 
   req_param = ZB_BUF_GET_PARAM(bufid, zb_zdo_mgmt_lqi_param_t);
 
@@ -372,17 +364,16 @@ zb_void_t bm_get_lqi(zb_bufid_t bufid, uint8_t start_index) {
   zb_get_long_address(ieee_node_addr);
   req_param->dst_addr = zb_address_short_by_ieee(ieee_node_addr);
   tsn = zb_zdo_mgmt_lqi_req(bufid, bm_get_lqi_cb);
-
-  bm_cli_log("Get LQI callback registered\n");
 }
 
-zb_void_t bm_schedule_lqi() {
+zb_void_t bm_schedule_lqi(zb_uint8_t param) {
   zb_ret_t zb_err_code;
   zb_err_code = zb_buf_get_out_delayed_ext(bm_get_lqi, 0, 0);
   ZB_ERROR_CHECK(zb_err_code);
   zb_err_code = zb_buf_get_out_delayed_ext(bm_get_lqi, 2, 0);
   ZB_ERROR_CHECK(zb_err_code);
-  bm_cli_log("Buffer Allocated Sucessfully\n");
+  zb_err_code = zb_buf_get_out_delayed_ext(bm_get_lqi, 4, 0);
+  ZB_ERROR_CHECK(zb_err_code);
 }
 
 /************************************ Benchmark Functions ***********************************************/
@@ -441,28 +432,30 @@ static zb_void_t add_group_id(zb_bufid_t bufid) {
 void bm_receive_message(zb_bufid_t bufid, zb_uint8_t seq_num) {
   bm_message_info message;
   zb_uint8_t lqi = ZB_MAC_LQI_UNDEFINED;
-  zb_int8_t rssi = ZB_MAC_RSSI_UNDEFINED;
+  zb_int8_t rssi = 0;
   zb_uint8_t addr_type;
   zb_uint8_t random_level;
   zb_ieee_addr_t ieee_dst_addr;
+  zb_zcl_device_callback_param_t *p_device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
 
   zb_zcl_parsed_hdr_t cmd_info;
   ZB_ZCL_COPY_PARSED_HEADER(bufid, &cmd_info);
 
-  message.net_time = synctimer_getSyncTime();
+  /* TODO: Number of hops is not yet available from the ZBOSS API */
+  message.number_of_hops = 0;
+  message.data_size = 0;
   message.ack_net_time = 0;
 
-  memcpy(&message.src_addr, &(cmd_info.addr_data.common_data.source.u.short_addr), sizeof(zb_uint16_t));
+  message.net_time = synctimer_getSyncTime();
+  message.src_addr = cmd_info.addr_data.common_data.source.u.short_addr;
+
+  //  memcpy(&message.src_addr, &(cmd_info.addr_data.common_data.source.u.short_addr), sizeof(zb_uint16_t));
 
   zb_get_long_address(ieee_dst_addr);
   message.dst_addr = zb_address_short_by_ieee(ieee_dst_addr);
   message.group_addr = bm_params.GroupAddress + GROUP_ID;
 
   message.message_id = bm_get_overflow_tid_from_overflow_handler(seq_num, message.src_addr);
-
-  /* TODO: Number of hops is not yet available from the ZBOSS API */
-  message.number_of_hops = 0;
-  message.data_size = 0;
 
   zb_zdo_get_diag_data(message.src_addr, &lqi, &rssi);
   message.rssi = rssi;
@@ -472,6 +465,8 @@ void bm_receive_message(zb_bufid_t bufid, zb_uint8_t seq_num) {
   random_level = ZB_RANDOM_VALUE(255);
   level_control_set_value(random_level);
   bm_log_append_ram(message);
+
+  //  zb_buf_free(bufid);
 }
 
 /************************************ Zigbee event handler ***********************************************/
@@ -485,11 +480,15 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid) {
   zb_uint8_t attr_id;
   zb_zcl_device_callback_param_t *p_device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
 
+  msg_receive_cnt++;
+  bm_cli_log("Message received in zcl_device_cb: %d\n", msg_receive_cnt);
+
   /* Set default response value. */
   p_device_cb_param->status = RET_OK;
 
   switch (p_device_cb_param->device_cb_id) {
   case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
+
     ZB_SCHEDULE_APP_CALLBACK2(bm_receive_message, bufid, p_device_cb_param->cb_param.level_control_set_value_param.new_value);
     break;
 
@@ -526,15 +525,8 @@ void zboss_signal_handler(zb_bufid_t bufid) {
       zb_err_code = ZB_SCHEDULE_APP_ALARM(add_group_id, bufid, 2 * ZB_TIME_ONE_SECOND);
       ZB_ERROR_CHECK(zb_err_code);
 
-      //      zb_err_code = ZB_SCHEDULE_APP_ALARM(bm_get_lqi, bufid, 15 * ZB_TIME_ONE_SECOND);
-      //      ZB_ERROR_CHECK(zb_err_code);
-
-      //      zb_uint8_t tsn;
-      //      zb_zdo_mgmt_lqi_param_t *req_param;
-      //      req_param = ZB_BUF_GET_PARAM(bufid, zb_zdo_mgmt_lqi_param_t);
-      //      req_param->start_index = 0;
-      //      req_param->dst_addr = 0; //coord short addr
-      //      tsn = zb_zdo_mgmt_lqi_req(bufid, bm_get_lqi_cb);
+      zb_err_code = ZB_SCHEDULE_APP_ALARM(bm_schedule_lqi, 0, 5 * ZB_TIME_ONE_SECOND);
+      ZB_ERROR_CHECK(zb_err_code);
 
       bufid = 0;
     }
