@@ -109,15 +109,18 @@ extern void config_debug_ppi_and_gpiote_radio_state();
 
 
 /** Publush a Timesync Message 
- * @param relaying Is the publish called from a relaying event or not (sleeps longer)
+ * @param end_ts_us Shedules Publishing till this End Timestamp is reached
  * 
 */
-void bm_timesync_msg_publish(bool relaying);
+void bm_timesync_msg_publish(uint64_t end_ts_us);
+
 /** Subscribe to a Timesync Message 
+ * @param end_ts_us Shedules Publishing till this End Timestamp is reached
  * @param transition_cb transition Callback for registring the next State
+ * @param ST_MARGIN_TIME_MS Time Margin for transition
  * 
 */
-bool bm_timesync_msg_subscribe(void (*transition_cb)());
+bool bm_timesync_msg_subscribe(uint64_t end_ts_us, void (*state_transition_cb)(), uint64_t ST_MARGIN_TIME_MS);
 
 #endif
 

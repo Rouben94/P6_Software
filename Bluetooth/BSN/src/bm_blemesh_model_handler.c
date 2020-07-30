@@ -123,20 +123,21 @@ static void button0_cb(){
 	int err;
 	struct bt_mesh_onoff_set set = {
 		.on_off = bm_button0_toggle_state_get(),
-	};	
-	err = bt_mesh_onoff_cli_set_unack(&on_off_cli, NULL, &set);
-	//err = bt_mesh_onoff_cli_set(&on_off_cli, NULL, &set, NULL);
-	#ifdef BENCHMARK_CLIENT
+	};
 	msg.message_id = bm_get_overflow_tid_from_overflow_handler(on_off_cli.tid,addr);
-	msg.net_time = synctimer_getSyncTime();
-	msg.ack_net_time = 0;
 	msg.number_of_hops = on_off_cli.model->pub->ttl;
 	msg.rssi = 0;
 	msg.src_addr = addr;
 	msg.dst_addr = on_off_cli.model->pub->addr;
 	msg.group_addr = on_off_cli.model->pub->addr;
 	msg.data_size = on_off_cli.pub.msg->len;
-	bm_log_append_ram(msg);
+	msg.net_time = synctimer_getSyncTime();
+	msg.ack_net_time = 0;
+	bm_log_append_ram(msg);	
+	err = bt_mesh_onoff_cli_set_unack(&on_off_cli, NULL, &set);
+	bm_led3_set(!bm_led3_get()) // Toggle the Blue LED
+	//err = bt_mesh_onoff_cli_set(&on_off_cli, NULL, &set, NULL);
+	#ifdef BENCHMARK_CLIENT
 	#endif
 	/*
 	printk("Sent TID %u\n",on_off_cli.tid);

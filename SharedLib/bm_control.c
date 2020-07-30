@@ -82,9 +82,11 @@ bool bm_control_msg_subscribe(bm_control_msg_t *bm_control_msg) {
         /* Relay Message */
         Radio_Packet_TX.length = sizeof(bm_control_msg);
         Radio_Packet_TX.PDU = (uint8_t *)&bm_control_msg;
-        for (int ch = CommonStartCH; ch <= CommonEndCH; ch++) {
-          bm_radio_setCH(ch);
-          bm_radio_send_burst(Radio_Packet_TX, msg_time_ms * msg_cnt);
+        for (int ch_rx = CommonStartCH; ch_rx <= CommonEndCH; ch_rx++) {
+          for (int ch = CommonStartCH; ch <= CommonEndCH; ch++) {
+            bm_radio_setCH(ch);
+            bm_radio_send_burst(Radio_Packet_TX, msg_time_ms * msg_cnt);
+          }
         }
         bm_cli_log("Control Message relayed\n");
         if (backoff_time_max_ms - (bm_rand_32 % backoff_time_max_ms) > msg_time_ms) {

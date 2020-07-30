@@ -65,14 +65,13 @@ IV.    if yess -> change to next state*/
 // Save the Logged Data to Flash and Reset Device to shut down the Mesh Stack
 #define ST_SAVE_FLASH 80
 // Timeslots for the Sates in ms. The Timesync has to be accurate enough.
-#define ST_TIMESYNC_TIME_MS 5000        // -> Optimized for 50 Nodes, 3 Channels and BLE LR125kBit
+#define ST_TIMESYNC_TIME_MS 10000        // -> Regard that the for one hop it needs ~1s (see Timesync defines) (this value constrains the max hops a Timesync Package will be relayed...)
 #define ST_INIT_BENCHMARK_TIME_MS 20000 // Time required to init the Mesh Stack
 // The Benchmark time is obtained by the arameters from Timesync
 #define ST_BENCHMARK_MIN_GAP_TIME_US 1000 // Minimal Gap Time to not exit the interrupt context while waiting for another package.
 #define ST_SAVE_FLASH_TIME_MS 1000        // Time required to Save Log to Flash
 
 #define ST_MARGIN_TIME_MS 5            // Margin for State Transition (Let the State Terminate)
-#define ST_TIMESYNC_BACKOFF_TIME_MS 30 // Backoff time maximal for retransmitt the Timesync Packet -> Should be in good relation to Timesync Timeslot
 #define BM_LED_BLINK_TIME_MS 500       /* Blink Time for LED's */
 
 uint32_t LSB_MAC_Address;               // Preprogrammed Randomly Static MAC-Address (LSB)
@@ -198,6 +197,7 @@ void ST_CONTROL_fn(void) {
       bm_control_msg.MACAddressDst = bm_cli_cmd_setNodeSettings.MAC;
       bm_control_msg.NextStateNr = 0;
       bm_control_msg.GroupAddress = bm_cli_cmd_setNodeSettings.GroupAddress;
+      bm_control_msg.NodeId = bm_cli_cmd_setNodeSettings.NodeId;
       bm_control_msg.benchmark_time_s = 0;
       bm_control_msg.benchmark_packet_cnt = 0;
       bm_control_msg_publish(bm_control_msg);
@@ -235,10 +235,11 @@ void ST_CONTROL_fn(void) {
         bm_sleep(BM_LED_BLINK_TIME_MS);
         bm_led3_set(false);
         break;
-      } else if (bm_control_msg.MACAddressDst == LSB_MAC_Address && bm_control_msg.GroupAddress > 0) {
+      } else if (bm_control_msg.MACAddressDst == LSB_MAC_Address && (bm_control_msg.GroupAddress > 0 || bm_control_msg.NodeId > 0)) {
         // DO set Node Settings
         bm_params.GroupAddress = bm_control_msg.GroupAddress;
-        bm_cli_log("New Settings Saved Group: %u\n", bm_params.GroupAddress);
+        bm_params.Node_Id = bm_control_msg.NodeId;
+        bm_cli_log("New Settings Saved Group: %u, NodeId: %u\n", bm_params.GroupAddress,bm_params.Node_Id);
         bm_cli_log("Ready for Control Message\n");
         bm_led3_set(true);
         bm_sleep(BM_LED_BLINK_TIME_MS);
@@ -277,16 +278,10 @@ void ST_TIMESYNC_fn(void) {
   next_state_ts_us = (synctimer_getSyncTime() + ST_TIMESYNC_TIME_MS * 1000 + ST_MARGIN_TIME_MS * 1000);
   synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb);
 #ifdef BENCHMARK_MASTER
-  while (next_state_ts_us > synctimer_getSyncTime() + ST_MARGIN_TIME_MS * 1000 + 1500 * 1000) // Do Publishing while ther is enough time left
-  {
-    bm_timesync_msg_publish(false);
-  }
+  bm_timesync_msg_publish(next_state_ts_us - ST_MARGIN_TIME_MS * 1000);
 #else
-  while (next_state_ts_us > synctimer_getSyncTime() + ST_MARGIN_TIME_MS * 1000 + 250 * 1000 && !bm_state_synced) // Do Subscribing while ther is enough time and not already synced
-  {
-    if (bm_timesync_msg_subscribe(ST_transition_cb)) {
-      break; // Only relay once and wait for next State if synced
-    }
+  if (bm_timesync_msg_subscribe(next_state_ts_us - ST_MARGIN_TIME_MS * 1000,ST_transition_cb,ST_MARGIN_TIME_MS)) {
+    bm_timesync_msg_publish(synctimer_getSyncTimeCompareIntTS() - ST_MARGIN_TIME_MS * 1000); // Publish as long as there is time left...
   }
 #endif
   return;

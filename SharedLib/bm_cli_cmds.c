@@ -58,9 +58,10 @@ static int cmd_getNodeReport(const struct shell *shell, size_t argc, char **argv
 SHELL_CMD_REGISTER(getNodeReport, NULL, "Get the Node Report", cmd_getNodeReport);
 
 static int cmd_setNodeSettings(const struct shell *shell, size_t argc, char **argv) { // Todo: Add error check for validating the Params are valid
-  if (argc == 3) {
+  if (argc == 4) {
     bm_cli_cmd_setNodeSettings.MAC = atoi(argv[1]);          // MAC Adress in integer value format
     bm_cli_cmd_setNodeSettings.GroupAddress = atoi(argv[2]); // Group Address Number (0-25)
+    bm_cli_cmd_setNodeSettings.NodeId = atoi(argv[3]); // NodeId Number (0-50)
     bm_cli_cmd_setNodeSettings.req = true;
     shell_print(shell, "Request Sheduled for MAC: %x", bm_cli_cmd_setNodeSettings.MAC);
   } else {

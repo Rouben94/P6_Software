@@ -35,6 +35,7 @@ extern "C" {
     uint16_t benchmark_time_s; // Set the Benchmark Time -> 0 is ignored
     uint16_t benchmark_packet_cnt; // Set the Benchmark Packets Count -> 0 is irgnored
     uint8_t GroupAddress; // Set the Group Address of the Dst -> 0 is ignored
+    uint8_t NodeId; // Set the NodeId of the Dst -> 0 is ignored
   } __attribute__((packed)) bm_control_msg_t;
 
 void bm_control_msg_publish(bm_control_msg_t bm_control_msg);

@@ -386,9 +386,15 @@ void config_debug_ppi_and_gpiote_radio_state() {
 #define CommonTxPower NRF_RADIO_TXPOWER_0DBM // Common Tx Power < 0 dBm
 #endif
 
-#define msg_time_ms 5                      // Time needed for one message
-#define msg_cnt 5                          // Messages count used to transmit
-#define backoff_time_timessync_max_ms 1000 // Calculate with probability of collisions
+#define pub_time_on_ch_ms 10                // Time Sending Timesync Packets on one Channel
+#define pub_sub_time_ms (pub_time_on_ch_ms * CommonCHCnt * CommonCHCnt) // Publishing and Subscribing Time ms (~45ms)
+#define sub_time_on_ch_ms (pub_time_on_ch_ms * CommonCHCnt) // Subscribe Time on one Channel (~15ms)
+#define backoff_time_max_ms (1000) // Calculate with probability of collisions
+#define pub_sub_time_max_ms (backoff_time_max_ms + pub_sub_time_ms) // Maximum Time Blocking (~1045ms)
+uint64_t end_send_ts_us;
+uint64_t local_backoff_time_us;
+uint64_t pub_time_end_us;
+uint64_t sub_time_end_us;
 
 static RADIO_PACKET Radio_Packet_TX, Radio_Packet_RX;
 
@@ -402,8 +408,7 @@ typedef struct
 
 TimesyncPkt Tsync_pkt_TX, Tsync_pkt_RX, Tsync_pkt_RX_2;
 
-/** Takes ~1500ms if not relayed / Takes ~250ms if relayed */
-void bm_timesync_msg_publish(bool relaying) {
+void bm_timesync_msg_publish(uint64_t end_ts_us) {
   bm_radio_init();
   bm_radio_setMode(CommonMode);
   bm_radio_setAA(TimesyncAddress);
@@ -413,24 +418,30 @@ void bm_timesync_msg_publish(bool relaying) {
   Radio_Packet_TX.length = sizeof(Tsync_pkt_TX);
   Radio_Packet_TX.PDU = (uint8_t *)&Tsync_pkt_TX;
   Tsync_pkt_TX.MAC_Address_LSB = LSB_MAC_Address;
-  for (int ch_rx = CommonStartCH; ch_rx <= CommonEndCH; ch_rx++) {
-    for (int ch = CommonStartCH; ch <= CommonEndCH; ch++) {
-      bm_radio_setCH(ch);
-      for (int i = 0; i < msg_cnt; i++) {
-        Tsync_pkt_TX.LastTxTimestamp = synctimer_getSyncedTxTimeStamp();
-        Tsync_pkt_TX.NextState_TS_us = synctimer_getSyncTimeCompareIntTS();
-        bm_radio_send(Radio_Packet_TX);
-        Tsync_pkt_TX.seq++;
+  Tsync_pkt_TX.NextState_TS_us = end_ts_us; // Set the End Timestamp for slaves according to the State End Timestamp
+  local_backoff_time_us = (bm_rand_32 % backoff_time_max_ms) * 1000; // Local Backoff time
+  pub_time_end_us = local_backoff_time_us + pub_sub_time_ms * 1000; // Time it Takes for one Publishing Cycle
+  while((end_ts_us - pub_time_end_us) > synctimer_getSyncTime()){ // Do while there is enough time left for Pulishing
+    bm_sleep(local_backoff_time_us / 1000); // Sleep Backoff Time
+    for (int ch_rx = CommonStartCH; ch_rx <= CommonEndCH; ch_rx++) {
+      for (int ch = CommonStartCH; ch <= CommonEndCH; ch++) {
+        bm_radio_setCH(CommonStartCH + ((ch + bm_rand_32) % CommonCHCnt)); // Random Channel Start
+        end_send_ts_us = synctimer_getSyncTime() + pub_time_on_ch_ms * 1000;
+        Tsync_pkt_TX.seq = 0;
+        //while (end_send_ts_us > synctimer_getSyncTime() || Tsync_pkt_TX.seq < 1){ // Do while Message Time is not exceeded and at least two Packets are sent
+        while (end_send_ts_us > synctimer_getSyncTime()){ // Do while Message Time is not exceeded and at least two Packets are sent
+          Tsync_pkt_TX.LastTxTimestamp = synctimer_getSyncedTxTimeStamp();
+          bm_radio_send(Radio_Packet_TX);
+          Tsync_pkt_TX.seq++;
+        }
+        //bm_cli_log("sent seq: %u, on ch: %u\n",Tsync_pkt_TX.seq,CommonStartCH + ((ch + bm_rand_32) % CommonCHCnt));
       }
     }
   }
-  if (!relaying) {
-    bm_sleep(backoff_time_timessync_max_ms + msg_time_ms * msg_cnt * CommonCHCnt * CommonCHCnt); // Sleep till all relays neerby should be done
-  }
 }
 
-/** Takes ~250ms to sync + ~250ms for realying */
-bool bm_timesync_msg_subscribe(void (*transition_cb)()) {
+
+bool bm_timesync_msg_subscribe(uint64_t end_ts_us, void (*state_transition_cb)(), uint64_t ST_MARGIN_TIME_MS) {
   bm_radio_init();
   bm_radio_setMode(CommonMode);
   bm_radio_setAA(TimesyncAddress);
@@ -438,35 +449,34 @@ bool bm_timesync_msg_subscribe(void (*transition_cb)()) {
   bm_state_synced = false;
   synctimer_TimeStampCapture_clear();
   synctimer_TimeStampCapture_enable();
-  for (int ch = CommonStartCH; ch <= CommonEndCH; ch++) {
-    bm_radio_setCH(ch);
-    if (bm_radio_receive(&Radio_Packet_RX, msg_time_ms * msg_cnt * CommonCHCnt)) {
-      synctimer_TimeStampCapture_disable();
-      Tsync_pkt_RX = *(TimesyncPkt *)Radio_Packet_RX.PDU;      // Bring the sheep to a dry place
-      if (bm_radio_receive(&Radio_Packet_RX, msg_time_ms * 2)) // The Next Timesync Packet should arrive right after the first
-      {
-        Tsync_pkt_RX_2 = *(TimesyncPkt *)Radio_Packet_RX.PDU; // Bring the sheep to a dry place
-        if ((Tsync_pkt_RX.MAC_Address_LSB == Tsync_pkt_RX_2.MAC_Address_LSB) && (Tsync_pkt_RX.seq == (Tsync_pkt_RX_2.seq - 1))) {
-          if (Tsync_pkt_RX.MAC_Address_LSB == 0xE4337238 || true) // For Debug (1)
-          {
-            synctimer_setSync(Tsync_pkt_RX_2.LastTxTimestamp);
-            bm_cli_log("Synced Time: %u\n", (uint32_t)synctimer_getSyncTime());
-            if (Tsync_pkt_RX_2.NextState_TS_us > synctimer_getSyncTime() - 5 * 1000) { // Add a minimal gap time of 5ms
-              bm_state_synced = true;
-              synctimer_setSyncTimeCompareInt(Tsync_pkt_RX_2.NextState_TS_us, transition_cb);
-              bm_cli_log("Synced with Time Master: %x\n", Tsync_pkt_RX_2.MAC_Address_LSB);
-              if (Tsync_pkt_RX_2.NextState_TS_us > (synctimer_getSyncTime() - 250 * 1000 - bm_rand_32 % backoff_time_timessync_max_ms * 1000)) { // Relay if enough time is left ~250ms + random backoff time
-                bm_timesync_msg_publish(true);
+  sub_time_end_us =(pub_sub_time_ms + pub_time_on_ch_ms + pub_time_on_ch_ms) * 1000; // Time it Takes for one Publishing Cycle
+  while((end_ts_us - sub_time_end_us) > synctimer_getSyncTime()){ // Do while there is enough time left for Pulishing
+    for (int ch = CommonStartCH; ch <= CommonEndCH; ch++) {
+      bm_radio_setCH(ch);
+      if (bm_radio_receive(&Radio_Packet_RX, sub_time_on_ch_ms)) {
+        synctimer_TimeStampCapture_disable();
+        Tsync_pkt_RX = *(TimesyncPkt *)Radio_Packet_RX.PDU;      // Bring the sheep to a dry place
+        if (bm_radio_receive(&Radio_Packet_RX, pub_time_on_ch_ms)) // The Next Timesync Packet should arrive right after the first
+        {
+          Tsync_pkt_RX_2 = *(TimesyncPkt *)Radio_Packet_RX.PDU; // Bring the sheep to a dry place
+          if ((Tsync_pkt_RX.MAC_Address_LSB == Tsync_pkt_RX_2.MAC_Address_LSB) && (Tsync_pkt_RX.seq == (Tsync_pkt_RX_2.seq - 1))) {
+            if (Tsync_pkt_RX.MAC_Address_LSB == 0xE4337238 || true) // For Debug (1)
+            {
+              synctimer_setSync(Tsync_pkt_RX_2.LastTxTimestamp); // Set the Synctime Doesnt change the planed State interrupt
+              bm_cli_log("Synced Time: %u\n", (uint32_t)synctimer_getSyncTime());
+              if (Tsync_pkt_RX_2.NextState_TS_us > synctimer_getSyncTime()) { // Set the Next State Timestamp to the Received Timestamp
+                bm_state_synced = true;
+                synctimer_setSyncTimeCompareInt(Tsync_pkt_RX_2.NextState_TS_us + ST_MARGIN_TIME_MS * 1000, state_transition_cb); // Set the State Timeout according to the Received End TS
+                bm_cli_log("Synced with Time Master: %x\n", Tsync_pkt_RX_2.MAC_Address_LSB);
+                return true; 
+              } else {
+                bm_cli_log("TS of next state is in the past (%u < %u)\n", (uint32_t)Tsync_pkt_RX_2.NextState_TS_us, (uint32_t)synctimer_getSyncTime() - ST_MARGIN_TIME_MS * 1000);
               }
-              return true;
-            } else {
-              bm_cli_log("TS of next state is in the past (%u < %u)\n", (uint32_t)Tsync_pkt_RX_2.NextState_TS_us, (uint32_t)synctimer_getSyncTime() - 5 * 1000);
             }
           }
         }
+        synctimer_TimeStampCapture_clear();
       }
-      synctimer_TimeStampCapture_clear();
-      synctimer_TimeStampCapture_enable();
     }
   }
   return false;

@@ -52,6 +52,7 @@ typedef struct {
   bool req; // Is true if a cli command was received
   uint32_t MAC;
   uint8_t GroupAddress;
+  uint8_t NodeId;
 } bm_cli_cmd_setNodeSettings_t;
 
 extern bm_cli_cmd_setNodeSettings_t bm_cli_cmd_setNodeSettings;

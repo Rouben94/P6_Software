@@ -18,7 +18,8 @@ along with Benchamrk-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 /* AUTHOR   :   Raffael Anklin        */
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 #ifndef BM_RAND_H
@@ -31,20 +32,23 @@ extern "C" {
 #elif defined NRF_SDK_Zigbee
 #endif
 
-extern uint32_t bm_rand_32;           // Randomly generated 4 bytes
-extern uint32_t bm_rand_msg_ts[1000];     // Randomly generated Message Timestamps
+    extern uint32_t bm_rand_32;           // Randomly generated 4 bytes
+    extern uint64_t bm_rand_msg_ts[1000]; // Randomly generated Message Timestamps
 
-/* Initialize Random Data */
-void bm_rand_init();
+    /* Initialize Random Data */
+    void bm_rand_init();
 
-/* Function to get Random values */
-void bm_rand_get(void *dst, int len);
+    /* Function to get Random values */
+    void bm_rand_get(void *dst, int len);
 
-/* Function to implement bubble sort */
-void bm_rand32_bubbleSort(uint32_t arr[], int len);
+    /* Function to implement bubble sort */
+    void bm_rand64_bubbleSort(uint64_t arr[], int len);
 
-void bm_rand_init_message_ts();
+    void bm_rand_init_message_ts();
 
+    /** Defines for Random Transaction Events in Benchmark
+     * Gerated by Random.org. Uses a lot of RAM (be aware) **/
+    extern uint16_t rand16_26_1000[26][1000];
 
 #ifdef __cplusplus
 }
