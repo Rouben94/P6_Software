@@ -10,7 +10,7 @@ import csv
 
 dirpath = os.getcwd()
 
-serial_port = serial.Serial(port="COM78", baudrate=115200, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
+serial_port = serial.Serial(port="COM4", baudrate=115200, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
 bm_result_list = []
 
 stop_threads = False
@@ -32,10 +32,16 @@ def read():
                 bm_result[0] = bm_result[5] + '_' + bm_result[0]
                 bm_result_list.append(bm_result) 
                 print(bm_result)
-        if stop_threads:
-            break
 
-def write():
+            if "<REPORT_END>" in serialString:
+                if stop_threads:
+                    df = pd.DataFrame(bm_result_list, columns = ['Message ID', 'Timestamp (us)','Ack Timestamp (us)', 'Hops','RSSI','Source Address','Destination Address','Group Address','Data Size'])
+                    path = dirpath+'\\result_files\\'+csv_title+'.csv'
+                    df.to_csv(path,index=False,sep=';',encoding='utf-8')
+                    break
+                bm_start(60000)
+
+""" def write():
     global stop_threads
     input("Start with enter: ")
     while(1):
@@ -45,17 +51,19 @@ def write():
             df = pd.DataFrame(bm_result_list, columns = ['Message ID', 'Timestamp (us)','Ack Timestamp (us)', 'Hops','RSSI','Source Address','Destination Address','Group Address','Data Size'])
             path = dirpath+'\\result_files\\'+csv_title+'.csv'
             df.to_csv(path,index=False,sep=';',encoding='utf-8')
-            break
+            break """
 
 if __name__ == "__main__":
     t_read = threading.Thread(target=read)
-    t_write = threading.Thread(target=write)
+    """ t_write = threading.Thread(target=write) """
     
     if serial_port.isOpen(): serial_port.close()
     serial_port.open()
 
     t_read.start()
-    t_write.start()
+    """ t_write.start() """
 
-    sleep(90)
+    bm_time = input("How long would you like to test? (min): ")
+    bm_start(60000)
+    sleep(int(bm_time)*60)
     stop_threads = True
