@@ -17,8 +17,9 @@
 #include "nrf_log.h"
 #include "sdk_config.h"
 #include "thread_utils.h"
-#include "bm_statemachine.h"
+#include "bm_ot_statemachine.h"
 #include "bm_master_cli.h"
+#include "bm_log.h"
 
 #include <openthread/ip6.h>
 #include <openthread/link.h>
@@ -796,12 +797,12 @@ static void bm_probe_message_handler(void                 * p_context,
         }
 
         otNetworkTimeGet(thread_ot_instance_get(), &message.net_time);
-        message.RSSI = otMessageGetRss(p_message);
+        message.rssi = otMessageGetRss(p_message);
         message.number_of_hops = (HOP_LIMIT_DEFAULT - p_message_info->mHopLimit);
-        message.source_address.mFields.m16[7] = ((bm_probe[1] & 0xff) | (bm_probe[2] << 8));
-        message.dest_address = *otThreadGetMeshLocalEid(thread_ot_instance_get());
-        message.grp_address = bm_group_address;
-        message.net_time_ack = 0;
+        message.src_addr = ((bm_probe[1] & 0xff) | (bm_probe[2] << 8)); //Uint16
+        message.dst_addr = (*otThreadGetMeshLocalEid(thread_ot_instance_get())).mFields.m16[7]; //Uint16
+        message.group_addr = bm_group_address.mFields.m16[7]; //Uint16
+        message.ack_net_time = 0;
         bm_save_message_info(message);
 
         if (otCoapMessageGetType(p_message) == OT_COAP_TYPE_CONFIRMABLE)
@@ -822,17 +823,17 @@ void bm_coap_probe_message_send(uint8_t state)
 
     bm_message_ID++;
 
-    message.RSSI = 0;
+    message.rssi = 0;
     message.number_of_hops = 0;
-    message.source_address = *otThreadGetMeshLocalEid(thread_ot_instance_get());
-    message.dest_address = bm_group_address;
-    message.grp_address = bm_group_address;
-    message.net_time_ack = 0;
-    message.message_id = bm_get_overflow_tid_from_overflow_handler(bm_message_ID, message.source_address.mFields.m16[7]);
+    message.src_addr = (*otThreadGetMeshLocalEid(thread_ot_instance_get())).mFields.m16[7];
+    message.dst_addr = bm_group_address.mFields.m16[7];
+    message.group_addr = bm_group_address.mFields.m16[7];
+    message.ack_net_time = 0;
+    message.message_id = bm_get_overflow_tid_from_overflow_handler(bm_message_ID, message.src_addr);
     otNetworkTimeGet(thread_ot_instance_get(), &message.net_time);
 
     uint8_t bm_big_probe[DATA_SIZE];
-    uint8_t bm_small_probe[3] = {bm_message_ID, message.source_address.mFields.m16[7] & 0xff, message.source_address.mFields.m16[7] >> 8 };
+    uint8_t bm_small_probe[3] = {bm_message_ID, message.src_addr & 0xff, message.src_addr >> 8 };
 
     do
     {

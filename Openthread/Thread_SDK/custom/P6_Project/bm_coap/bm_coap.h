@@ -45,7 +45,7 @@
 #include <openthread/coap.h>
 
 #include "thread_utils.h"
-#include "bm_statemachine.h"
+#include "bm_ot_statemachine.h"
 
 /**@brief Benchmark configuration structure. */
 typedef struct

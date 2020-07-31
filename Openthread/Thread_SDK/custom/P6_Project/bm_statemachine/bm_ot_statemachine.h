@@ -4,6 +4,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <openthread/ip6.h>
+#include "bm_log.h"
+
+
 
 /* Typdef for benchmark state */
 typedef enum
@@ -22,7 +25,9 @@ typedef enum
     BM_1024Bytes
 } bm_data_size;
 
+
 /* Struct for benchmark message information */
+/*
 typedef struct
 {
     otIp6Address source_address;
@@ -37,6 +42,8 @@ typedef struct
     bool     data_size;
     
 } bm_message_info;
+
+*/
 
 /**@brief Function for processing the benchmark pending tasks.
  *

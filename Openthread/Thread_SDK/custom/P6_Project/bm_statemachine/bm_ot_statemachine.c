@@ -1,4 +1,5 @@
-#include "bm_statemachine.h"
+#include "bm_ot_statemachine.h"
+#include "bm_log.h"
 
 #include "app_timer.h"
 #include "boards.h"
@@ -29,7 +30,7 @@ APP_TIMER_DEF(m_msg_8_timer);
 APP_TIMER_DEF(m_msg_9_timer);
 APP_TIMER_DEF(m_msg_10_timer);
 
-bm_message_info message_info[NUMBER_OF_NETWORK_TIME_ELEMENTS] = {0};
+//bm_message_info message_info[NUMBER_OF_NETWORK_TIME_ELEMENTS] = {0};
 bm_message_info result[NUMBER_OF_NODES][NUMBER_OF_NETWORK_TIME_ELEMENTS] = {0};
 
 uint16_t bm_message_info_nr = 0;
@@ -43,7 +44,8 @@ uint8_t   bm_actual_state = 0;
 uint8_t   data_size = 1;
 uint8_t   s_timer = 0;
 
-uint8_t   index = 200;
+uint16_t   last_message_id = 0xffff;
+uint8_t   msg_rec_cnt = 0;
 bool      bm_stop = true;
 
 /***************************************************************************************************
@@ -57,18 +59,19 @@ void bm_save_message_info(bm_message_info message)
 
 void bm_save_result(bm_message_info message)
 {
-    if(index != message.index)
+    if(last_message_id != message.message_id)
     {
         bm_cli_write_result(message);
+        msg_rec_cnt++;
     }
 
-    if(message.index == 0 && !bm_stop)
+    if(msg_rec_cnt == 10 && !bm_stop)
     {
         bm_sm_new_state_set(BM_STATE_2_MASTER);
         app_timer_stop(m_result_timer);
     }
     
-    index = message.index;    
+    last_message_id = message.message_id;    
 }
 
 void bm_save_slave_address(otIp6Address slave_address)
@@ -234,7 +237,7 @@ static void state_2_slave(void)
     } else
     {
         bm_message_info_nr--;
-        message_info[bm_message_info_nr].index = bm_message_info_nr;
+        //message_info[bm_message_info_nr].index = bm_message_info_nr;
         bm_coap_results_send(message_info[bm_message_info_nr]);
         bm_new_state = BM_EMPTY_STATE;
     }

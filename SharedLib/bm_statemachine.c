@@ -38,6 +38,8 @@ along with Benchamrk-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 #elif defined NRF_SDK_ZIGBEE
 #include "bm_simple_buttons_and_leds.h"
 #include "bm_zigbee.h"
+#elif defined NRF_SDK_Thread
+#include "bm_simple_buttons_and_leds.h"
 #endif
 
 #include "bm_statemachine.h"
