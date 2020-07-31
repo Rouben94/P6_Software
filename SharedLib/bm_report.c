@@ -73,6 +73,7 @@ bool bm_report_msg_subscribe(bm_message_info *message_info) {
   bm_report_req_msg.ReportEntry = bm_message_info_entry_ind;
   Radio_Packet_TX.length = sizeof(bm_report_req_msg);
   Radio_Packet_TX.PDU = (uint8_t *)&bm_report_req_msg;
+  Radio_Packet_RX.length = sizeof(bm_message_info);
   for (int i = 0; i < (CommonCHCnt * NUMBER_OF_BENCHMARK_REPORT_MESSAGES); i++) // There is only one trie to transmitt the Report for a Channel
   {
     bm_radio_setCH(CommonStartCH + i % (CommonCHCnt)); // Set the Channel alternating from StartCH till StopCH
@@ -138,6 +139,7 @@ bool bm_report_msg_publish(bm_message_info *message_info) {
   uint16_t bm_message_info_entry_ind = 0;
   uint16_t Errcnt = 0;
   Radio_Packet_TX.length = sizeof(bm_message_info);
+  Radio_Packet_RX.length = sizeof(bm_report_req_msg);
   for (int i = 0; i < (CommonCHCnt * NUMBER_OF_BENCHMARK_REPORT_MESSAGES); i++) // There is only one trie to transmitt the Report for a Channel
   {
     bm_radio_setCH(CommonStartCH + i % (CommonCHCnt));                 // Set the Channel alternating from StartCH till StopCH

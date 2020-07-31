@@ -31,6 +31,7 @@ extern "C" {
   typedef struct
   {
     uint32_t MACAddressDst; // Controll Message Belongs to a Specific address or can be braodcast (0xFFFFFFFF)
+    uint8_t depth; // Depth Relativ to Master (ignore Messages which have a higher depth)
     uint8_t NextStateNr; // The State which the Master Requests -> 0 is ignored
     uint16_t benchmark_time_s; // Set the Benchmark Time -> 0 is ignored
     uint16_t benchmark_packet_cnt; // Set the Benchmark Packets Count -> 0 is irgnored
