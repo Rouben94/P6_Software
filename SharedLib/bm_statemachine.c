@@ -131,6 +131,7 @@ static void ST_transition_cb(void) {
   if (!wait_for_transition) {
     bm_cli_log("ERROR: Statemachine out of Sync !!!\n");
     bm_cli_log("Please reset Device\n");
+    bm_led1_set(true);
   }
   transition = true;
   bm_cli_log("%u%u\n", (uint32_t)(synctimer_getSyncTime() >> 32), (uint32_t)synctimer_getSyncTime()); // For Debug
@@ -186,6 +187,7 @@ void ST_CONTROL_fn(void) {
     // Poll for CLI Commands
     if (bm_cli_cmd_getNodeReport.req) {
       bm_control_msg.MACAddressDst = bm_cli_cmd_getNodeReport.MAC;
+      bm_control_msg.depth = 0;
       bm_control_msg.NextStateNr = ST_REPORT;
       bm_control_msg.GroupAddress = 0;
       bm_control_msg.benchmark_time_s = 0;
@@ -198,6 +200,7 @@ void ST_CONTROL_fn(void) {
       break;
     } else if (bm_cli_cmd_setNodeSettings.req) {
       bm_control_msg.MACAddressDst = bm_cli_cmd_setNodeSettings.MAC;
+      bm_control_msg.depth = 0;
       bm_control_msg.NextStateNr = 0;
       bm_control_msg.GroupAddress = bm_cli_cmd_setNodeSettings.GroupAddress;
       bm_control_msg.NodeId = bm_cli_cmd_setNodeSettings.NodeId;
@@ -208,6 +211,7 @@ void ST_CONTROL_fn(void) {
       bm_cli_log("Ready for Control Message\n");
     } else if (bm_cli_cmd_startBM.req) {
       bm_control_msg.MACAddressDst = 0xFFFFFFFF; //Broadcast Address
+      bm_control_msg.depth = 0;
       bm_control_msg.NextStateNr = ST_TIMESYNC;
       bm_control_msg.GroupAddress = 0;
       bm_control_msg.benchmark_time_s = bm_cli_cmd_startBM.benchmark_time_s;
@@ -227,6 +231,7 @@ void ST_CONTROL_fn(void) {
 #endif
     bm_sleep(100); // Poll Interval is 100ms
 #else              // If not MASTER then Server or Client
+    memset(&bm_control_msg,0,sizeof(bm_control_msg)); // Clean Received Controll Message
     if (bm_control_msg_subscribe(&bm_control_msg)) {
       if (bm_control_msg.benchmark_time_s > 0 && bm_control_msg.benchmark_packet_cnt > 0 && bm_control_msg.benchmark_packet_cnt <= 1000 && bm_control_msg.NextStateNr == ST_TIMESYNC && bm_control_msg.MACAddressDst == 0xFFFFFFFF) {
         // DO Start Benchmark

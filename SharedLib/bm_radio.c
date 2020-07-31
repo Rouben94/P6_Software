@@ -285,7 +285,7 @@ bool bm_radio_receive(RADIO_PACKET *rx_pkt, uint32_t timeout_ms) {
   while (!(bm_synctimer_timeout_compare_int)) {
     //__SEV();__WFE();__WFE(); // Wait for Timer Interrupt nRF5SDK Way
     __NOP(); // Since the LLL Driver owns the Interrupt we have to Poll
-    if (nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_CRCOK) && nrf_radio_state_get(NRF_RADIO) == NRF_RADIO_STATE_DISABLED) {
+    if (nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_CRCOK) && nrf_radio_state_get(NRF_RADIO) == NRF_RADIO_STATE_DISABLED && ((PACKET_PDU_ALIGNED *)rx_buf_ptr)->length == rx_pkt->length) {
       rx_pkt->PDU = ((PACKET_PDU_ALIGNED *)rx_buf_ptr)->PDU;
       rx_pkt->length = ((PACKET_PDU_ALIGNED *)rx_buf_ptr)->length;
       bm_radio_disable();
@@ -563,7 +563,7 @@ bool bm_radio_receive(RADIO_PACKET *rx_pkt, uint32_t timeout_ms) {
   while (!(bm_synctimer_timeout_compare_int)) {
     //__SEV();__WFE();__WFE(); // Wait for Timer Interrupt nRF5SDK Way
     __NOP(); // Since the LLL Driver owns the Interrupt we have to Poll
-    if (nrf_radio_event_check(NRF_RADIO_EVENT_CRCOK) && nrf_radio_state_get() == NRF_RADIO_STATE_DISABLED) {
+    if (nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_CRCOK) && nrf_radio_state_get(NRF_RADIO) == NRF_RADIO_STATE_DISABLED && ((PACKET_PDU_ALIGNED *)rx_buf_ptr)->length == rx_pkt->length) {
       rx_pkt->PDU = ((PACKET_PDU_ALIGNED *)rx_buf_ptr)->PDU;
       rx_pkt->length = ((PACKET_PDU_ALIGNED *)rx_buf_ptr)->length;
       bm_radio_disable();

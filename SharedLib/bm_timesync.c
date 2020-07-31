@@ -391,12 +391,12 @@ void config_debug_ppi_and_gpiote_radio_state() {
 #define sub_time_on_ch_ms (pub_time_on_ch_ms * CommonCHCnt) // Subscribe Time on one Channel (~15ms)
 #define backoff_time_max_ms (1000) // Calculate with probability of collisions
 #define pub_sub_time_max_ms (backoff_time_max_ms + pub_sub_time_ms) // Maximum Time Blocking (~1045ms)
-uint64_t end_send_ts_us;
-uint64_t local_backoff_time_us;
-uint64_t pub_time_end_us;
-uint64_t sub_time_end_us;
+static uint64_t end_send_ts_us;
+static uint64_t local_backoff_time_us;
+static uint64_t pub_time_end_us;
+static uint64_t sub_time_end_us;
 
-static RADIO_PACKET Radio_Packet_TX, Radio_Packet_RX;
+static RADIO_PACKET Radio_Packet_TX, Radio_Packet_RX, Radio_Packet_RX_2;
 
 typedef struct
 {
@@ -446,6 +446,8 @@ bool bm_timesync_msg_subscribe(uint64_t end_ts_us, void (*state_transition_cb)()
   bm_radio_setMode(CommonMode);
   bm_radio_setAA(TimesyncAddress);
   bm_radio_setTxP(CommonTxPower);
+  Radio_Packet_RX.length = sizeof(Tsync_pkt_RX);
+  Radio_Packet_RX_2.length = sizeof(Tsync_pkt_RX_2);
   bm_state_synced = false;
   sub_time_end_us =(pub_sub_time_ms + pub_time_on_ch_ms + pub_time_on_ch_ms) * 1000; // Time it Takes for one Publishing Cycle
   while((end_ts_us - sub_time_end_us) > synctimer_getSyncTime()){ // Do while there is enough time left for Pulishing
@@ -456,9 +458,9 @@ bool bm_timesync_msg_subscribe(uint64_t end_ts_us, void (*state_transition_cb)()
       if (bm_radio_receive(&Radio_Packet_RX, sub_time_on_ch_ms)) {
         synctimer_TimeStampCapture_disable();
         Tsync_pkt_RX = *(TimesyncPkt *)Radio_Packet_RX.PDU;      // Bring the sheep to a dry place
-        if (bm_radio_receive(&Radio_Packet_RX, pub_time_on_ch_ms)) // The Next Timesync Packet should arrive right after the first
+        if (bm_radio_receive(&Radio_Packet_RX_2, pub_time_on_ch_ms)) // The Next Timesync Packet should arrive right after the first
         {
-          Tsync_pkt_RX_2 = *(TimesyncPkt *)Radio_Packet_RX.PDU; // Bring the sheep to a dry place
+          Tsync_pkt_RX_2 = *(TimesyncPkt *)Radio_Packet_RX_2.PDU; // Bring the sheep to a dry place
           if ((Tsync_pkt_RX.MAC_Address_LSB == Tsync_pkt_RX_2.MAC_Address_LSB) && (Tsync_pkt_RX.seq == (Tsync_pkt_RX_2.seq - 1))) {
             if (Tsync_pkt_RX.MAC_Address_LSB == 0xE4337238 || true) // For Debug (1)
             {
