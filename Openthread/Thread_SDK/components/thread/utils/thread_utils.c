@@ -239,7 +239,7 @@ void thread_init(const thread_configuration_t * p_config)
         error = otIp6SetEnabled(mp_ot_instance, true);
         ASSERT(error == OT_ERROR_NONE);
 
-        otNetworkTimeSetSyncPeriod(thread_ot_instance_get(), 30);
+        otNetworkTimeSetSyncPeriod(thread_ot_instance_get(), 3600);
         otNetworkTimeSetXtalThreshold(thread_ot_instance_get(), otPlatTimeGetXtalAccuracy());
 
         if (otDatasetIsCommissioned(mp_ot_instance) || p_config->autocommissioning)

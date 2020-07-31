@@ -11,6 +11,7 @@
 
 #include <openthread/network_time.h>
 #include <openthread/random_noncrypto.h>
+#include <openthread/cli.h>
 
 #define NUMBER_OF_NETWORK_TIME_ELEMENTS 1000
 #define NUMBER_OF_NODES 60
@@ -250,6 +251,10 @@ static void state_1_master(void)
 static void state_2_master(void)
 {   
     uint32_t error;
+    if (bm_slave_nr == 0)
+    {
+        otCliOutput("<REPORT_END> \r\n", sizeof("<REPORT_END> \r\n"));
+    }
     if (bm_slave_nr != 0)
     {
         bm_slave_nr--;

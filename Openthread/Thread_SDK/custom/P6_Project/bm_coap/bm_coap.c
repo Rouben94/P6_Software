@@ -821,7 +821,6 @@ void bm_coap_probe_message_send(uint8_t state)
     bm_message_info   message;
 
     bm_message_ID++;
-    uint64_t time;
 
     message.RSSI = 0;
     message.number_of_hops = 0;
@@ -885,6 +884,7 @@ void bm_coap_probe_message_send(uint8_t state)
             break;
         }
 
+        bm_save_message_info(message);
         memset(&messafe_info, 0, sizeof(messafe_info));
         messafe_info.mPeerPort = OT_DEFAULT_COAP_PORT;
         messafe_info.mAllowZeroHopLimit = false;
@@ -892,9 +892,7 @@ void bm_coap_probe_message_send(uint8_t state)
         memcpy(&messafe_info.mPeerAddr, &bm_group_address, sizeof(messafe_info.mPeerAddr));
                  
         error = otCoapSendRequest(p_instance, p_request, &messafe_info, NULL, p_instance);
-
-//        message.message_id = (((uint16_t)bm_small_probe[0]) << 8) | ((uint16_t)bm_small_probe[1]);
-        bm_save_message_info(message);
+        
     } while (false);
 
     if (error != OT_ERROR_NONE && p_request != NULL)
