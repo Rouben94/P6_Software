@@ -273,7 +273,18 @@ void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t level) {
   zb_uint16_t groupID = bm_params.GroupAddress + GROUP_ID;
 
   /* Send Move to level request. Level value is uint8. */
-  ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
+//  ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
+//      groupID,
+//      ZB_APS_ADDR_MODE_16_GROUP_ENDP_NOT_PRESENT,
+//      BENCHMARK_SERVER_ENDPOINT,
+//      BENCHMARK_CLIENT_ENDPOINT,
+//      ZB_AF_HA_PROFILE_ID,
+//      ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
+//      bm_send_message_status_cb,
+//      level,
+//      0);
+
+  ZB_ZCL_LEVEL_CONTROL_SEND_STEP_REQ(bufid,
       groupID,
       ZB_APS_ADDR_MODE_16_GROUP_ENDP_NOT_PRESENT,
       BENCHMARK_SERVER_ENDPOINT,
@@ -281,8 +292,9 @@ void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t level) {
       ZB_AF_HA_PROFILE_ID,
       ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
       bm_send_message_status_cb,
-      level,
-      0);
+      ZB_ZCL_LEVEL_CONTROL_STEP_MODE_UP,
+      LIGHT_SWITCH_DIMM_STEP,
+      LIGHT_SWITCH_DIMM_TRANSACTION_TIME);
 }
 
 void bm_send_message(void) {

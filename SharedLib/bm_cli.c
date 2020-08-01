@@ -47,7 +47,7 @@ along with Benchamrk-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 #include "app_error.h"
 #include "app_timer.h"
 #include "app_util.h"
-#include "fds.h"
+//#include "fds.h"
 
 #include "nrf_cli.h"
 #include "nrf_cli_rtt.h"
