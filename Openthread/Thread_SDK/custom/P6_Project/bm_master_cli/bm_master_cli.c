@@ -1,6 +1,7 @@
 #include <stdio.h>
-#include <stdint.h>
-#include <stdbool.h>
+//#include <stdint.h>
+//#include <stdbool.h>
+#include <inttypes.h>
 
 #include "bm_statemachine.h"
 #include "bm_master_cli.h"
