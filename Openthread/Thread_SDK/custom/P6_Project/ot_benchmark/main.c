@@ -69,9 +69,9 @@
 #define SCHED_QUEUE_SIZE      32                              /**< Maximum number of events in the scheduler queue. */
 #define SCHED_EVENT_DATA_SIZE APP_TIMER_SCHED_EVENT_DATA_SIZE /**< Maximum app_scheduler event size. */
 
-#define BM_MASTER
+//#define BM_MASTER
 //#define BM_CLIENT
-//#define BM_SERVER
+#define BM_SERVER
 
 #ifdef BM_CLIENT
 bool toggle_data_size = true;
@@ -156,7 +156,6 @@ static void thread_state_changed_callback(uint32_t flags, void * p_context)
 
 static void thread_time_sync_callback(void * p_context) 
 {
-    NRF_LOG_INFO("time sync callback: %d", *(int*)p_context); 
     if (*(int*)p_context == OT_NETWORK_TIME_SYNCHRONIZED)
     {
         NRF_LOG_INFO("time sync synchronized"); 

@@ -21,17 +21,10 @@ void bm_cli_write_result(bm_message_info message_info)
     sprintf(buf[2], "%u ", message_info.net_time_ack);
     sprintf(buf[3], "%u ", message_info.number_of_hops);
     sprintf(buf[4], "%d ", message_info.RSSI);
-    sprintf(buf[5], "%x ", message_info.source_address.mFields.m16[7]);
-    sprintf(buf[6], "%x ", message_info.dest_address.mFields.m16[7]);
-    sprintf(buf[7], "%x ", message_info.grp_address.mFields.m16[7]);
-
-    if (message_info.data_size)
-    {
-        sprintf(buf[8], "1024\r\n");
-    } else if (!message_info.data_size)
-    {
-        sprintf(buf[8], "3\r\n");
-    }
+    sprintf(buf[5], "%x ", message_info.source_address);
+    sprintf(buf[6], "%x ", message_info.dest_address);
+    sprintf(buf[7], "%x ", message_info.grp_address);
+    sprintf(buf[8], "%d \r\n", message_info.data_size);
 
     for(int i=0; i<9; i++)
     {

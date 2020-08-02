@@ -103,7 +103,7 @@ void bm_coap_probe_message_send(uint8_t state);
  * @param[in] message  message state
  *
  */
-void bm_coap_results_send(bm_message_info message_info);
+void bm_coap_results_send(bm_message_info message_info[], uint16_t size);
 
 /**@brief Function for sending the benchmark test message to the peered unicast IPv6 address.
  *

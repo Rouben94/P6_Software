@@ -33,17 +33,15 @@ bm_message_info message_info[NUMBER_OF_NETWORK_TIME_ELEMENTS] = {0};
 bm_message_info result[NUMBER_OF_NODES][NUMBER_OF_NETWORK_TIME_ELEMENTS] = {0};
 
 uint16_t bm_message_info_nr = 0;
-uint16_t bm_result_nr = 0;
 uint16_t bm_slave_nr = 0;
 
 otIp6Address bm_slave_address[NUMBER_OF_NODES] = {};
 uint32_t  bm_time = 0;
+uint64_t  last_net_time_seen = 0xffffffffffffff;
 uint8_t   bm_new_state = 0;
 uint8_t   bm_actual_state = 0;
 uint8_t   data_size = 1;
-uint8_t   s_timer = 0;
 
-uint8_t   index = 200;
 bool      bm_stop = true;
 
 /***************************************************************************************************
@@ -55,20 +53,21 @@ void bm_save_message_info(bm_message_info message)
     bm_message_info_nr++;
 }
 
-void bm_save_result(bm_message_info message)
+void bm_save_result(bm_message_info message[], uint16_t size)
 {
-    if(index != message.index)
+    if(last_net_time_seen != message[0].net_time)
     {
-        bm_cli_write_result(message);
-    }
+        for(int i=0; i<size; i++)
+        {
+            if(message[i].net_time != 0)
+            {
+                bm_cli_write_result(message[i]);
+            }
+        }
 
-    if(message.index == 0 && !bm_stop)
-    {
-        bm_sm_new_state_set(BM_STATE_2_MASTER);
         app_timer_stop(m_result_timer);
-    }
-    
-    index = message.index;    
+        bm_sm_new_state_set(BM_STATE_2_MASTER);
+    }  
 }
 
 void bm_save_slave_address(otIp6Address slave_address)
@@ -224,20 +223,32 @@ static void state_1_slave(void)
 static void state_2_slave(void)
 {
     uint32_t error;
-    if(bm_message_info_nr == 0)
+    if(bm_message_info_nr==0)
     {
-        bsp_board_led_off(BSP_BOARD_LED_2);
-        bm_message_info_nr = 0;
-        memset(message_info, 0, sizeof(message_info));
-
-        bm_new_state = BM_EMPTY_STATE;
+        bm_message_info bm_result_struct[1];
+        memset(bm_result_struct, 0, sizeof(bm_result_struct));
+        bm_coap_results_send(bm_result_struct, sizeof(bm_result_struct));
     } else
     {
-        bm_message_info_nr--;
-        message_info[bm_message_info_nr].index = bm_message_info_nr;
-        bm_coap_results_send(message_info[bm_message_info_nr]);
-        bm_new_state = BM_EMPTY_STATE;
+        bm_message_info bm_result_struct[bm_message_info_nr];
+    
+        for(int i=0; i<bm_message_info_nr; i++)
+        {
+            bm_result_struct[i] = message_info[i];
+        }
+        bm_coap_results_send(bm_result_struct, sizeof(bm_result_struct));
     }
+
+    bm_new_state = BM_EMPTY_STATE;
+}
+
+static void state_3_slave(void)
+{
+    bsp_board_led_off(BSP_BOARD_LED_2);
+    bm_message_info_nr = 0;
+    memset(message_info, 0, sizeof(message_info));
+
+    bm_new_state = BM_EMPTY_STATE;
 }
 
 static void state_1_master(void)
@@ -251,11 +262,13 @@ static void state_1_master(void)
 static void state_2_master(void)
 {   
     uint32_t error;
+
     if (bm_slave_nr == 0)
     {
         otCliOutput("<REPORT_END> \r\n", sizeof("<REPORT_END> \r\n"));
     }
-    if (bm_slave_nr != 0)
+
+    if (bm_slave_nr > 0)
     {
         bm_slave_nr--;
         bm_coap_result_request_send(bm_slave_address[bm_slave_nr]);
@@ -278,6 +291,10 @@ void bm_sm_process(void)
 
         case BM_STATE_2_SLAVE:
             state_2_slave();
+            break;
+
+        case BM_STATE_3_SLAVE:
+            state_3_slave();
             break;
 
         case BM_STATE_1_MASTER:

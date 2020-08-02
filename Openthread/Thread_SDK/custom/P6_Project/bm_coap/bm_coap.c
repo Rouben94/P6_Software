@@ -271,7 +271,7 @@ static void bm_coap_result_response_handler(void                * p_context,
       if (otCoapMessageGetType(p_message) == OT_COAP_TYPE_ACKNOWLEDGMENT)
       {
           NRF_LOG_INFO("Slave: Result succesfull transmitted");
-          bm_sm_new_state_set(BM_STATE_2_SLAVE);
+          bm_sm_new_state_set(BM_STATE_3_SLAVE);
       }      
     }
     else 
@@ -279,7 +279,7 @@ static void bm_coap_result_response_handler(void                * p_context,
       if (result == OT_ERROR_RESPONSE_TIMEOUT)  // Coap response or acknowledgment or DNS response not received
       {
           NRF_LOG_INFO("Slave: Result response not received");
-          bm_sm_new_state_set(BM_STATE_2_SLAVE);
+          bm_sm_new_state_set(BM_EMPTY_STATE);
       }    
     }
 }
@@ -325,7 +325,6 @@ static void bm_result_handler(void                 * p_context,
                                    otMessage            * p_message,
                                    const otMessageInfo  * p_message_info)
 {
-    bm_message_info message_info;
     NRF_LOG_INFO("Master: Got result message");
     do
     {
@@ -339,14 +338,12 @@ static void bm_result_handler(void                 * p_context,
         {
             break;
         }
-   
-        if (otMessageRead(p_message, otMessageGetOffset(p_message), &message_info, sizeof(message_info)) != 56)
-        {
-            NRF_LOG_INFO("test message handler - missing results");
-        }
 
-        
-        bm_save_result(message_info);
+        uint16_t size = (otMessageGetLength(p_message) - otMessageGetOffset(p_message))/sizeof(bm_message_info);
+        bm_message_info message_info[size];
+   
+        otMessageRead(p_message, otMessageGetOffset(p_message), message_info, sizeof(message_info));
+        bm_save_result(message_info, size);
 
         if (otCoapMessageGetType(p_message) == OT_COAP_TYPE_CONFIRMABLE)
         {
@@ -355,7 +352,7 @@ static void bm_result_handler(void                 * p_context,
     } while(false);
 }
 
-void bm_coap_results_send(bm_message_info message_info)
+void bm_coap_results_send(bm_message_info message_info[], uint16_t size)
 {
     otError         error = OT_ERROR_NONE;
     otMessage     * p_request;
@@ -391,7 +388,7 @@ void bm_coap_results_send(bm_message_info message_info)
         UNUSED_VARIABLE(otCoapMessageAppendUriPathOptions(p_request, "bm_result"));
         UNUSED_VARIABLE(otCoapMessageSetPayloadMarker(p_request));
 
-        error = otMessageAppend(p_request, &message_info, sizeof(message_info));
+        error = otMessageAppend(p_request, message_info, size);
         if (error != OT_ERROR_NONE)
         {
             break;
@@ -786,21 +783,21 @@ static void bm_probe_message_handler(void                 * p_context,
             NRF_LOG_INFO("Server: Got 1 bit message");
             message.message_id = bm_get_overflow_tid_from_overflow_handler(bm_probe[0], ((bm_probe[1] & 0xff) | (bm_probe[2] << 8)));
             bsp_board_led_invert(BSP_BOARD_LED_2);
-            message.data_size = 0;
+            message.data_size = 3;
         } else
         {
             NRF_LOG_INFO("Server: Got 1024 byte message");
             message.message_id = bm_get_overflow_tid_from_overflow_handler(bm_probe[0], ((bm_probe[1] & 0xff) | (bm_probe[2] << 8)));
             bsp_board_led_invert(BSP_BOARD_LED_2);
-            message.data_size = 1;
+            message.data_size = 1024;
         }
 
         otNetworkTimeGet(thread_ot_instance_get(), &message.net_time);
         message.RSSI = otMessageGetRss(p_message);
         message.number_of_hops = (HOP_LIMIT_DEFAULT - p_message_info->mHopLimit);
-        message.source_address.mFields.m16[7] = ((bm_probe[1] & 0xff) | (bm_probe[2] << 8));
-        message.dest_address = *otThreadGetMeshLocalEid(thread_ot_instance_get());
-        message.grp_address = bm_group_address;
+        message.source_address = ((bm_probe[1] & 0xff) | (bm_probe[2] << 8));
+        message.dest_address = (*otThreadGetMeshLocalEid(thread_ot_instance_get())).mFields.m16[7];
+        message.grp_address = bm_group_address.mFields.m16[7];
         message.net_time_ack = 0;
         bm_save_message_info(message);
 
@@ -824,15 +821,15 @@ void bm_coap_probe_message_send(uint8_t state)
 
     message.RSSI = 0;
     message.number_of_hops = 0;
-    message.source_address = *otThreadGetMeshLocalEid(thread_ot_instance_get());
-    message.dest_address = bm_group_address;
-    message.grp_address = bm_group_address;
+    message.source_address = (*otThreadGetMeshLocalEid(thread_ot_instance_get())).mFields.m16[7];
+    message.dest_address = bm_group_address.mFields.m16[7];
+    message.grp_address = bm_group_address.mFields.m16[7];
     message.net_time_ack = 0;
-    message.message_id = bm_get_overflow_tid_from_overflow_handler(bm_message_ID, message.source_address.mFields.m16[7]);
+    message.message_id = bm_get_overflow_tid_from_overflow_handler(bm_message_ID, message.source_address);
     otNetworkTimeGet(thread_ot_instance_get(), &message.net_time);
 
     uint8_t bm_big_probe[DATA_SIZE];
-    uint8_t bm_small_probe[3] = {bm_message_ID, message.source_address.mFields.m16[7] & 0xff, message.source_address.mFields.m16[7] >> 8 };
+    uint8_t bm_small_probe[3] = {bm_message_ID, message.source_address & 0xff, message.source_address >> 8 };
 
     do
     {
@@ -868,15 +865,15 @@ void bm_coap_probe_message_send(uint8_t state)
         if (state == BM_1bit)
         {
             error = otMessageAppend(p_request, &bm_small_probe, 3*sizeof(uint8_t));
-            message.data_size = 0;
+            message.data_size = 3;
         } else if (state == BM_1024Bytes)
         {
             otRandomNonCryptoFillBuffer(bm_big_probe, DATA_SIZE);
             bm_big_probe[0] = bm_small_probe[0];
             bm_big_probe[1] = bm_small_probe[1];
             bm_big_probe[2] = bm_small_probe[2];
-            error = otMessageAppend(p_request, bm_big_probe, (DATA_SIZE*sizeof(uint8_t)));
-            message.data_size = 1;
+            error = otMessageAppend(p_request, &bm_big_probe, (DATA_SIZE*sizeof(uint8_t)));
+            message.data_size = 1024;
         }
 
         if (error != OT_ERROR_NONE)
