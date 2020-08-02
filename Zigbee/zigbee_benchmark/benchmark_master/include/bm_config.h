@@ -26,6 +26,7 @@ typedef struct
   uint16_t benchmark_time_s;
   uint16_t benchmark_packet_cnt;
   uint8_t GroupAddress;
+  uint8_t Node_Id;
 } bm_params_t;
 extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a benchmark is active.
 
@@ -49,7 +50,6 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 #define ZIGBEE_NETWORK_STATE_LED BSP_BOARD_LED_2        /**< LED indicating that network is opened for new nodes. */
 #define ZIGBEE_NETWORK_REOPEN_BUTTON BSP_BOARD_BUTTON_0 /**< Button which reopens the Zigbee Network. */
 #define ZIGBEE_MANUAL_STEERING ZB_FALSE                 /**< If set to 1 then device will not open the network after forming or reboot. */
-#define ZIGBEE_PERMIT_LEGACY_DEVICES ZB_FALSE           /**< If set to 1 then legacy devices (pre-Zigbee 3.0) can join the network. */
 
 /* Benchmark specific Definitions*/
 #define BENCHMARK_CLIENT_ENDPOINT 1  /* ZCL Endpoint of the Benchmark Client */

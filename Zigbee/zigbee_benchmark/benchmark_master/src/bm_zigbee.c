@@ -2,10 +2,11 @@
 #include "nrf_802154.h"
 #include "sdk_config.h"
 #include "zb_error_handler.h"
-#include "zb_mem_config_max.h"
 #include "zboss_api.h"
 #include "zboss_api_addons.h"
 #include "zigbee_helpers.h"
+
+#include "bm_mem_config_custom.h"
 
 #include "app_timer.h"
 #include "boards.h"
@@ -106,10 +107,6 @@ void zboss_signal_handler(zb_bufid_t bufid) {
 
   case ZB_BDB_SIGNAL_STEERING:
     if (status == RET_OK) {
-      if (ZIGBEE_PERMIT_LEGACY_DEVICES == ZB_TRUE) {
-        bm_cli_log("Allow pre-Zigbee 3.0 devices to join the network\n");
-        zb_bdb_set_legacy_device_support(1);
-      }
       /* Schedule an alarm to notify about the end of steering period */
       bm_cli_log("Network steering started\n");
       zb_err_code = ZB_SCHEDULE_APP_ALARM(steering_finished, 0, ZB_TIME_ONE_SECOND * ZB_ZGP_DEFAULT_COMMISSIONING_WINDOW);
