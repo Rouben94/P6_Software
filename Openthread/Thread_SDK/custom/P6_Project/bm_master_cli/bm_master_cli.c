@@ -1,6 +1,4 @@
 #include <stdio.h>
-//#include <stdint.h>
-//#include <stdbool.h>
 #include <inttypes.h>
 
 #include "bm_statemachine.h"
@@ -18,8 +16,8 @@ void bm_cli_write_result(bm_message_info message_info)
 
     strcpy(bm_result_cli, "<report> ");
     sprintf(buf[0], "%u ", message_info.message_id);
-    sprintf(buf[1], "%u ", message_info.net_time);
-    sprintf(buf[2], "%u ", message_info.net_time_ack);
+    sprintf(buf[1], "%"PRIu64" ", message_info.net_time);
+    sprintf(buf[2], "%"PRIu64" ", message_info.net_time_ack);
     sprintf(buf[3], "%u ", message_info.number_of_hops);
     sprintf(buf[4], "%d ", message_info.RSSI);
     sprintf(buf[5], "%x ", message_info.source_address);
