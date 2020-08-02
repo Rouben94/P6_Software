@@ -53,6 +53,12 @@ void bm_sm_process(void);
  *
  * @details 
  */
+void bm_reset_slave_address(void);
+
+/**@brief 
+ *
+ * @details 
+ */
 void bm_sm_time_set(uint32_t time);
 
 /**@brief 

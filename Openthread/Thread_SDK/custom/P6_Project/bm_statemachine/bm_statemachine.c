@@ -47,6 +47,11 @@ bool      bm_stop = true;
 /***************************************************************************************************
  * @section State machine - Functions
  **************************************************************************************************/
+void bm_reset_slave_address(void)
+{
+    bm_slave_nr = 0;
+}
+
 void bm_save_message_info(bm_message_info message)
 {
     message_info[bm_message_info_nr] = message;
@@ -272,7 +277,7 @@ static void state_2_master(void)
     {
         bm_slave_nr--;
         bm_coap_result_request_send(bm_slave_address[bm_slave_nr]);
-        error = app_timer_start(m_result_timer, APP_TIMER_TICKS(1000), NULL);
+        error = app_timer_start(m_result_timer, APP_TIMER_TICKS(5000), NULL);
         ASSERT(error == NRF_SUCCESS);
     }
     

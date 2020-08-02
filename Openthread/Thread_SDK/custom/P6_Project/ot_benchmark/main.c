@@ -69,9 +69,9 @@
 #define SCHED_QUEUE_SIZE      32                              /**< Maximum number of events in the scheduler queue. */
 #define SCHED_EVENT_DATA_SIZE APP_TIMER_SCHED_EVENT_DATA_SIZE /**< Maximum app_scheduler event size. */
 
-//#define BM_MASTER
+#define BM_MASTER
 //#define BM_CLIENT
-#define BM_SERVER
+//#define BM_SERVER
 
 #ifdef BM_CLIENT
 bool toggle_data_size = true;
@@ -184,6 +184,7 @@ static void bm_cli_benchmark_start(uint8_t aArgsLength, char *aArgs[]) {
     master_message.bm_master_ip6_address = *otThreadGetMeshLocalEid(thread_ot_instance_get());
     master_message.bm_time = (uint32_t)atoi(aArgs[0]);
 
+    bm_reset_slave_address();
     bm_coap_multicast_start_send(master_message);
 
     otCliOutput("done \r\n", sizeof("done \r\n"));

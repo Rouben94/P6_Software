@@ -24,7 +24,7 @@ void bm_cli_write_result(bm_message_info message_info)
     sprintf(buf[5], "%x ", message_info.source_address);
     sprintf(buf[6], "%x ", message_info.dest_address);
     sprintf(buf[7], "%x ", message_info.grp_address);
-    sprintf(buf[8], "%d \r\n", message_info.data_size);
+    sprintf(buf[8], "%d\r\n", message_info.data_size);
 
     for(int i=0; i<9; i++)
     {
