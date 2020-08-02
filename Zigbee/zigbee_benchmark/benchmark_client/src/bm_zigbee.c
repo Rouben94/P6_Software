@@ -301,7 +301,7 @@ void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t level) {
       BENCHMARK_CLIENT_ENDPOINT,
       ZB_AF_HA_PROFILE_ID,
       ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
-      bm_send_message_status_cb,
+      NULL,
       level,
       BENCHMARK_LEVEL_SEND_TRANSACTION_TIME);
 

@@ -457,6 +457,9 @@ void bm_receive_message(zb_bufid_t bufid) {
   zb_uint8_t seq_num;
   zb_zcl_device_callback_param_t *p_device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
   zb_zcl_parsed_hdr_t *cmd_info = ZB_BUF_GET_PARAM(bufid, zb_zcl_parsed_hdr_t);
+  zb_aps_hdr_t *aps_info = ZB_BUF_GET_PARAM(bufid, zb_aps_hdr_t);
+
+  bm_cli_log("APS src: 0x%x, RSSI %d\n", aps_info->src_addr, aps_info->rssi);
 
   seq_num = p_device_cb_param->cb_param.level_control_set_value_param.new_value;
 
@@ -467,10 +470,14 @@ void bm_receive_message(zb_bufid_t bufid) {
 
   message.net_time = synctimer_getSyncTime();
 
-  message.src_addr = cmd_info->addr_data.common_data.source.u.short_addr;
+  //  message.src_addr = cmd_info->addr_data.common_data.source.u.short_addr;
+  message.src_addr = aps_info->src_addr;
+
   zb_get_long_address(ieee_dst_addr);
   message.dst_addr = zb_address_short_by_ieee(ieee_dst_addr);
-  message.group_addr = bm_params.GroupAddress + GROUP_ID;
+  //  message.dst_addr = aps_info->dst_addr;
+  //  message.group_addr = bm_params.GroupAddress + GROUP_ID;
+  message.group_addr = aps_info->group_addr;
 
   //  message.message_id = bm_get_overflow_tid_from_overflow_handler(seq_num, message.src_addr);
   message.message_id = bm_get_overflow_tid_from_overflow_handler(seq_num, message.src_addr);
