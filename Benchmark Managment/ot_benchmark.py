@@ -10,7 +10,7 @@ import csv
 
 dirpath = os.getcwd()
 
-serial_port = serial.Serial(port="COM4", baudrate=115200, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
+serial_port = serial.Serial(port="COM6", baudrate=115200, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
 bm_result_list = []
 
 stop_threads = False
