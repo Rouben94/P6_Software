@@ -28,18 +28,21 @@ def read():
             serialString = serial_port.readline().decode('Ascii')
             if "<report>" in serialString:
                 bm_result = serialString.replace('\x00', '').split()
-                bm_result.pop(0)
+                bm_result.remove("<report>")
+                if ">" in bm_result: bm_result.remove(">")
+                if "<" in bm_result: bm_result.remove("<")
                 bm_result[0] = bm_result[5] + '_' + bm_result[0]
                 bm_result_list.append(bm_result) 
                 print(bm_result)
 
-            if "<REPORT_END>" in serialString:
+            elif "<REPORT_END>" in serialString:
+                sleep(2)
                 if stop_threads:
                     df = pd.DataFrame(bm_result_list, columns = ['Message ID', 'Timestamp (us)','Ack Timestamp (us)', 'Hops','RSSI','Source Address','Destination Address','Group Address','Data Size'])
                     path = dirpath+'\\result_files\\'+csv_title+'.csv'
                     df.to_csv(path,index=False,sep=';',encoding='utf-8')
                     break
-                bm_start(60000)
+                bm_start(30000)
 
 """ def write():
     global stop_threads
@@ -64,6 +67,6 @@ if __name__ == "__main__":
     """ t_write.start() """
 
     bm_time = input("How long would you like to test? (min): ")
-    bm_start(60000)
+    bm_start(30000)
     sleep(int(bm_time)*60)
     stop_threads = True
