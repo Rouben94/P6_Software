@@ -3,11 +3,13 @@
 #include "sdk_config.h"
 #include "zb_error_handler.h"
 #include "zb_ha_dimmable_light.h"
-#include "zb_mem_config_max.h"
 #include "zb_nrf52_internal.h"
 #include "zboss_api.h"
 #include "zboss_api_addons.h"
 #include "zigbee_helpers.h"
+
+//#include "zb_mem_config_max.h"
+#include "bm_mem_config_custom.h"
 
 #include "app_pwm.h"
 #include "app_timer.h"
@@ -102,8 +104,7 @@ zb_uint16_t msg_receive_cnt = 0;
 bm_tid_overflow_handler_t bm_tid_overflow_handler[max_number_of_nodes]; /* Excpect not more than max_number_of_nodes Different Adresses */
 
 static void buttons_handler(bsp_event_t evt);
-void bm_receive_message(zb_bufid_t bufid, zb_uint8_t seq_num);
-void bm_read_message_info(zb_uint16_t timeout);
+void bm_receive_message(zb_bufid_t bufid);
 
 /************************************ Benchmark Client Cluster Attribute Init ***********************************************/
 
@@ -429,17 +430,17 @@ static zb_void_t add_group_id(zb_bufid_t bufid) {
  *
  * @param[in]   bufid   Reference to Zigbee stack buffer used to pass received data.
  */
-void bm_receive_message(zb_bufid_t bufid, zb_uint8_t seq_num) {
+void bm_receive_message(zb_bufid_t bufid) {
   bm_message_info message;
   zb_uint8_t lqi = ZB_MAC_LQI_UNDEFINED;
   zb_int8_t rssi = 0;
-  zb_uint8_t addr_type;
   zb_uint8_t random_level;
   zb_ieee_addr_t ieee_dst_addr;
+  zb_uint8_t seq_num;
   zb_zcl_device_callback_param_t *p_device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
+  zb_zcl_parsed_hdr_t *cmd_info = ZB_BUF_GET_PARAM(bufid, zb_zcl_parsed_hdr_t);
 
-  zb_zcl_parsed_hdr_t cmd_info;
-  ZB_ZCL_COPY_PARSED_HEADER(bufid, &cmd_info);
+  seq_num = p_device_cb_param->cb_param.level_control_set_value_param.new_value;
 
   /* TODO: Number of hops is not yet available from the ZBOSS API */
   message.number_of_hops = 0;
@@ -447,26 +448,25 @@ void bm_receive_message(zb_bufid_t bufid, zb_uint8_t seq_num) {
   message.ack_net_time = 0;
 
   message.net_time = synctimer_getSyncTime();
-  message.src_addr = cmd_info.addr_data.common_data.source.u.short_addr;
 
-  //  memcpy(&message.src_addr, &(cmd_info.addr_data.common_data.source.u.short_addr), sizeof(zb_uint16_t));
-
+  message.src_addr = cmd_info->addr_data.common_data.source.u.short_addr;
   zb_get_long_address(ieee_dst_addr);
   message.dst_addr = zb_address_short_by_ieee(ieee_dst_addr);
   message.group_addr = bm_params.GroupAddress + GROUP_ID;
 
+  //  message.message_id = bm_get_overflow_tid_from_overflow_handler(seq_num, message.src_addr);
   message.message_id = bm_get_overflow_tid_from_overflow_handler(seq_num, message.src_addr);
 
   zb_zdo_get_diag_data(message.src_addr, &lqi, &rssi);
   message.rssi = rssi;
 
-  bm_cli_log("Benchmark Packet received with ID: %d from Src Address: 0x%x to Destination 0x%x with RSSI: %d (dB), LQI: %d, Time: %llu\n", message.message_id, message.src_addr, message.dst_addr, rssi, lqi, message.net_time);
+  bm_cli_log("Benchmark Packet received with ID: %d (%d) from Src Address: 0x%x to Destination 0x%x with RSSI: %d (dB), Time: %llu\n", message.message_id, seq_num, message.src_addr, message.dst_addr, rssi, message.net_time);
 
+  bm_log_append_ram(message);
   random_level = ZB_RANDOM_VALUE(255);
   level_control_set_value(random_level);
-  bm_log_append_ram(message);
 
-  //  zb_buf_free(bufid);
+  return;
 }
 
 /************************************ Zigbee event handler ***********************************************/
@@ -489,7 +489,9 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid) {
   switch (p_device_cb_param->device_cb_id) {
   case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
 
-    ZB_SCHEDULE_APP_CALLBACK2(bm_receive_message, bufid, p_device_cb_param->cb_param.level_control_set_value_param.new_value);
+    bm_receive_message(bufid);
+
+    //    ZB_SCHEDULE_APP_CALLBACK2(bm_receive_message, bufid, p_device_cb_param->cb_param.level_control_set_value_param.new_value);
     break;
 
   default:
@@ -525,8 +527,8 @@ void zboss_signal_handler(zb_bufid_t bufid) {
       zb_err_code = ZB_SCHEDULE_APP_ALARM(add_group_id, bufid, 2 * ZB_TIME_ONE_SECOND);
       ZB_ERROR_CHECK(zb_err_code);
 
-      zb_err_code = ZB_SCHEDULE_APP_ALARM(bm_schedule_lqi, 0, 5 * ZB_TIME_ONE_SECOND);
-      ZB_ERROR_CHECK(zb_err_code);
+      //      zb_err_code = ZB_SCHEDULE_APP_ALARM(bm_schedule_lqi, 0, 5 * ZB_TIME_ONE_SECOND);
+      //      ZB_ERROR_CHECK(zb_err_code);
 
       bufid = 0;
     }

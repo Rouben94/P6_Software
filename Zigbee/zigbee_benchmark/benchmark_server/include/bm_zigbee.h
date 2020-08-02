@@ -48,9 +48,7 @@ void bm_zigbee_init(void);
 
 void bm_zigbee_enable(void);
 
-void bm_receive_message(zb_bufid_t bufid, zb_uint8_t seq_num);
-
-void bm_read_message_info(zb_uint16_t timeout);
+void bm_receive_message(zb_bufid_t bufid);
 
 zb_void_t bm_schedule_lqi(zb_bufid_t bufid);
 

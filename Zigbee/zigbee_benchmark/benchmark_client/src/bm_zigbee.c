@@ -2,10 +2,12 @@
 #include "nrf_802154.h"
 #include "sdk_config.h"
 #include "zb_error_handler.h"
-#include "zb_mem_config_max.h"
 #include "zboss_api.h"
 #include "zboss_api_addons.h"
 #include "zigbee_helpers.h"
+
+//#include "zb_mem_config_max.h"
+#include "bm_mem_config_custom.h"
 
 #include "app_timer.h"
 #include "boards.h"
@@ -43,28 +45,28 @@ ZB_ZCL_DECLARE_BASIC_ATTRIB_LIST_EXT(
 ZB_ZCL_DECLARE_IDENTIFY_ATTRIB_LIST(identify_attr_list, &dev_ctx.identify_attr.identify_time);
 
 /* Declare attribute list for Scenes cluster. */
-ZB_ZCL_DECLARE_SCENES_ATTRIB_LIST(
-    scenes_attr_list,
-    &dev_ctx.scenes_attr.scene_count,
-    &dev_ctx.scenes_attr.current_scene,
-    &dev_ctx.scenes_attr.current_group,
-    &dev_ctx.scenes_attr.scene_valid,
-    &dev_ctx.scenes_attr.name_support);
+//ZB_ZCL_DECLARE_SCENES_ATTRIB_LIST(
+//    scenes_attr_list,
+//    &dev_ctx.scenes_attr.scene_count,
+//    &dev_ctx.scenes_attr.current_scene,
+//    &dev_ctx.scenes_attr.current_group,
+//    &dev_ctx.scenes_attr.scene_valid,
+//    &dev_ctx.scenes_attr.name_support);
 
 /* Declare attribute list for Groups cluster. */
-ZB_ZCL_DECLARE_GROUPS_ATTRIB_LIST(
-    groups_attr_list,
-    &dev_ctx.groups_attr.name_support);
+//ZB_ZCL_DECLARE_GROUPS_ATTRIB_LIST(
+//    groups_attr_list,
+//    &dev_ctx.groups_attr.name_support);
 
 /* On/Off cluster attributes additions data */
-ZB_ZCL_DECLARE_ON_OFF_ATTRIB_LIST(
-    on_off_attr_list,
-    &dev_ctx.on_off_attr.on_off);
+//ZB_ZCL_DECLARE_ON_OFF_ATTRIB_LIST(
+//    on_off_attr_list,
+//    &dev_ctx.on_off_attr.on_off);
 
-ZB_ZCL_DECLARE_LEVEL_CONTROL_ATTRIB_LIST(
-    level_control_attr_list,
-    &dev_ctx.level_control_attr.current_level,
-    &dev_ctx.level_control_attr.remaining_time);
+//ZB_ZCL_DECLARE_LEVEL_CONTROL_ATTRIB_LIST(
+//    level_control_attr_list,
+//    &dev_ctx.level_control_attr.current_level,
+//    &dev_ctx.level_control_attr.remaining_time);
 
 /* Declare cluster list for Dimmer Switch device (Identify, Basic, Scenes, Groups, On Off, Level Control). */
 /* Only clusters Identify and Basic have attributes. */
@@ -94,6 +96,7 @@ zb_uint8_t seq_num = 0;
 zb_uint16_t msg_receive_cnt = 0;
 zb_bufid_t buffer_id;
 zb_bool_t init_buf = false;
+zb_uint16_t rem_dev_id;
 
 zb_ieee_addr_t local_node_ieee_addr;
 zb_uint16_t local_node_short_addr;
@@ -273,18 +276,7 @@ void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t level) {
   zb_uint16_t groupID = bm_params.GroupAddress + GROUP_ID;
 
   /* Send Move to level request. Level value is uint8. */
-//  ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
-//      groupID,
-//      ZB_APS_ADDR_MODE_16_GROUP_ENDP_NOT_PRESENT,
-//      BENCHMARK_SERVER_ENDPOINT,
-//      BENCHMARK_CLIENT_ENDPOINT,
-//      ZB_AF_HA_PROFILE_ID,
-//      ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
-//      bm_send_message_status_cb,
-//      level,
-//      0);
-
-  ZB_ZCL_LEVEL_CONTROL_SEND_STEP_REQ(bufid,
+  ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
       groupID,
       ZB_APS_ADDR_MODE_16_GROUP_ENDP_NOT_PRESENT,
       BENCHMARK_SERVER_ENDPOINT,
@@ -292,9 +284,19 @@ void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t level) {
       ZB_AF_HA_PROFILE_ID,
       ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
       bm_send_message_status_cb,
-      ZB_ZCL_LEVEL_CONTROL_STEP_MODE_UP,
-      LIGHT_SWITCH_DIMM_STEP,
-      LIGHT_SWITCH_DIMM_TRANSACTION_TIME);
+      level,
+      BENCHMARK_LEVEL_SEND_TRANSACTION_TIME);
+
+  //  ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
+  //      rem_dev_id,
+  //      ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
+  //      BENCHMARK_SERVER_ENDPOINT,
+  //      BENCHMARK_CLIENT_ENDPOINT,
+  //      ZB_AF_HA_PROFILE_ID,
+  //      ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
+  //      bm_send_message_status_cb,
+  //      level,
+  //      BENCHMARK_LEVEL_SEND_TRANSACTION_TIME);
 }
 
 void bm_send_message(void) {
@@ -344,10 +346,10 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid) {
   device_cb_param->status = RET_OK;
 
   switch (device_cb_param->device_cb_id) {
-  case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
-    bm_cli_log("Level control setting to %d\n", device_cb_param->cb_param.level_control_set_value_param.new_value);
-
-    break;
+    //  case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
+    //    bm_cli_log("Level control setting to %d\n", device_cb_param->cb_param.level_control_set_value_param.new_value);
+    //
+    //    break;
   default:
     device_cb_param->status = RET_ERROR;
     break;
@@ -385,6 +387,13 @@ void zboss_signal_handler(zb_bufid_t bufid) {
       bm_cli_log("Network Steering finished with Local Node Address: Short: 0x%x, IEEE/Long: 0x%s\n", local_node_short_addr, local_nodel_ieee_addr_buf);
     }
     break;
+  case ZB_ZDO_SIGNAL_DEVICE_ANNCE:
+    ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid)); /* Call default signal handler. */
+
+    zb_zdo_signal_device_annce_params_t *dev_annce_params = ZB_ZDO_SIGNAL_GET_PARAMS(p_sg_p, zb_zdo_signal_device_annce_params_t);
+    rem_dev_id = dev_annce_params->device_short_addr;
+    bm_cli_log("New device commissioned or rejoined (short: 0x%04hx)\n", dev_annce_params->device_short_addr);
+    break;
 
   default:
     /* Call default signal handler. */
@@ -420,13 +429,8 @@ void bm_zigbee_init(void) {
   zb_set_max_children(MAX_CHILDREN);
   zigbee_erase_persistent_storage(ERASE_PERSISTENT_CONFIG);
 
-  zb_set_keepalive_timeout(ZB_MILLISECONDS_TO_BEACON_INTERVAL(3000));
-
   /* Initialize application context structure. */
   UNUSED_RETURN_VALUE(ZB_MEMSET(&m_device_ctx, 0, sizeof(light_switch_ctx_t)));
-
-  /* Set default bulb short_addr. */
-  m_device_ctx.bulb_params.short_addr = 0xFFFF;
 
   /* Register dimmer switch device context (endpoints). */
   ZB_AF_REGISTER_DEVICE_CTX(&bm_client_ctx);
