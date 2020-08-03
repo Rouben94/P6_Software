@@ -31,10 +31,9 @@
 #define NUMBER_OF_IP6_GROUPS 25
 #define DATA_SIZE 1024
 #define HOP_LIMIT_DEFAULT 64
-#define max_number_of_nodes 60
+#define max_number_of_nodes 100
 
 uint8_t bm_message_ID = 0;
-uint8_t bm_message_ID_random = 0;
 
 // TID OVerflow Handler -> Allows an Overflow of of the TID when the next TID is dropping by 250... (uint8 overflows at 255 so there is a margin of 5)
 // To Handle such case for all possibel Src. Adresses create the following struct and a array of the struct to save the last seen TID of each Addr.
@@ -825,7 +824,9 @@ void bm_coap_probe_message_send(uint8_t state)
     message.dest_address = bm_group_address.mFields.m16[7];
     message.grp_address = bm_group_address.mFields.m16[7];
     message.net_time_ack = 0;
+    NRF_LOG_INFO("TID: %u", bm_message_ID);
     message.message_id = bm_get_overflow_tid_from_overflow_handler(bm_message_ID, message.source_address);
+    NRF_LOG_INFO("Message ID: %u", message.message_id);
     otNetworkTimeGet(thread_ot_instance_get(), &message.net_time);
 
     uint8_t bm_big_probe[DATA_SIZE];
@@ -910,8 +911,6 @@ void thread_coap_utils_init(const thread_coap_utils_configuration_t * p_config)
     ASSERT(error == OT_ERROR_NONE);
 
     otCoapSetDefaultHandler(p_instance, coap_default_handler, NULL);
-
-    bm_message_ID = otRandomNonCryptoGetUint16InRange(0, 255);
 
     m_config = *p_config;
 
