@@ -71,7 +71,7 @@ IV.    if yess -> change to next state*/
 #endif
 // The Benchmark time is obtained by the arameters from Timesync
 #define ST_BENCHMARK_MIN_GAP_TIME_US 1000 // Minimal Gap Time to not exit the interrupt context while waiting for another package.
-#define ST_BENCHMARK_ADDITIONAL_WAIT_TIME_MS 1500 // Additional Waittime for finishing the Benchmark State (if all transitions are at the end)
+#define ST_BENCHMARK_ADDITIONAL_WAIT_TIME_MS 5000 // Additional Waittime for finishing the Benchmark State (if all transitions are at the end)
 #define ST_SAVE_FLASH_TIME_MS 1000        // Time required to Save Log to Flash
 
 #define ST_MARGIN_TIME_MS 5            // Margin for State Transition (Let the State Terminate)
@@ -145,10 +145,10 @@ void ST_INIT_fn(void) {
   bm_cli_log("Preprogrammed Randomly Static MAC-Address (LSB): 0x%x, %u \n", LSB_MAC_Address, LSB_MAC_Address);
 
   bm_init_leds();
+  bm_radio_init();
   synctimer_init();
   synctimer_start();
-  bm_rand_init();
-  bm_radio_init();
+  bm_rand_init();  
   bm_log_init();
 
 #ifdef NRF_SDK_ZIGBEE
