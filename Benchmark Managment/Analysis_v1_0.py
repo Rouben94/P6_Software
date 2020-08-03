@@ -6,6 +6,10 @@ import pandas as pd
 import subprocess
 import numpy as np
 import matplotlib.pyplot as plt
+from collections import defaultdict
+from sklearn.linear_model import LinearRegression
+import matplotlib.pyplot as plt
+from pylab import *
 
 
 dirpath = os.getcwd()
@@ -71,42 +75,72 @@ def doAnalysis(df):
     #Latency LIst init
     latency = ['-' for i in range(len(df.index))]
     latency_per_hop = ['-' for i in range(len(df.index))]
+    latency_per_hop_per_server_cdc_y = defaultdict(list)
+    latency_per_hop_per_server_cdc_x = defaultdict(list)
+    latency_cdc = ['-' for i in range(len(df.index))]
+    latency_per_hop_cdc = ['-' for i in range(len(df.index))]
     throughput = ['-' for i in range(len(df.index))]
     pktloss = ['-' for i in range(len(df.index))]
     server_cnt = ['-' for i in range(len(df.index))]
     srv_addr_seen = []
     
     #Get Client Message
-    for ind_cli in df.index:
-        #Is a Client Message
-        if df['RSSI'][ind_cli] == 0:
-            #Get corresponding Server Message
-            group_servers_cnt = 0
-            pkt_arrived_cnt = 0
-            srv_addr_seen.clear()
-            for ind_srv in df.index:
-                if df['Message ID'][ind_cli] == df['Message ID'][ind_srv] and not ind_cli == ind_srv:
-                    latency[ind_srv] = (df['Timestamp (us)'][ind_srv] - df['Timestamp (us)'][ind_cli]) / 1000
-                    latency_per_hop[ind_srv] = (df['Timestamp (us)'][ind_srv] - df['Timestamp (us)'][ind_cli]) / 1000 / (df['Hops'][ind_srv] + 1)
-                    if latency[ind_srv] > 0:
-                        throughput[ind_srv] = df['Data Size'][ind_srv] / (latency[ind_srv] / 1000)            
-                #Get the Group Matches of servers
-                if df['Group Address'][ind_cli] == df['Group Address'][ind_srv] and not df['RSSI'][ind_srv] == 0:
-                    if df['Message ID'][ind_cli] == df['Message ID'][ind_srv]:
-                        pkt_arrived_cnt +=1
-                    if not df['Destination Address'][ind_srv] in srv_addr_seen:
-                        group_servers_cnt +=1
-                        srv_addr_seen.append(df['Destination Address'][ind_srv])
-            server_cnt[ind_cli] = group_servers_cnt
-            pktloss[ind_cli] = (group_servers_cnt - pkt_arrived_cnt) / group_servers_cnt * 100
-        
+    for ind_cli in df.query('RSSI == "0"').index:
+        #Get corresponding Server Message
+        group_servers_cnt = 0
+        pkt_arrived_cnt = 0
+        srv_addr_seen.clear()
+        for ind_srv in df.query('RSSI != "0"').index:
+            if df['Message ID'][ind_cli] == df['Message ID'][ind_srv]:
+                latency[ind_srv] = (df['Timestamp (us)'][ind_srv] - df['Timestamp (us)'][ind_cli]) / 1000
+                latency_per_hop[ind_srv] = (df['Timestamp (us)'][ind_srv] - df['Timestamp (us)'][ind_cli]) / 1000 / (df['Hops'][ind_srv] + 1)
+                latency_per_hop_per_server_cdc_y[df['Destination Address'][ind_srv]].append(latency_per_hop[ind_srv])
+                latency_per_hop_per_server_cdc_x[df['Destination Address'][ind_srv]].append(df['Timestamp (us)'][ind_srv])
+                if latency[ind_srv] > 0:
+                    throughput[ind_srv] = df['Data Size'][ind_srv] / (latency[ind_srv] / 1000)            
+            #Get the Group Matches of servers
+            if df['Group Address'][ind_cli] == df['Group Address'][ind_srv]:
+                if df['Message ID'][ind_cli] == df['Message ID'][ind_srv]:
+                    pkt_arrived_cnt +=1
+                if not df['Destination Address'][ind_srv] in srv_addr_seen:
+                    group_servers_cnt +=1
+                    srv_addr_seen.append(df['Destination Address'][ind_srv])
+        server_cnt[ind_cli] = group_servers_cnt
+        pktloss[ind_cli] = (group_servers_cnt - pkt_arrived_cnt) / group_servers_cnt * 100
+
+    #Correct CdC
+    for srv in latency_per_hop_per_server_cdc_y:
+        x = latency_per_hop_per_server_cdc_x[srv]
+        y_diffs = pd.DataFrame(latency_per_hop_per_server_cdc_y[srv]).diff().values.tolist()
+        prev_y = 0
+        y_new = []
+        x_new = []
+        i = 0
+        for y in y_diffs:
+            if -1 <= y[0] <= 1: #Filter Value is 1ms
+                y_new.append(prev_y + y[0])
+                x_new.append(x[i])
+                prev_y = prev_y + y[0]
+                i += 1                
+        x = np.array(x_new).reshape((-1, 1))
+        y = np.array(y_new)       
+        model = LinearRegression().fit(x, y)
+        #plt.plot(x, y, marker='.', markersize=0, linewidth='0.5', color='green')
+        #plt.plot(x, model.coef_ * x + model.intercept_, color='orange', linestyle='--')
+        #plt.show()
+        for ind_srv in df[df['RSSI'] != 0 & (df['Destination Address'] == str(srv))].index:
+            latency_cdc[ind_srv] = (latency[ind_srv] + df['Timestamp (us)'][ind_srv] * model.coef_)[0]
+            latency_per_hop_cdc[ind_srv] = (latency_per_hop[ind_srv] + df['Timestamp (us)'][ind_srv] * model.coef_)[0]
+             
+            
     #Append Calculated Values
     df['Latency Time (ms)'] = latency
     df['Latency Time (ms) per Hop'] = latency_per_hop
     df['Throughput (B/s)'] = throughput
     df['Paket Loss %'] = pktloss
-    df['Subscribed Server Count'] = server_cnt
-
+    df['Latency Time (ms) cdc'] = latency_cdc
+    df['Latency Time (ms) per Hop cdc'] = latency_per_hop_cdc
+    
     #Create Ongoing Transactions
     ongoing_transactions = [0 for i in range(len(df.index))]
     last_ongoing_transactions = 0
@@ -114,7 +148,7 @@ def doAnalysis(df):
         #Is a Client Message
         if df['RSSI'][ind] == 0:
             #Update
-            ongoing_transactions[ind] = last_ongoing_transactions + 1 * int(df['Subscribed Server Count'][ind])
+            ongoing_transactions[ind] = last_ongoing_transactions + 1 * int(server_cnt[ind])
             last_ongoing_transactions = ongoing_transactions[ind]
         #Is a Server Message
         else:
