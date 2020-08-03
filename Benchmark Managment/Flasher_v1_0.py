@@ -14,7 +14,9 @@ dirpath = os.getcwd() + '\\flash_files'
 df = pd.read_excel('Config.xlsx', sheet_name='Config')
 
 # iterate through each row entry (Slave)
-for ind in df.index: 
+for ind in df.index:
+    if str(df['Number'][ind]) == 'nan':
+        break
     x = input('Please insert Dongle number ' + str(df['Number'][ind]) + ' ... Press enter to continue. Press s followed by Enter to skip')
     if x == 's':
         continue

@@ -4,6 +4,8 @@ import serial.tools.list_ports
 import pandas as pd
 import subprocess
 
+
+
 COM_PORT_Master = ''
 
 dirpath = os.getcwd()
@@ -27,6 +29,8 @@ if (COM_PORT_Master == ''):
 for ind in df.index: 
 
     #Configure the Device
+    if str(df['Number'][ind]) == 'nan':
+        break
     print("Set node settings for Node " + str(df['Dev ID'][ind]))
     #time.sleep(3)
     print("setNodeSettings " + str(int(str(df['Dev ID'][ind]), 16)) + " " + str(df['Group ID'][ind]) + " " + str(df['Node Id'][ind]))
@@ -41,6 +45,7 @@ for ind in df.index:
             print(serdataline_str)            
             if 'Ready for Control Message' in serdataline_str:
                 print("Ready for next Node")
+                time.sleep(3)
                 break
     
 

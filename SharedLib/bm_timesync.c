@@ -117,8 +117,7 @@ void TIMER4_IRQHandler(void) {
 #endif
 
 /* Timer init */
-extern void synctimer_init() {
-
+extern void synctimer_init() {  
   // Takes 4294s / 71min to expire
   nrf_timer_bit_width_set(synctimer, NRF_TIMER_BIT_WIDTH_32);
   nrf_timer_frequency_set(synctimer, NRF_TIMER_FREQ_1MHz);
@@ -207,7 +206,7 @@ extern void synctimer_stop() {
 
 /* Get previous Tx sync timestamp */
 extern uint64_t synctimer_getTxTimeStamp() {
-  return ((uint64_t)OverflowCNT << 32 | synctimer->CC[1]) + Timestamp_Diff;
+  return ((uint64_t)OverflowCNT << 32 | synctimer->CC[1]);
 }
 
 /* Get previous Tx sync timestamp with respect to Timediff to Master */

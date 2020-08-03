@@ -91,7 +91,9 @@ ind = 0
 
 # iterate through each row entry (Slave)
 while len(had_nodes_ind) < len(df.index):
-#for ind in df.index: 
+#for ind in df.index:
+    if str(df['Number'][ind]) == 'nan':
+        break
     if str(df['Number'][ind]) not in had_nodes_ind :
         #Get Device Report
         x = input('Please go near to Dongle number ' + str(df['Number'][ind]) + ' ... Press enter to continue. \nPress s followed by Enter to skip. \nPress q followed by Enter')
