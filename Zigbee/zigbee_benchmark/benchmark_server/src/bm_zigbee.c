@@ -456,7 +456,7 @@ void bm_receive_message(zb_bufid_t bufid) {
   zb_ieee_addr_t ieee_dst_addr;
   zb_uint8_t seq_num;
   zb_zcl_device_callback_param_t *p_device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
-  zb_zcl_parsed_hdr_t *cmd_info = ZB_BUF_GET_PARAM(bufid, zb_zcl_parsed_hdr_t);
+//  zb_zcl_parsed_hdr_t *cmd_info = ZB_BUF_GET_PARAM(bufid, zb_zcl_parsed_hdr_t);
   zb_aps_hdr_t *aps_info = ZB_BUF_GET_PARAM(bufid, zb_aps_hdr_t);
 
   bm_cli_log("APS src: 0x%x, RSSI %d\n", aps_info->src_addr, aps_info->rssi);
