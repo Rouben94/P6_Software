@@ -1,3 +1,21 @@
+/*
+This file is part of Zigbee-Benchmark.
+
+Zigbee-Benchmark is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Zigbee-Benchmark is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Zigbee-Benchmark. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/* AUTHOR 	   :    Cyrill Horath      */
 
 #include "nrf_802154.h"
 #include "sdk_config.h"
@@ -438,7 +456,10 @@ void bm_receive_message(zb_bufid_t bufid) {
   zb_ieee_addr_t ieee_dst_addr;
   zb_uint8_t seq_num;
   zb_zcl_device_callback_param_t *p_device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
-  zb_zcl_parsed_hdr_t *cmd_info = ZB_BUF_GET_PARAM(bufid, zb_zcl_parsed_hdr_t);
+//  zb_zcl_parsed_hdr_t *cmd_info = ZB_BUF_GET_PARAM(bufid, zb_zcl_parsed_hdr_t);
+  zb_aps_hdr_t *aps_info = ZB_BUF_GET_PARAM(bufid, zb_aps_hdr_t);
+
+  bm_cli_log("APS src: 0x%x, RSSI %d\n", aps_info->src_addr, aps_info->rssi);
 
   seq_num = p_device_cb_param->cb_param.level_control_set_value_param.new_value;
 
@@ -449,10 +470,14 @@ void bm_receive_message(zb_bufid_t bufid) {
 
   message.net_time = synctimer_getSyncTime();
 
-  message.src_addr = cmd_info->addr_data.common_data.source.u.short_addr;
+  //  message.src_addr = cmd_info->addr_data.common_data.source.u.short_addr;
+  message.src_addr = aps_info->src_addr;
+
   zb_get_long_address(ieee_dst_addr);
   message.dst_addr = zb_address_short_by_ieee(ieee_dst_addr);
-  message.group_addr = bm_params.GroupAddress + GROUP_ID;
+  //  message.dst_addr = aps_info->dst_addr;
+  //  message.group_addr = bm_params.GroupAddress + GROUP_ID;
+  message.group_addr = aps_info->group_addr;
 
   //  message.message_id = bm_get_overflow_tid_from_overflow_handler(seq_num, message.src_addr);
   message.message_id = bm_get_overflow_tid_from_overflow_handler(seq_num, message.src_addr);
