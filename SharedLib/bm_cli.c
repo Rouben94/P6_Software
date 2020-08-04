@@ -67,8 +67,8 @@ along with Benchamrk-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 #endif
 
 /* Init the Parameters */
-bm_params_t bm_params = {BENCHMARK_DEFAULT_TIME_S, BENCHMARK_DEFAULT_PACKETS_CNT,0,0};
-bm_params_t bm_params_buf = {BENCHMARK_DEFAULT_TIME_S, BENCHMARK_DEFAULT_PACKETS_CNT,0,0};
+bm_params_t bm_params = {BENCHMARK_DEFAULT_TIME_S, BENCHMARK_DEFAULT_PACKETS_CNT,0,0,0,0};
+bm_params_t bm_params_buf = {BENCHMARK_DEFAULT_TIME_S, BENCHMARK_DEFAULT_PACKETS_CNT,0,0,0,0};
 
 #ifdef ZEPHYR_BLE_MESH
 void bm_cli_log(const char *fmt, ...) {

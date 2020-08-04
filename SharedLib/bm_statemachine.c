@@ -204,6 +204,11 @@ void ST_CONTROL_fn(void) {
       bm_control_msg.NextStateNr = 0;
       bm_control_msg.GroupAddress = bm_cli_cmd_setNodeSettings.GroupAddress;
       bm_control_msg.NodeId = bm_cli_cmd_setNodeSettings.NodeId;
+      bm_control_msg.Ack = bm_cli_cmd_setNodeSettings.Ack;
+      bm_control_msg.AdditionalPayloadSize = bm_cli_cmd_setNodeSettings.AdditionalPayloadSize;
+      bm_control_msg.DestMAC_1 = bm_cli_cmd_setNodeSettings.DestMAC_1;
+      bm_control_msg.DestMAC_2 = bm_cli_cmd_setNodeSettings.DestMAC_2;
+      bm_control_msg.DestMAC_3 = bm_cli_cmd_setNodeSettings.DestMAC_3;
       bm_control_msg.benchmark_time_s = 0;
       bm_control_msg.benchmark_packet_cnt = 0;
       bm_control_msg_publish(bm_control_msg);
@@ -247,7 +252,13 @@ void ST_CONTROL_fn(void) {
         // DO set Node Settings
         bm_params.GroupAddress = bm_control_msg.GroupAddress;
         bm_params.Node_Id = bm_control_msg.NodeId;
-        bm_cli_log("New Settings Saved Group: %u, NodeId: %u\n", bm_params.GroupAddress,bm_params.Node_Id);
+        bm_params.Ack = bm_control_msg.Ack;
+        bm_params.AdditionalPayloadSize = bm_control_msg.AdditionalPayloadSize;
+        bm_params.DestMAC_1 = bm_control_msg.DestMAC_1;
+        bm_params.DestMAC_2 = bm_control_msg.DestMAC_2;
+        bm_params.DestMAC_3 = bm_control_msg.DestMAC_3;
+        bm_cli_log("New Settings Saved Group: %u, NodeId: %u, Additional Payload Size: %u, ", bm_params.GroupAddress,bm_params.Node_Id,bm_params.AdditionalPayloadSize);
+        bm_cli_log("Ack: %u, Dst_MAC1: %u, Dst_MAC2: %u, Dst_MAC3: %u \n", bm_params.Ack,bm_params.DestMAC_1,bm_params.DestMAC_2,bm_params.DestMAC_3);
         bm_cli_log("Ready for Control Message\n");
         bm_led3_set(true);
         bm_sleep(BM_LED_BLINK_TIME_MS);

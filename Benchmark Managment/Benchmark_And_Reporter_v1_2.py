@@ -28,7 +28,7 @@ def read_all_lines(port):
         byte_chunk = port.readline()
         read_buffer += byte_chunk
         print(byte_chunk.decode('utf-8'), end = '')
-        if not len(byte_chunk) >= 1:
+        if not len(byte_chunk) >= 1 or 'Ready for Control Message' in byte_chunk.decode('utf-8'):
             break
 
     return read_buffer

@@ -24,10 +24,18 @@ along with Bluetooth-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 #include "bm_timesync.h"
 #include "bm_blemesh.h"
 #include "bm_blemesh_model_handler.h"
+#include "bm_rand.h"
+
+#include "bm_gen_onoff_srv.h"
+#include "bm_gen_onoff.h"
+#include "bluetooth/../../subsys/bluetooth/mesh/model_utils.h"
 
 
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/mesh/models.h>
+#include <bluetooth/mesh/model_types.h>
+
+
 
 // Message for Save the Data
 bm_message_info msg;
@@ -96,15 +104,73 @@ static struct bt_mesh_cfg_cli cfg_cli = {
 };
 
 #ifdef BENCHMARK_CLIENT
+uint8_t ack_tid = 1;
+
 /** Generic OnOff client definition */
 static void status_handler_onoff_cli(struct bt_mesh_onoff_cli *cli,
 						   struct bt_mesh_msg_ctx *ctx,
 						   const struct bt_mesh_onoff_status *status)
 {
-	// ToDO Appropriate Hanlding of Ack Messages
+	msg.net_time = synctimer_getSyncTime();
+	msg.ack_net_time = synctimer_getSyncTime();
+	msg.number_of_hops = (uint8_t)BLE_MESH_TTL-ctx->recv_ttl;
+	msg.rssi = (uint8_t)ctx->recv_rssi;
+	msg.src_addr = ctx->addr;  
+	msg.dst_addr = ctx->recv_dst;
+	msg.group_addr = ctx->recv_dst;
+	msg.data_size = 1; // Normaly one byte to the Switched State
+	msg.message_id = bm_get_overflow_tid_from_overflow_handler(ack_tid++,ctx->addr);
+	bm_log_append_ram(msg);
 }
 
 struct bt_mesh_onoff_cli on_off_cli = BT_MESH_ONOFF_CLI_INIT(&status_handler_onoff_cli);
+
+/* Send Function Modified to carry additional payload */
+int bt_mesh_onoff_cli_set_additional_payload(struct bt_mesh_onoff_cli *cli,
+			  struct bt_mesh_msg_ctx *ctx,
+			  const struct bt_mesh_onoff_set *set,
+			  struct bt_mesh_onoff_status *rsp, uint16_t additional_data_len)
+{
+	BT_MESH_MODEL_BUF_DEFINE(msg, BT_MESH_ONOFF_OP_SET,
+				 BT_MESH_ONOFF_MSG_MAXLEN_SET);
+	bt_mesh_model_msg_init(&msg, BT_MESH_ONOFF_OP_SET);
+
+	net_buf_simple_add_u8(&msg, set->on_off);
+	net_buf_simple_add_u8(&msg, cli->tid++);
+	for (int i = 0; i < additional_data_len; i++)
+	{
+		net_buf_simple_add_u8(&msg, (uint8_t)123); // Just some data
+	}
+	
+	if (set->transition) {
+		model_transition_buf_add(&msg, set->transition);
+	}
+	
+	return model_ackd_send(cli->model, ctx, &msg,
+			       rsp ? &cli->ack_ctx : NULL,
+			       BT_MESH_ONOFF_OP_STATUS, rsp);
+}
+
+int bt_mesh_onoff_cli_set_unack_additional_payload(struct bt_mesh_onoff_cli *cli,
+				struct bt_mesh_msg_ctx *ctx,
+				const struct bt_mesh_onoff_set *set, uint16_t additional_data_len)
+{
+	BT_MESH_MODEL_BUF_DEFINE(msg, BT_MESH_ONOFF_OP_SET_UNACK,
+				 BT_MESH_ONOFF_MSG_MAXLEN_SET);
+	bt_mesh_model_msg_init(&msg, BT_MESH_ONOFF_OP_SET_UNACK);
+
+	net_buf_simple_add_u8(&msg, set->on_off);
+	net_buf_simple_add_u8(&msg, cli->tid++);
+	for (int i = 0; i < additional_data_len; i++)
+	{
+		net_buf_simple_add_u8(&msg, (uint8_t)123); // Just some data
+	}
+	if (set->transition) {
+		model_transition_buf_add(&msg, set->transition);
+	}
+
+	return model_send(cli->model, ctx, &msg);
+}
 
 static void button0_cb(){
 	int err;
@@ -113,28 +179,21 @@ static void button0_cb(){
 	};
 	msg.net_time = synctimer_getSyncTime();
 	msg.ack_net_time = 0;
-	err = bt_mesh_onoff_cli_set_unack(&on_off_cli, NULL, &set);
+	if (bm_params.Ack == 1){
+		err = bt_mesh_onoff_cli_set_additional_payload(&on_off_cli, NULL, &set, NULL,bm_params.AdditionalPayloadSize);
+	} else {
+		err = bt_mesh_onoff_cli_set_unack_additional_payload(&on_off_cli, NULL, &set,bm_params.AdditionalPayloadSize);
+	}
 	bm_led3_set(!bm_led3_get()); // Toggle the Blue LED
-	//err = bt_mesh_onoff_cli_set(&on_off_cli, NULL, &set, NULL);
 	msg.message_id = bm_get_overflow_tid_from_overflow_handler(on_off_cli.tid,addr);
 	msg.number_of_hops = on_off_cli.model->pub->ttl;
 	msg.rssi = 0;
 	msg.src_addr = addr;
 	msg.dst_addr = on_off_cli.model->pub->addr;
 	msg.group_addr = on_off_cli.model->pub->addr;
-	msg.data_size = on_off_cli.pub.msg->len;
+	msg.data_size = 2 + bm_params.AdditionalPayloadSize; // Two normal Bytes for State (ON/OFF) and tid plus Additional Payload
 	//msg.data_size = 4; // Fix the Size because its only available after the first pub mesg...
 	bm_log_append_ram(msg);	
-	/*
-	printk("Sent TID %u\n",on_off_cli.tid);
-	printk("Sent Time %u%u\n",(uint32_t)(synctimer_getSyncTime() >> 32 ),(uint32_t)synctimer_getSyncTime());
-	printk("Sent TTL %u\n",on_off_cli.model->pub->ttl);
-	printk("Sent RSSI %d\n",0);
-	printk("Sent Src Adr %x\n",addr);
-	printk("Sent Dst Adr %x\n",on_off_cli.model->pub->addr);
-	printk("Sent Group Adr %x\n",on_off_cli.model->pub->addr);
-	printk("Sent Size %u\n",on_off_cli.pub.msg->len);
-	*/
 }
 
 void bm_send_message(){
@@ -159,21 +218,11 @@ static void led_set(struct bt_mesh_onoff_srv *srv, struct bt_mesh_msg_ctx *ctx,
 	msg.ack_net_time = 0;
 	msg.number_of_hops = (uint8_t)BLE_MESH_TTL-ctx->recv_ttl;
 	msg.rssi = (uint8_t)ctx->recv_rssi;
-	msg.src_addr = ctx->addr;
+	msg.src_addr = ctx->addr;  
 	msg.dst_addr = addr;
 	msg.group_addr = ctx->recv_dst;
-	msg.data_size = 4; // Fix the Size to the same as sent size...
+	msg.data_size = bm_last_rx_msg_buf_len; // Two normal Bytes for State (ON/OFF) and tid plus Additional Payload	
 	bm_log_append_ram(msg);
-	/*
-	printk("Recv TID %u\n",srv->prev_transaction.tid+1);
-	printk("Recv Time %u%u\n",(uint32_t)(synctimer_getSyncTime() >> 32 ),(uint32_t)synctimer_getSyncTime());
-	printk("Recv Hops Took %u\n",BLE_MESH_TTL-ctx->recv_ttl);
-	printk("Recv RSSI %d\n",ctx->recv_rssi);
-	printk("Recv Src Adr %x\n",ctx->addr);
-	printk("Recv Dst Adr %x\n",ctx->recv_dst);
-	printk("Recv Group Adr %x\n",ctx->recv_dst);
-	printk("Recv Size %u\n",srv->model->pub->msg->len);
-	*/
 }
 
 static void led_get(struct bt_mesh_onoff_srv *srv, struct bt_mesh_msg_ctx *ctx,

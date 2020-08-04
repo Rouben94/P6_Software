@@ -29,6 +29,11 @@ typedef struct
   uint16_t benchmark_packet_cnt;
   uint8_t GroupAddress;
   uint8_t Node_Id;
+  uint16_t AdditionalPayloadSize;
+  uint8_t Ack;
+  uint32_t DestMAC_1; // Zigbee Directed Destination 1
+  uint32_t DestMAC_2; // Zigbee Directed Destination 2
+  uint32_t DestMAC_3; // Zigbee Directed Destination 3
 } bm_params_t;
 extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a benchmark is active. 
 

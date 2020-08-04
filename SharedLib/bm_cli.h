@@ -53,6 +53,11 @@ typedef struct {
   uint32_t MAC;
   uint8_t GroupAddress;
   uint8_t NodeId;
+  uint8_t Ack;
+  uint16_t AdditionalPayloadSize;
+  uint32_t DestMAC_1; // Zigbee Directed Destination 1
+  uint32_t DestMAC_2; // Zigbee Directed Destination 2
+  uint32_t DestMAC_3; // Zigbee Directed Destination 3
 } bm_cli_cmd_setNodeSettings_t;
 
 extern bm_cli_cmd_setNodeSettings_t bm_cli_cmd_setNodeSettings;
