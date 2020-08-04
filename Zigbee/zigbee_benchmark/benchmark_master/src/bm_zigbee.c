@@ -96,8 +96,6 @@ void zboss_signal_handler(zb_bufid_t bufid) {
   zb_ret_t zb_err_code;
   zb_bool_t comm_status;
   zb_time_t timeout_bi;
-  zb_uint32_t active_channel_msk;
-  uint8_t active_channel;
 
   switch (sig) {
   case ZB_BDB_SIGNAL_DEVICE_REBOOT:
@@ -168,7 +166,6 @@ void bm_get_ieee_eui64(zb_ieee_addr_t ieee_eui64) {
   factoryAddress = NRF_FICR->DEVICEADDR[0];
   memcpy(ieee_eui64, &factoryAddress, sizeof(factoryAddress));
 }
-
 
 /**************************************** Zigbee Stack Init and Enable ***********************************************/
 
