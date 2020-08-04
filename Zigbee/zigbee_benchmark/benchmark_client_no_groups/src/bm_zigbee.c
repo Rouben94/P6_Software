@@ -111,16 +111,12 @@ void bm_report_data(zb_uint8_t param);
 
 zb_uint8_t seq_num = 0;
 zb_uint16_t msg_receive_cnt = 0;
-zb_bufid_t buffer_id;
-zb_bool_t init_buf = false;
 zb_uint16_t rem_dev_id;
 
 zb_ieee_addr_t local_node_ieee_addr;
 zb_uint16_t local_node_short_addr;
 char local_nodel_ieee_addr_buf[17] = {0};
 int local_node_addr_len;
-
-uint64_t bm_mesh_devices[70] = {0x4AD03925, 0xA0469D49, 0, 0x228D1458};
 
 bm_tid_overflow_handler_t bm_tid_overflow_handler[max_number_of_nodes]; /* Expect not more than max_number_of_nodes Different Adresses */
 
@@ -281,6 +277,7 @@ uint16_t bm_get_overflow_tid_from_overflow_handler(uint8_t tid, uint16_t src_add
   return 0;
 }
 
+/* Callback function for Benchmark send message status. Free's the used buffer. */
 void bm_send_message_status_cb(zb_bufid_t bufid) {
   msg_receive_cnt++;
   bm_cli_log("Message successfully sent: %d\n", msg_receive_cnt);
@@ -290,12 +287,11 @@ void bm_send_message_status_cb(zb_bufid_t bufid) {
   }
 }
 
-/* Function to send Benchmark Message */
+/* Callback function to send Benchmark Message */
 void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t dst_addr_short, zb_uint8_t seq_num) {
-
   bm_cli_log("Benchmark send message cb dst: 0x%x, Bufid: %d, Seq Num: %d\n", dst_addr_short, bufid, seq_num);
 
-  /* Send Move to level request. Level value is uint8. */
+  /* Send Move to level request. Level value is uint8 and is used as benchmark sequence number to identify the benchmark packet.*/
   ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
       dst_addr_short,
       ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
@@ -308,39 +304,33 @@ void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t dst_addr_short, zb_uint8_t
       BENCHMARK_LEVEL_SEND_TRANSACTION_TIME);
 }
 
+/* Benchmark send message function. Function will be called from BENCHMARK state in bm_statemachine.c */
 void bm_send_message(void) {
   zb_ret_t zb_err_code;
   zb_bufid_t bufid;
   zb_uint16_t dst_addr_short;
-  zb_uint32_t dst_addr_conf[3] = {bm_params.DestMAC_1, bm_params.DestMAC_2, bm_params.DestMAC_3};
+  uint64_t dst_addr_conf[3] = {bm_params.DestMAC_1, bm_params.DestMAC_2, bm_params.DestMAC_3};
   zb_ieee_addr_t dst_ieee_addr;
+  char ieee_addr_buf[17] = {0};
+  int addr_len;
   seq_num++;
 
-  for (uint8_t i = 0; i < sizeof(dst_addr_conf); i++) {
+  for (uint8_t i = 0; i < 3; i++) {
     memcpy(dst_ieee_addr, &dst_addr_conf[i], sizeof(dst_addr_conf[i]));
-    if (dst_ieee_addr) {
+    if (dst_addr_conf[i]) {
       dst_addr_short = zb_address_short_by_ieee(dst_ieee_addr);
-      bm_cli_log("Benchmark send message to address: 0x%x, Index: %d\n", dst_addr_short, i);
-      bm_read_message_info(dst_addr_short, seq_num);
-      bufid = zb_buf_get_out();
-      bm_send_message_cb(bufid, dst_addr_short, seq_num);
+      if (dst_addr_short != 0xFFFF) {
+        addr_len = ieee_addr_to_str(ieee_addr_buf, sizeof(ieee_addr_buf), dst_ieee_addr);
+        bm_cli_log("Benchmark send message to address: 0x%x, Index: %d\n", dst_addr_short, i);
+        bm_read_message_info(dst_addr_short, seq_num);
+        bufid = zb_buf_get_out();
+        bm_send_message_cb(bufid, dst_addr_short, seq_num);
+      }
     }
   }
-
-  //  for (uint8_t i = 0; i < 64; i++) {
-  //    if ((bm_params.GroupAddress >> i) & 0x1) {
-  //      memcpy(dst_ieee_addr, &bm_mesh_devices[i], sizeof(bm_mesh_devices[i]));
-  //      dst_addr_short = zb_address_short_by_ieee(dst_ieee_addr);
-  //      bm_cli_log("Benchmark send message to address: 0x%x, Index: %d\n", dst_addr_short, i);
-  //      bm_read_message_info(dst_addr_short, seq_num);
-  //      bufid = zb_buf_get_out();
-  //      bm_send_message_cb(bufid, dst_addr_short, seq_num);
-  //
-  //    }
-  //  }
 }
 
-/* TODO: Description */
+/* Benchmark read message info function. Reads Benchmark data from message.*/
 void bm_read_message_info(zb_uint16_t dst_addr_short, zb_uint8_t tsn) {
   bm_message_info message;
   zb_ieee_addr_t ieee_src_addr;
