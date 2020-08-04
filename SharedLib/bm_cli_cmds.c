@@ -114,7 +114,7 @@ static void cmd_setNodeSettings(nrf_cli_t const *p_cli, size_t argc, char **argv
     bm_cli_cmd_setNodeSettings.req = true;
     nrf_cli_print(p_cli, "Set node settings request scheduled for MAC: 0x%x, %s", bm_cli_cmd_setNodeSettings.MAC, argv[1]);
   } else {
-    nrf_cli_error(p_cli, "Number of Arguments incorrect! expected:\n setNodeSettings <MAC in Integer format> <GroupNumber> <DST_MAC_1> <DST_MAC_2> <DST_MAC_3>\n");
+    nrf_cli_error(p_cli, "Number of Arguments incorrect! expected:\n setNodeSettings <MAC in Integer format> <GroupNumber> <Node Id> <Ack> <AdditionalPayloadSize> <DST_MAC_1> <DST_MAC_2> <DST_MAC_3>\n");
   }
 }
 NRF_CLI_CMD_REGISTER(setNodeSettings, NULL, "Set the Node Settings", cmd_setNodeSettings);
