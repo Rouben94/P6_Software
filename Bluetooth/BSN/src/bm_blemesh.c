@@ -190,7 +190,7 @@ void bm_blemesh_enable(void)
 							 BT_MESH_MODEL_ID_GEN_ONOFF_SRV, &stat);
 	printk("Err Code: %d\n", stat);
 	/* Add model subscription */
-	bt_mesh_cfg_mod_sub_add(net_idx, addr, addr, GROUP_ADDR + bm_params.GroupAddress,
+	bt_mesh_cfg_mod_sub_add(net_idx, addr, addr, (uint16_t) GROUP_ADDR + bm_params.GroupAddress,
 							BT_MESH_MODEL_ID_GEN_ONOFF_SRV, &stat);
 	printk("Err Code: %d\n", stat);
 #endif
@@ -200,7 +200,7 @@ void bm_blemesh_enable(void)
 	printk("Err Code: %d\n", stat);
 	/* Add model publishing */
 	struct bt_mesh_cfg_mod_pub pub = {
-		.addr = GROUP_ADDR + bm_params.GroupAddress,
+		.addr = (uint16_t) GROUP_ADDR + bm_params.GroupAddress,
 		.app_idx = app_idx,
 		.ttl = BLE_MESH_TTL
 	};

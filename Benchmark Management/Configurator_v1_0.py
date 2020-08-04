@@ -13,6 +13,12 @@ dirpath = os.getcwd()
 #Open COnfig File
 df = pd.read_excel('Config.xlsx', sheet_name='Config')
 
+# creating a list of dataframe columns 
+columns = list(df) 
+
+
+        
+
 #Get the COM Ports
 ports = list(serial.tools.list_ports.comports())
 for p in ports:
@@ -33,8 +39,8 @@ for ind in df.index:
         break
     print("Set node settings for Node " + str(df['Dev ID'][ind]))
     #time.sleep(3)
-    print("setNodeSettings " + str(int(str(df['Dev ID'][ind]), 16)) + " " + str(df['Group ID'][ind]) + " " + str(df['Node Id'][ind]))
-    serialcmd = "setNodeSettings " + str(int(str(df['Dev ID'][ind]), 16)) + " " + str(df['Group ID'][ind]) + " " + str(df['Node Id'][ind]) + "\r"
+    print("setNodeSettings " + str(int(str(df['Dev ID'][ind]), 16)) + " " + str(df['Group ID'][ind]) + " " + str(df['Node Id'][ind]) + " " + str(df['Ack'][ind]) + " " + str(df['Add Payload Len'][ind]) + " " + str(int(str(df['DST_MAC_1'][ind]), 16)) + " " + str(int(str(df['DST_MAC_2'][ind]), 16)) + " " + str(int(str(df['DST_MAC_3'][ind]), 16)))
+    serialcmd = "setNodeSettings " + str(int(str(df['Dev ID'][ind]), 16)) + " " + str(df['Group ID'][ind]) + " " + str(df['Node Id'][ind]) + " " + str(df['Ack'][ind]) + " " + str(df['Add Payload Len'][ind]) + " " + str(int(str(df['DST_MAC_1'][ind]), 16)) + " " + str(int(str(df['DST_MAC_2'][ind]), 16)) + " " + str(int(str(df['DST_MAC_3'][ind]), 16)) + "\r"
     ser.write(serialcmd.encode("ascii"))
     ser.flushInput()
     while True:        

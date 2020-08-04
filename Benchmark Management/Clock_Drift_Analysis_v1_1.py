@@ -42,6 +42,23 @@ path = dirpath + "\\result_files\Analysis_Data_Test.csv"
 
 df = pd.read_csv(result[int(x)],sep=';',encoding='utf-8')
 
+def clean_and_calc_avg(ls):
+    #Clean Data and Calculate Avg
+    last_val = 0
+    ind = 0
+    avg = 0
+    cnt = 0
+    while ind < len(ls):
+        if ls[ind] == '-':
+            ls[ind] = last_val
+        else:
+            last_val = ls[ind]
+            avg += ls[ind]
+            cnt += 1
+        ind += 1
+    return avg / cnt
+
+
 def doAnalysis(df):
     df_sorted = df.sort_values(by=['Timestamp (us)'], inplace=False) #Sort by Timestamp
     df_sorted = df_sorted.reset_index(drop=True) #Recreate Index
@@ -58,13 +75,20 @@ def doAnalysis(df):
     throughput = ['-' for i in range(len(df.index))]
     pkt_ok = ['-' for i in range(len(df.index))]
     pkt_loss_rate = ['-' for i in range(len(df.index))]
+    ongoing_transactions = [0 for i in range(len(df.index))]
+    last_ongoing_transactions = 0
+    clock_drift_func_slope_a = ['-' for i in range(len(df.index))]
+    clock_drift_func_intercept_b = ['-' for i in range(len(df.index))]
+    latency_cdc = ['-' for i in range(len(df.index))]
+    latency_per_hop_cdc = ['-' for i in range(len(df.index))]
+    throughput_cdc = ['-' for i in range(len(df.index))]
     server_cnt = ['-' for i in range(len(df.index))]
-
+    
     #Groups
     groups = df_sorted['Group_Address'].unique().tolist()
     for group in groups:
         #Clients
-        clients = df_sorted.query('RSSI == "0" and Group_Address == "' + str(group) +'" ')['Source_Address'].unique().tolist()
+        clients = df_sorted.query('RSSI == "0" and Group_Address == "' + str(group) +'" ')['Source_Address'].unique().tolist()        
         for client in clients:
             #Servers        
             servers = df_sorted.query('RSSI != "0" and Group_Address == "' + str(group) +'" ')['Destination_Address'].unique().tolist()
@@ -79,6 +103,7 @@ def doAnalysis(df):
                     #Process Message
                     client_message_df = df_sorted.query('RSSI == "0" and Group_Address == "' + str(group) + '" and Source_Address == "' + str(client) +'" and Message_ID == "' + str(client_message) + '"')
                     server_message_df = df_sorted.query('RSSI != "0" and Group_Address == "' + str(group) + '" and Destination_Address == "' + str(server) +'" and Message_ID == "' + str(client_message) + '"')
+                    server_cnt[client_message_df['Timestamp_(us)'].index.item()] = len(servers)
                     if pkt_ok[client_message_df['Timestamp_(us)'].index.item()] == '-':
                             pkt_ok[client_message_df['Timestamp_(us)'].index.item()] = 0
                     if len(server_message_df.index) != 0:
@@ -91,44 +116,126 @@ def doAnalysis(df):
                             clock_drift_last_diff += diff
                         clock_drift_func_prev = latency_per_hop[server_message_df['Timestamp_(us)'].index.item()] / 1e3
                         throughput[server_message_df['Timestamp_(us)'].index.item()] = server_message_df['Data_Size'].item() / (latency[server_message_df['Timestamp_(us)'].index.item()] / 1000)
+                        #ongoing_transactions[server_message_df['Timestamp_(us)'].index.item()] -= 1
+                        if ongoing_transactions[server_message_df['Timestamp_(us)'].index.item()] < 0:
+                            ongoing_transactions[server_message_df['Timestamp_(us)'].index.item()] = 0
                         pkt_ok[client_message_df['Timestamp_(us)'].index.item()] += 1
                     pkt_loss_rate[client_message_df['Timestamp_(us)'].index.item()] = (1 - (pkt_ok[client_message_df['Timestamp_(us)'].index.item()] / len(servers))) * 100
-                #Clock Drift Function                       
-                print(clock_drift_func)
+                #Clock Drift Correction                       
+                #print(clock_drift_func)
                 x = np.array(clock_drift_func_time).reshape((-1, 1))
-                #x = np.array(list(range(0,len(clock_drift_func)))).reshape((-1, 1))
                 y = np.array(clock_drift_func)
                 model = LinearRegression().fit(x, y)
-                print('slope:', model.coef_) # ppm (us/s)
-                print('intercept:', model.intercept_)
-                plt.plot(x, y, marker='.', markersize=0, linewidth='0.5', color='green')
-                plt.plot(x, model.coef_ * x + model.intercept_, color='orange', linestyle='--')
-                plt.show()
-                
-    print(groups)
+                #print('slope:', model.coef_) # ppm (s/s)
+                #print('intercept:', model.intercept_)
+                for client_message in client_messages:
+                    #Append Clock Drift Information
+                    server_message_df = df_sorted.query('RSSI != "0" and Group_Address == "' + str(group) + '" and Destination_Address == "' + str(server) +'" and Message_ID == "' + str(client_message) + '"')
+                    if len(server_message_df.index) != 0:
+                        clock_drift_func_slope_a[server_message_df['Timestamp_(us)'].index.item()] = model.coef_
+                        clock_drift_func_intercept_b[server_message_df['Timestamp_(us)'].index.item()] = model.intercept_
+                        latency_cdc[server_message_df['Timestamp_(us)'].index.item()] = latency[server_message_df['Timestamp_(us)'].index.item()] + (model.coef_ * server_message_df['Timestamp_(us)'].item() / 1e6)  * 1e3
+                        latency_per_hop_cdc[server_message_df['Timestamp_(us)'].index.item()] = latency_per_hop[server_message_df['Timestamp_(us)'].index.item()] + (model.coef_ * server_message_df['Timestamp_(us)'].item() / 1e6)  * 1e3
+                        throughput_cdc[server_message_df['Timestamp_(us)'].index.item()] = server_message_df['Data_Size'].item() / latency_cdc[server_message_df['Timestamp_(us)'].index.item()]
+                #plt.plot(x, y, marker='.', markersize=0, linewidth='0.5', color='green')
+                #plt.plot(x, model.coef_ * x + model.intercept_, color='orange', linestyle='--')
+                #plt.show()
+
+    #Append Data
+    df_sorted['Latency_Time_(ms)'] = latency
+    df_sorted['Latency_Time_(ms)_per_Hop'] = latency_per_hop
+    df_sorted['Throughput_(B/s)'] = throughput
+    df_sorted['Paket_Loss_%'] = pkt_loss_rate
+    df_sorted['Latency_Time_(ms)_cdc'] = latency_cdc
+    df_sorted['Latency_Time_(ms)_per_Hop_cdc'] = latency_per_hop_cdc
+    df_sorted['Throughput_(B/s)_cdc'] = throughput_cdc
+    df_sorted['Subscribed Server Count'] = server_cnt
+
+    #Create Ongoing Transactions
+    ongoing_transactions = [0 for i in range(len(df.index))]
+    last_ongoing_transactions = 0
+    for ind in df_sorted.index:
+        #Is a Client Message
+        if df_sorted['RSSI'][ind] == 0:
+            #Update
+            ongoing_transactions[ind] = last_ongoing_transactions + 1 * int(df_sorted['Subscribed Server Count'][ind])
+            last_ongoing_transactions = ongoing_transactions[ind]
+        #Is a Server Message
+        else:
+            #Update
+            if ongoing_transactions[ind] > 0:
+                ongoing_transactions[ind] = last_ongoing_transactions - 1 
+            last_ongoing_transactions = ongoing_transactions[ind]
+    df_sorted['Ongoing_Transactions'] = ongoing_transactions
+
     
+    
+    def clean_and_calc_avg(ls):
+        #Clean Data and Calculate Avg
+        last_val = 0
+        ind = 0
+        avg = 0
+        cnt = 0
+        while ind < len(ls):
+            if ls[ind] == '-':
+                ls[ind] = last_val
+            else:
+                last_val = ls[ind]
+                avg += ls[ind]
+                cnt += 1
+            ind += 1
+        return avg / cnt
+     
+    #Clean and Calculate Average Values    
+    df_sorted['Average Latency Time (ms) per Hop'] = [clean_and_calc_avg(latency_per_hop) for i in range(len(df.index))]
+    df_sorted['Average Throughput (B/s)'] = [clean_and_calc_avg(throughput) for i in range(len(df.index))]
+    df_sorted['Average Latency Time (ms) per Hop CDC'] = [clean_and_calc_avg(latency_per_hop_cdc) for i in range(len(df.index))]
+    df_sorted['Average Throughput (B/s) CDC'] = [clean_and_calc_avg(throughput_cdc) for i in range(len(df.index))]
+    df_sorted['Average Paket Loss %'] = [clean_and_calc_avg(pkt_loss_rate) for i in range(len(df.index))]
+    
+    #Create Time Charts
+    fig, axs = plt.subplots(4, 1)
+    t_x = df_sorted['Timestamp_(us)'].to_numpy()
+    axs[0].plot(t_x, np.array(ongoing_transactions),drawstyle="steps-post")
+    axs[0].set_xlim(df_sorted['Timestamp_(us)'][0], df_sorted['Timestamp_(us)'][len(df.index)-1])
+    axs[0].set_xlabel('time us')
+    axs[0].set_ylabel('Ongoing Transactions', fontsize=8)
+    axs[0].grid(True)
+    #Do Subplot
+    axs[1].plot(t_x, np.array(latency_per_hop), marker='.', markersize=0, linewidth='0.5', color='green',drawstyle="steps-post")
+    axs[1].plot(t_x, np.array(latency_per_hop_cdc), color='orange', linestyle='--' ,drawstyle="steps-post")
+    #axs[1].plot(t_x, np.array(latency_per_hop),drawstyle="steps-post")
+    axs[1].set_xlim(df_sorted['Timestamp_(us)'][0], df_sorted['Timestamp_(us)'][len(df.index)-1])
+    axs[1].set_xlabel('time us')
+    axs[1].set_ylabel('Latency Time (ms) per Hop', fontsize=8)
+    axs[1].grid(True)
+    #Do Subplot
+    axs[2].plot(t_x, np.array(throughput),drawstyle="steps-post")
+    axs[2].set_xlim(df_sorted['Timestamp_(us)'][0], df_sorted['Timestamp_(us)'][len(df.index)-1])
+    axs[2].set_xlabel('time us')
+    axs[2].set_ylabel('Throughput (B/s)', fontsize=8)
+    axs[2].grid(True)
+    #Do Subplot
+    axs[3].plot(t_x, np.array(pkt_loss_rate),drawstyle="steps-post")
+    axs[3].set_xlim(df_sorted['Timestamp_(us)'][0], df_sorted['Timestamp_(us)'][len(df.index)-1])
+    axs[3].set_xlabel('time us')
+    axs[3].set_ylabel('Paket Loss %', fontsize=8)
+    axs[3].grid(True)
+    #Do Double Axis Plot
+##    axs2 = axs.twinx()
+##    axs2.plot(t_x, np.array(latency),'r-',drawstyle="steps-post")
+##    axs2.set_ylabel('Latency (ms)', color='r')
+        
+    #fig.tight_layout()
+    fig.subplots_adjust(hspace=0)
+    plt.show()
+ 
     
     
 
         
 
-
-def clean_and_calc_avg(ls):
-    #Clean Latency, Throughput and PacketLoss Data and Calculate Avg
-    last_val = 0
-    ind = 0
-    avg = 0
-    cnt = 0
-    while ind < len(ls):
-        if ls[ind] == '-':
-            ls[ind] = last_val
-        else:
-            last_val = ls[ind]
-            avg += ls[ind]
-            cnt += 1
-        ind += 1
-    return avg / cnt
-    
+   
     
 
 

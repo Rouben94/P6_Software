@@ -21,7 +21,6 @@ along with Bluetooth-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 #define MODEL_HANDLER_H__
 
 #include "bm_config.h"
-#include <bluetooth/mesh.h>
 
 #ifdef __cplusplus
 extern "C" {
