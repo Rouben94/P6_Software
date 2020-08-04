@@ -104,10 +104,9 @@ ZBOSS_DECLARE_DEVICE_CTX_1_EP(bm_client_ctx, dimmer_switch_ep);
 
 void buttons_handler(bsp_event_t evt);
 static void light_switch_send_on_off(zb_bufid_t bufid, zb_uint16_t on_off);
-void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t level);
-void bm_send_control_message_cb(zb_bufid_t bufid, zb_uint16_t level);
+void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t dst_addr_short, zb_uint8_t seq_num);
 void bm_send_message(void);
-void bm_read_message_info(zb_uint8_t seq_num);
+void bm_read_message_info(zb_uint16_t dst_addr_short, zb_uint8_t tsn);
 void bm_report_data(zb_uint8_t param);
 
 zb_uint8_t seq_num = 0;
@@ -120,6 +119,8 @@ zb_ieee_addr_t local_node_ieee_addr;
 zb_uint16_t local_node_short_addr;
 char local_nodel_ieee_addr_buf[17] = {0};
 int local_node_addr_len;
+
+uint64_t bm_mesh_devices[70] = {0x4AD03925, 0xA0469D49, 0, 0x228D1458};
 
 bm_tid_overflow_handler_t bm_tid_overflow_handler[max_number_of_nodes]; /* Expect not more than max_number_of_nodes Different Adresses */
 
@@ -289,57 +290,58 @@ void bm_send_message_status_cb(zb_bufid_t bufid) {
   }
 }
 
-uint64_t bm_mesh_devices[70] = {0, 0x4AD03925};
-
 /* Function to send Benchmark Message */
-void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t level) {
-  zb_uint16_t groupID = bm_params.GroupAddress + GROUP_ID;
+void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t dst_addr_short, zb_uint8_t seq_num) {
+
+  bm_cli_log("Benchmark send message cb dst: 0x%x, Bufid: %d, Seq Num: %d\n", dst_addr_short, bufid, seq_num);
 
   /* Send Move to level request. Level value is uint8. */
   ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
-      groupID,
-      ZB_APS_ADDR_MODE_16_GROUP_ENDP_NOT_PRESENT,
+      dst_addr_short,
+      ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
       BENCHMARK_SERVER_ENDPOINT,
       BENCHMARK_CLIENT_ENDPOINT,
       ZB_AF_HA_PROFILE_ID,
       ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
-      NULL,
-      level,
+      bm_send_message_status_cb,
+      seq_num,
       BENCHMARK_LEVEL_SEND_TRANSACTION_TIME);
-
-  //  ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
-  //      dst_long_addr,
-  //      ZB_APS_ADDR_MODE_64_ENDP_PRESENT,
-  //      BENCHMARK_SERVER_ENDPOINT,
-  //      BENCHMARK_CLIENT_ENDPOINT,
-  //      ZB_AF_HA_PROFILE_ID,
-  //      ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
-  //      bm_send_message_status_cb,
-  //      level,
-  //      BENCHMARK_LEVEL_SEND_TRANSACTION_TIME);
-
-  //  ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
-  //      rem_dev_id,
-  //      ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
-  //      BENCHMARK_SERVER_ENDPOINT,
-  //      BENCHMARK_CLIENT_ENDPOINT,
-  //      ZB_AF_HA_PROFILE_ID,
-  //      ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
-  //      bm_send_message_status_cb,
-  //      level,
-  //      BENCHMARK_LEVEL_SEND_TRANSACTION_TIME);
 }
 
 void bm_send_message(void) {
   zb_ret_t zb_err_code;
+  zb_bufid_t bufid;
+  zb_uint16_t dst_addr_short;
+  zb_uint32_t dst_addr_conf[3] = {bm_params.DestMAC_1, bm_params.DestMAC_2, bm_params.DestMAC_3};
+  zb_ieee_addr_t dst_ieee_addr;
   seq_num++;
-  bm_read_message_info(seq_num);
-  zb_err_code = zb_buf_get_out_delayed_ext(bm_send_message_cb, seq_num, 0);
-  ZB_ERROR_CHECK(zb_err_code);
+
+  for (uint8_t i = 0; i < sizeof(dst_addr_conf); i++) {
+    memcpy(dst_ieee_addr, &dst_addr_conf[i], sizeof(dst_addr_conf[i]));
+    if (dst_ieee_addr) {
+      dst_addr_short = zb_address_short_by_ieee(dst_ieee_addr);
+      bm_cli_log("Benchmark send message to address: 0x%x, Index: %d\n", dst_addr_short, i);
+      bm_read_message_info(dst_addr_short, seq_num);
+      bufid = zb_buf_get_out();
+      bm_send_message_cb(bufid, dst_addr_short, seq_num);
+    }
+  }
+
+  //  for (uint8_t i = 0; i < 64; i++) {
+  //    if ((bm_params.GroupAddress >> i) & 0x1) {
+  //      memcpy(dst_ieee_addr, &bm_mesh_devices[i], sizeof(bm_mesh_devices[i]));
+  //      dst_addr_short = zb_address_short_by_ieee(dst_ieee_addr);
+  //      bm_cli_log("Benchmark send message to address: 0x%x, Index: %d\n", dst_addr_short, i);
+  //      bm_read_message_info(dst_addr_short, seq_num);
+  //      bufid = zb_buf_get_out();
+  //      bm_send_message_cb(bufid, dst_addr_short, seq_num);
+  //
+  //    }
+  //  }
 }
 
 /* TODO: Description */
-void bm_read_message_info(zb_uint8_t seq_num) {
+void bm_read_message_info(zb_uint16_t dst_addr_short, zb_uint8_t tsn) {
   bm_message_info message;
   zb_ieee_addr_t ieee_src_addr;
 
@@ -350,14 +352,14 @@ void bm_read_message_info(zb_uint8_t seq_num) {
 
   zb_get_long_address(ieee_src_addr);
   message.src_addr = zb_address_short_by_ieee(ieee_src_addr);
-  message.group_addr = bm_params.GroupAddress + GROUP_ID;
-  message.dst_addr = message.group_addr;
+  message.group_addr = 0;
+  message.dst_addr = dst_addr_short;
 
-  message.message_id = bm_get_overflow_tid_from_overflow_handler(seq_num, message.src_addr);
+  message.message_id = bm_get_overflow_tid_from_overflow_handler(tsn, message.src_addr);
 
   message.net_time = synctimer_getSyncTime();
 
-  bm_cli_log("Benchmark Message send to Group Address: 0x%x TimeStamp: %lld, MessageID: %d (%d)\n", message.group_addr, message.net_time, message.message_id, seq_num);
+  bm_cli_log("Benchmark Message send to Destination Address: 0x%x TimeStamp: %lld, MessageID: %d (%d)\n", dst_addr_short, message.net_time, message.message_id, seq_num);
 
   bm_log_append_ram(message);
 }

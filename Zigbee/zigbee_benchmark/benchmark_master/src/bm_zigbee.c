@@ -162,6 +162,14 @@ void zboss_signal_handler(zb_bufid_t bufid) {
   }
 }
 
+/* Get device address of the local device.*/
+void bm_get_ieee_eui64(zb_ieee_addr_t ieee_eui64) {
+  uint64_t factoryAddress;
+  factoryAddress = NRF_FICR->DEVICEADDR[0];
+  memcpy(ieee_eui64, &factoryAddress, sizeof(factoryAddress));
+}
+
+
 /**************************************** Zigbee Stack Init and Enable ***********************************************/
 
 void bm_zigbee_init(void) {
@@ -177,7 +185,9 @@ void bm_zigbee_init(void) {
   ZB_INIT("zc");
 
   /* Set device address to the value read from FICR registers. */
-  zb_osif_get_ieee_eui64(ieee_addr);
+  //  zb_osif_get_ieee_eui64(ieee_addr);
+  //  zb_set_long_address(ieee_addr);
+  bm_get_ieee_eui64(ieee_addr);
   zb_set_long_address(ieee_addr);
 
   /* Set channels on which the coordinator will try to create a new network. */
