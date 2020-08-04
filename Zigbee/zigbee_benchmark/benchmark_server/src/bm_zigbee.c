@@ -456,10 +456,7 @@ void bm_receive_message(zb_bufid_t bufid) {
   zb_ieee_addr_t ieee_dst_addr;
   zb_uint8_t seq_num;
   zb_zcl_device_callback_param_t *p_device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
-  //  zb_zcl_parsed_hdr_t *cmd_info = ZB_BUF_GET_PARAM(bufid, zb_zcl_parsed_hdr_t);
   zb_aps_hdr_t *aps_info = ZB_BUF_GET_PARAM(bufid, zb_aps_hdr_t);
-
-  bm_cli_log("APS src: 0x%x, RSSI %d\n", aps_info->src_addr, aps_info->rssi);
 
   seq_num = p_device_cb_param->cb_param.level_control_set_value_param.new_value;
 
@@ -470,22 +467,17 @@ void bm_receive_message(zb_bufid_t bufid) {
 
   message.net_time = synctimer_getSyncTime();
 
-  //  message.src_addr = cmd_info->addr_data.common_data.source.u.short_addr;
   message.src_addr = aps_info->src_addr;
-
   zb_get_long_address(ieee_dst_addr);
   message.dst_addr = zb_address_short_by_ieee(ieee_dst_addr);
-  //  message.dst_addr = aps_info->dst_addr;
   message.group_addr = bm_params.GroupAddress + GROUP_ID;
-  //  message.group_addr = aps_info->group_addr;
 
-  //  message.message_id = bm_get_overflow_tid_from_overflow_handler(seq_num, message.src_addr);
   message.message_id = bm_get_overflow_tid_from_overflow_handler(seq_num, message.src_addr);
 
   zb_zdo_get_diag_data(message.src_addr, &lqi, &rssi);
   message.rssi = rssi;
 
-  bm_cli_log("Benchmark Packet received with ID: %d (%d) from Src Address: 0x%x to Destination 0x%x with RSSI: %d (dB), Time: %llu\n", message.message_id, seq_num, message.src_addr, message.dst_addr, rssi, message.net_time);
+  bm_cli_log("Benchmark Packet received with ID: %d from Src Address: 0x%x to Destination 0x%x with RSSI: %d (dB), Time: %llu\n", message.message_id, message.src_addr, message.dst_addr, rssi, message.net_time);
 
   bm_log_append_ram(message);
   random_level = ZB_RANDOM_VALUE(255);
@@ -504,6 +496,10 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid) {
   zb_uint8_t cluster_id;
   zb_uint8_t attr_id;
   zb_zcl_device_callback_param_t *p_device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
+  //  zb_zcl_parsed_hdr_t *level_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_parsed_hdr_t);
+
+  //  zb_zcl_level_control_move_to_level_req_t move_level_req;
+  //  move_level_req = *((zb_zcl_level_control_move_to_level_req_t*) (level_param + sizeof(zb_zcl_parsed_hdr_t)));
 
   msg_receive_cnt++;
   bm_cli_log("Message received in zcl_device_cb: %d\n", msg_receive_cnt);
@@ -513,6 +509,10 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid) {
 
   switch (p_device_cb_param->device_cb_id) {
   case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
+
+    //bm_cli_log("New level value: %u\n", move_level_req.level);
+
+    //ZB_ZCL_LEVEL_CONTROL_GET_MOVE_TO_LEVEL_CMD(bufid, level_param, NULL);
 
     bm_receive_message(bufid);
 
@@ -535,8 +535,6 @@ void zboss_signal_handler(zb_bufid_t bufid) {
   zb_zdo_app_signal_type_t sig = zb_get_app_signal(bufid, &sig_hndler);
   zb_ret_t status = ZB_GET_APP_SIGNAL_STATUS(bufid);
   zb_ret_t zb_err_code;
-  zb_uint32_t active_channel_msk;
-  uint8_t active_channel;
 
   /* Update network status LED */
   zigbee_led_status_update(bufid, ZIGBEE_NETWORK_STATE_LED);
@@ -552,8 +550,8 @@ void zboss_signal_handler(zb_bufid_t bufid) {
       zb_err_code = ZB_SCHEDULE_APP_ALARM(add_group_id, bufid, 2 * ZB_TIME_ONE_SECOND);
       ZB_ERROR_CHECK(zb_err_code);
 
-      //      zb_err_code = ZB_SCHEDULE_APP_ALARM(bm_schedule_lqi, 0, 5 * ZB_TIME_ONE_SECOND);
-      //      ZB_ERROR_CHECK(zb_err_code);
+      // zb_err_code = ZB_SCHEDULE_APP_ALARM(bm_schedule_lqi, 0, 5 * ZB_TIME_ONE_SECOND);
+      // ZB_ERROR_CHECK(zb_err_code);
 
       bufid = 0;
     }
@@ -592,8 +590,18 @@ void zboss_signal_handler(zb_bufid_t bufid) {
   }
 }
 
+/* Get device address of the local device.*/
+void bm_get_ieee_eui64(zb_ieee_addr_t ieee_eui64) {
+  uint64_t factoryAddress;
+  factoryAddress = NRF_FICR->DEVICEADDR[0];
+  memcpy(ieee_eui64, &factoryAddress, sizeof(factoryAddress));
+}
+
+/**************************************** Zigbee Stack Init and Enable ***********************************************/
+
 void bm_zigbee_init(void) {
   zb_ieee_addr_t ieee_addr;
+  uint64_t long_address;
 
   /* Initialize timer, logging system and GPIOs. */
   timer_init();
@@ -608,7 +616,9 @@ void bm_zigbee_init(void) {
   ZB_INIT("Benchmark Server");
 
   /* Set device address to the value read from FICR registers. */
-  zb_osif_get_ieee_eui64(ieee_addr);
+  //  zb_osif_get_ieee_eui64(ieee_addr);
+  //  zb_set_long_address(ieee_addr);
+  bm_get_ieee_eui64(ieee_addr);
   zb_set_long_address(ieee_addr);
 
   /* Set static long IEEE address. */

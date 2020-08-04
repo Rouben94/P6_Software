@@ -115,9 +115,12 @@ while len(had_nodes_ind) < len(df.index):
         ReportsCnt = 0
         serdata = read_all_lines(ser).decode("utf-8")
         for serdataline in serdata.split('\n'):
+            print(serdataline)
             if '<report>' in serdataline:
                 entry = serdataline.split()
                 remove_tag_entry = entry.pop(0)
+                if '<report>' in str(entry[0]):
+                    remove_tag_entry = entry.pop(0)
                 #Manipulate Mesage ID
                 entry[0] = str(entry[5]) + "_" + str(entry[0])
                 report.append(entry)            
