@@ -104,13 +104,12 @@ ZBOSS_DECLARE_DEVICE_CTX_1_EP(bm_client_ctx, dimmer_switch_ep);
 
 void buttons_handler(bsp_event_t evt);
 static void light_switch_send_on_off(zb_bufid_t bufid, zb_uint16_t on_off);
-void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t dst_addr_short, zb_uint8_t seq_num);
 void bm_send_message(void);
 void bm_read_message_info(zb_uint16_t dst_addr_short, zb_uint8_t tsn);
 void bm_report_data(zb_uint8_t param);
 
 zb_uint8_t seq_num = 0;
-zb_uint16_t msg_receive_cnt = 0;
+zb_uint16_t msg_sent_cnt = 0;
 zb_uint16_t rem_dev_id;
 
 zb_ieee_addr_t local_node_ieee_addr;
@@ -279,16 +278,34 @@ uint16_t bm_get_overflow_tid_from_overflow_handler(uint8_t tid, uint16_t src_add
 
 /* Callback function for Benchmark send message status. Free's the used buffer. */
 void bm_send_message_status_cb(zb_bufid_t bufid) {
-  msg_receive_cnt++;
-  bm_cli_log("Message successfully sent: %d\n", msg_receive_cnt);
+  msg_sent_cnt++;
+  bm_cli_log("Message successfully sent: %d\n", msg_sent_cnt);
 
   if (bufid) {
     zb_buf_free(bufid);
   }
 }
 
+/* Function to send Benchmark Message */
+void bm_send_group_message_cb(zb_bufid_t bufid, zb_uint16_t seq_num) {
+  zb_uint16_t groupID = bm_params.GroupAddress + GROUP_ID;
+  bm_cli_log("Benchmark send message cb group: 0x%x, Seq Num: %d\n", groupID, seq_num);
+
+  /* Send Move to level request. Level value is uint8. */
+  ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
+      groupID,
+      ZB_APS_ADDR_MODE_16_GROUP_ENDP_NOT_PRESENT,
+      BENCHMARK_SERVER_ENDPOINT,
+      BENCHMARK_CLIENT_ENDPOINT,
+      ZB_AF_HA_PROFILE_ID,
+      ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
+      bm_send_message_status_cb,
+      seq_num,
+      BENCHMARK_LEVEL_SEND_TRANSACTION_TIME);
+}
+
 /* Callback function to send Benchmark Message */
-void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t dst_addr_short, zb_uint8_t seq_num) {
+void bm_send_dir_message_cb(zb_bufid_t bufid, zb_uint16_t dst_addr_short, zb_uint8_t seq_num) {
   bm_cli_log("Benchmark send message cb dst: 0x%x, Bufid: %d, Seq Num: %d\n", dst_addr_short, bufid, seq_num);
 
   /* Send Move to level request. Level value is uint8 and is used as benchmark sequence number to identify the benchmark packet.*/
@@ -314,17 +331,28 @@ void bm_send_message(void) {
   char ieee_addr_buf[17] = {0};
   int addr_len;
   seq_num++;
+  bm_cli_log("Destinations: %d, %d, %d, Group: 0x%x \n", dst_addr_conf[0], dst_addr_conf[1], dst_addr_conf[2], bm_params.GroupAddress + GROUP_ID);
 
-  for (uint8_t i = 0; i < 3; i++) {
-    memcpy(dst_ieee_addr, &dst_addr_conf[i], sizeof(dst_addr_conf[i]));
-    if (dst_addr_conf[i]) {
-      dst_addr_short = zb_address_short_by_ieee(dst_ieee_addr);
-      if (dst_addr_short != 0xFFFF) {
-        addr_len = ieee_addr_to_str(ieee_addr_buf, sizeof(ieee_addr_buf), dst_ieee_addr);
-        bm_cli_log("Benchmark send message to address: 0x%x, Index: %d\n", dst_addr_short, i);
-        bm_read_message_info(dst_addr_short, seq_num);
-        bufid = zb_buf_get_out();
-        bm_send_message_cb(bufid, dst_addr_short, seq_num);
+  if ((dst_addr_conf[0] == 0) && (dst_addr_conf[1] == 0) && (dst_addr_conf[2] == 0)) {
+    bm_cli_log("Benchmark send message to group address: 0x%x\n", bm_params.GroupAddress + GROUP_ID);
+    bm_read_message_info(dst_addr_short, seq_num);
+    zb_err_code = zb_buf_get_out_delayed_ext(bm_send_group_message_cb, seq_num, 0);
+    ZB_ERROR_CHECK(zb_err_code);
+
+  } else {
+    for (uint8_t i = 0; i < 3; i++) {
+      memcpy(dst_ieee_addr, &dst_addr_conf[i], sizeof(dst_addr_conf[i]));
+      if (dst_addr_conf[i]) {
+        dst_addr_short = zb_address_short_by_ieee(dst_ieee_addr);
+        if (dst_addr_short != 0xFFFF) {
+          addr_len = ieee_addr_to_str(ieee_addr_buf, sizeof(ieee_addr_buf), dst_ieee_addr);
+          bm_cli_log("Benchmark send message to address: 0x%x, Index: %d\n", dst_addr_short, i);
+          bm_read_message_info(dst_addr_short, seq_num);
+          bufid = zb_buf_get_out();
+          bm_send_dir_message_cb(bufid, dst_addr_short, seq_num);
+        } else {
+          bm_cli_log("Error read short address of destination\n");
+        }
       }
     }
   }
@@ -343,14 +371,16 @@ void bm_read_message_info(zb_uint16_t dst_addr_short, zb_uint8_t tsn) {
   zb_get_long_address(ieee_src_addr);
   message.src_addr = zb_address_short_by_ieee(ieee_src_addr);
   message.group_addr = bm_params.GroupAddress + GROUP_ID;
-  message.dst_addr = dst_addr_short;
 
+  if (dst_addr_short == 0) {
+    message.dst_addr = message.group_addr;
+  } else {
+    message.dst_addr = dst_addr_short;
+  }
   message.message_id = bm_get_overflow_tid_from_overflow_handler(tsn, message.src_addr);
-
   message.net_time = synctimer_getSyncTime();
 
-  bm_cli_log("Benchmark Message send to Destination Address: 0x%x TimeStamp: %lld, MessageID: %d (%d)\n", dst_addr_short, message.net_time, message.message_id, seq_num);
-
+  bm_cli_log("Benchmark read message data: Destination Address: 0x%x TimeStamp: %lld, MessageID: %d (%d)\n", message.dst_addr, message.net_time, message.message_id, seq_num);
   bm_log_append_ram(message);
 }
 

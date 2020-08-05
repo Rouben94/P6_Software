@@ -289,8 +289,6 @@ void bm_send_message_status_cb(zb_bufid_t bufid) {
   }
 }
 
-uint64_t bm_mesh_devices[70] = {0, 0x4AD03925};
-
 /* Function to send Benchmark Message */
 void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t level) {
   zb_uint16_t groupID = bm_params.GroupAddress + GROUP_ID;

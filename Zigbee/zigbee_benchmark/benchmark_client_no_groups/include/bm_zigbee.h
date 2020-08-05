@@ -47,7 +47,9 @@ typedef struct
 
 void bm_send_control_message_cb(zb_bufid_t bufid, zb_uint16_t level);
 
-void bm_send_message_cb(zb_bufid_t bufid, zb_uint16_t dst_addr_short, zb_uint8_t seq_num);
+void bm_send_dir_message_cb(zb_bufid_t bufid, zb_uint16_t dst_addr_short, zb_uint8_t seq_num);
+
+void bm_send_group_message_cb(zb_bufid_t bufid, zb_uint16_t level);
 
 void bm_send_message(void);
 
