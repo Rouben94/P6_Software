@@ -62,8 +62,8 @@
  </Watch4>
  <Files>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="18" useTextEdit="1" useBinaryEdit="0" left="0" path="main.c" selected="0" top="0" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="19" y="38" useTextEdit="1" useBinaryEdit="0" left="0" path="src/bm_zigbee.c" selected="1" top="35" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="155" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../SharedLib/bm_statemachine.c" selected="0" top="186" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="38" useTextEdit="1" useBinaryEdit="0" left="0" path="src/bm_zigbee.c" selected="0" top="35" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="21" y="327" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../SharedLib/bm_statemachine.c" selected="1" top="51" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="67" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../SharedLib/bm_cli.c" selected="0" top="54" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="2133" useTextEdit="1" useBinaryEdit="0" left="0" path="include/sdk_config.h" selected="0" top="2117" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="34" useTextEdit="1" useBinaryEdit="0" left="0" path="include/bm_config.h" selected="0" top="21" codecName="Default"/>
