@@ -65,7 +65,6 @@
       <file file_name="$(SDK)/components/libraries/util/app_error.c" />
       <file file_name="$(SDK)/components/libraries/util/app_error_handler_gcc.c" />
       <file file_name="$(SDK)/components/libraries/gpiote/app_gpiote.c" />
-      <file file_name="$(SDK)/components/libraries/pwm/app_pwm.c" />
       <file file_name="$(SDK)/components/libraries/scheduler/app_scheduler.c" />
       <file file_name="$(SDK)/components/libraries/timer/app_timer2.c" />
       <file file_name="$(SDK)/components/libraries/util/app_util_platform.c" />

@@ -406,16 +406,6 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid) {
 
   /* Set default response value. */
   device_cb_param->status = RET_OK;
-
-  switch (device_cb_param->device_cb_id) {
-    //  case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
-    //    bm_cli_log("Level control setting to %d\n", device_cb_param->cb_param.level_control_set_value_param.new_value);
-    //
-    //    break;
-  default:
-    device_cb_param->status = RET_ERROR;
-    break;
-  }
 }
 
 /************************************ ZBOSS signal handler ***********************************************/
@@ -462,7 +452,6 @@ void zboss_signal_handler(zb_bufid_t bufid) {
     ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
     break;
   }
-
   if (bufid) {
     zb_buf_free(bufid);
   }
@@ -493,8 +482,6 @@ void bm_zigbee_init(void) {
   ZB_INIT("light_switch");
 
   /* Set device address to the value read from FICR registers. */
-  //  zb_osif_get_ieee_eui64(ieee_addr);
-  //  zb_set_long_address(ieee_addr);
   bm_get_ieee_eui64(ieee_addr);
   zb_set_long_address(ieee_addr);
 

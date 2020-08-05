@@ -21,7 +21,6 @@
 "Output/zigbee_benchmark_server Release/Obj/app_error.o"
 "Output/zigbee_benchmark_server Release/Obj/app_error_handler_gcc.o"
 "Output/zigbee_benchmark_server Release/Obj/app_gpiote.o"
-"Output/zigbee_benchmark_server Release/Obj/app_pwm.o"
 "Output/zigbee_benchmark_server Release/Obj/app_scheduler.o"
 "Output/zigbee_benchmark_server Release/Obj/app_timer2.o"
 "Output/zigbee_benchmark_server Release/Obj/app_util_platform.o"

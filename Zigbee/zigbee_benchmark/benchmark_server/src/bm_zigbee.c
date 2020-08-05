@@ -26,10 +26,8 @@ along with Zigbee-Benchmark. If not, see <http://www.gnu.org/licenses/>.
 #include "zboss_api_addons.h"
 #include "zigbee_helpers.h"
 
-//#include "zb_mem_config_max.h"
 #include "bm_mem_config_custom.h"
 
-//#include "app_pwm.h"
 #include "app_timer.h"
 #include "boards.h"
 #include "bsp.h"
@@ -48,8 +46,6 @@ along with Zigbee-Benchmark. If not, see <http://www.gnu.org/licenses/>.
 static light_switch_ctx_t m_device_ctx;
 
 /* Main application customizable context. Stores all settings and static values. */
-
-//APP_PWM_INSTANCE(BULB_PWM_NAME, BULB_PWM_TIMER);
 
 static bulb_device_ctx_t m_dev_ctx;
 
@@ -195,87 +191,11 @@ static void timer_init(void) {
   APP_ERROR_CHECK(error_code);
 }
 
-/**@brief Function for initializing LEDs and a single PWM channel.
- */
-//static void leds_pwm_init(void) {
-//  ret_code_t err_code;
-//  app_pwm_config_t pwm_cfg = APP_PWM_DEFAULT_CONFIG_1CH(5000L, bsp_board_led_idx_to_pin(BULB_LED));
-//
-//  /* Initialize PWM running on timer 1 in order to control dimmable light bulb. */
-//  err_code = app_pwm_init(&BULB_PWM_NAME, &pwm_cfg, NULL);
-//  APP_ERROR_CHECK(err_code);
-//
-//  app_pwm_enable(&BULB_PWM_NAME);
-//
-//  while (app_pwm_channel_duty_set(&BULB_PWM_NAME, 0, 99) == NRF_ERROR_BUSY) {
-//  }
-//}
-
-/************************************ Light Bulb Functions ***********************************************/
-
-/**@brief Sets brightness of on-board LED
- *
- * @param[in] brightness_level Brightness level, allowed values 0 ... 255, 0 - turn off, 255 - full brightness
- */
-//static void light_bulb_onboard_set_brightness(zb_uint8_t brightness_level) {
-//  app_pwm_duty_t app_pwm_duty;
-//
-//  /* Scale level value: APP_PWM uses 0-100 scale, but Zigbee level control cluster uses values from 0 up to 255. */
-//  app_pwm_duty = (brightness_level * 100U) / 255U;
-//
-//  /* Set the duty cycle - keep trying until PWM is ready. */
-//  while (app_pwm_channel_duty_set(&BULB_PWM_NAME, 0, app_pwm_duty) == NRF_ERROR_BUSY) {
-//  }
-//}
-
-/**@brief Sets brightness of bulb luminous executive element
- *
- * @param[in] brightness_level Brightness level, allowed values 0 ... 255, 0 - turn off, 255 - full brightness
- */
-//static void light_bulb_set_brightness(zb_uint8_t brightness_level) {
-//  light_bulb_onboard_set_brightness(brightness_level);
-//}
-
-/**@brief Function for setting the light bulb brightness.
-  *
-  * @param[in]   new_level   Light bulb brightness value.
- */
-//static void level_control_set_value(zb_uint16_t new_level) {
-//  //  bm_cli_log("Set level value: %i\n", new_level);
-//
-//  ZB_ZCL_SET_ATTRIBUTE(BENCHMARK_SERVER_ENDPOINT,
-//      ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL,
-//      ZB_ZCL_CLUSTER_SERVER_ROLE,
-//      ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID,
-//      (zb_uint8_t *)&new_level,
-//      ZB_FALSE);
-//
-//  if (new_level == 0) {
-//    zb_uint8_t value = ZB_FALSE;
-//    ZB_ZCL_SET_ATTRIBUTE(BENCHMARK_SERVER_ENDPOINT,
-//        ZB_ZCL_CLUSTER_ID_ON_OFF,
-//        ZB_ZCL_CLUSTER_SERVER_ROLE,
-//        ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID,
-//        &value,
-//        ZB_FALSE);
-//  } else {
-//    zb_uint8_t value = ZB_TRUE;
-//    ZB_ZCL_SET_ATTRIBUTE(BENCHMARK_SERVER_ENDPOINT,
-//        ZB_ZCL_CLUSTER_ID_ON_OFF,
-//        ZB_ZCL_CLUSTER_SERVER_ROLE,
-//        ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID,
-//        &value,
-//        ZB_FALSE);
-//  }
-//
-//  light_bulb_set_brightness(new_level);
-//}
-
 /**@brief Function for turning ON/OFF the light bulb.
  *
  * @param[in]   on   Boolean light bulb state.
  */
-static void on_off_set_value(zb_bool_t on) {
+static void bm_on_off_set_value(zb_bool_t on) {
   bm_cli_log("Set ON/OFF value: %i\n", on);
 
   ZB_ZCL_SET_ATTRIBUTE(BENCHMARK_SERVER_ENDPOINT,
@@ -287,10 +207,8 @@ static void on_off_set_value(zb_bool_t on) {
 
   if (on) {
     bm_led3_set(true);
-    //    level_control_set_value(m_dev_ctx.level_control_attr.current_level);
   } else {
     bm_led3_set(false);
-    //    light_bulb_set_brightness(0U);
   }
 }
 
@@ -464,7 +382,7 @@ void bm_receive_message(zb_bufid_t bufid) {
 
   /* TODO: Number of hops is not yet available from the ZBOSS API */
   message.number_of_hops = 0;
-  message.data_size = 0;
+  message.data_size = 1;
   message.ack_net_time = 0;
 
   message.net_time = synctimer_getSyncTime();
@@ -483,8 +401,7 @@ void bm_receive_message(zb_bufid_t bufid) {
 
   bm_log_append_ram(message);
   random_level = ZB_RANDOM_VALUE(255);
-  on_off_set_value((zb_bool_t)seq_num % 2);
-  //  level_control_set_value(random_level);
+  bm_on_off_set_value((zb_bool_t)seq_num % 2);
 
   return;
 }
@@ -499,10 +416,6 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid) {
   zb_uint8_t cluster_id;
   zb_uint8_t attr_id;
   zb_zcl_device_callback_param_t *p_device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
-  //  zb_zcl_parsed_hdr_t *level_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_parsed_hdr_t);
-
-  //  zb_zcl_level_control_move_to_level_req_t move_level_req;
-  //  move_level_req = *((zb_zcl_level_control_move_to_level_req_t*) (level_param + sizeof(zb_zcl_parsed_hdr_t)));
 
   msg_receive_cnt++;
   bm_cli_log("Message received in zcl_device_cb: %d\n", msg_receive_cnt);
@@ -513,13 +426,8 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid) {
   switch (p_device_cb_param->device_cb_id) {
   case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
 
-    //bm_cli_log("New level value: %u\n", move_level_req.level);
-
-    //ZB_ZCL_LEVEL_CONTROL_GET_MOVE_TO_LEVEL_CMD(bufid, level_param, NULL);
-
     bm_receive_message(bufid);
 
-    //    ZB_SCHEDULE_APP_CALLBACK2(bm_receive_message, bufid, p_device_cb_param->cb_param.level_control_set_value_param.new_value);
     break;
 
   default:
@@ -587,7 +495,6 @@ void zboss_signal_handler(zb_bufid_t bufid) {
     ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
     break;
   }
-
   if (bufid) {
     zb_buf_free(bufid);
   }
@@ -608,7 +515,6 @@ void bm_zigbee_init(void) {
 
   /* Initialize timer, logging system and GPIOs. */
   timer_init();
-  //  leds_pwm_init();
 
   /* Set Zigbee stack logging level and traffic dump subsystem. */
   ZB_SET_TRACE_LEVEL(ZIGBEE_TRACE_LEVEL);
@@ -619,8 +525,6 @@ void bm_zigbee_init(void) {
   ZB_INIT("Benchmark Server");
 
   /* Set device address to the value read from FICR registers. */
-  //  zb_osif_get_ieee_eui64(ieee_addr);
-  //  zb_set_long_address(ieee_addr);
   bm_get_ieee_eui64(ieee_addr);
   zb_set_long_address(ieee_addr);
 
@@ -637,11 +541,9 @@ void bm_zigbee_init(void) {
   ZB_AF_REGISTER_DEVICE_CTX(&bm_server_ctx);
 
   /* Register callback for handling ZCL commands. */
-  //  ZB_AF_SET_ENDPOINT_HANDLER(BENCHMARK_SERVER_ENDPOINT, bm_zcl_handler);
   ZB_ZCL_REGISTER_DEVICE_CB(zcl_device_cb);
 
   bm_server_clusters_attr_init();
-  //  level_control_set_value(m_dev_ctx.level_control_attr.current_level);
 }
 
 void bm_zigbee_enable(void) {
