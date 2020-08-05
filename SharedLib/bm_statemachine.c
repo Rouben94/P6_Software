@@ -26,6 +26,7 @@ along with Benchmark-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 #include "bm_rand.h"
 #include "bm_report.h"
 #include "bm_timesync.h"
+#include "bm_radio_operating_time_counter.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -126,6 +127,7 @@ static void ST_transition_cb(void) {
       return;
     }
 #endif
+    bm_op_time_counter_disable(); // Disable Operation Time Counter
     currentState = ST_SAVE_FLASH;
   }
   if (!wait_for_transition) {
@@ -150,6 +152,7 @@ void ST_INIT_fn(void) {
   synctimer_start();
   bm_rand_init();  
   bm_log_init();
+  bm_op_time_counter_init();
 
 #ifdef NRF_SDK_ZIGBEE
   bm_cli_init();
@@ -319,6 +322,9 @@ void ST_INIT_BENCHMARK_fn(void) {
   bm_log_clear_ram();
   bm_log_clear_flash();
 
+  bm_op_time_counter_disable();
+  bm_op_time_counter_clear();
+
 #ifdef ZEPHYR_BLE_MESH
   bm_blemesh_enable(); // Will return faster than the Stack is realy ready... keep on waiting in the transition.
 #elif defined NRF_SDK_ZIGBEE
@@ -352,6 +358,7 @@ void ST_BENCHMARK_fn(void) {
   synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb); // Shedule the Timestamp event
   benchmark_messageing_done = true;
 #endif
+bm_op_time_counter_enable();
 #ifdef ZEPHYR_BLE_MESH
 // The Benchmark is Timer Interrupt Driven. do Nothing here and wait for transition
 #elif defined NRF_SDK_ZIGBEE
@@ -399,6 +406,13 @@ void ST_SAVE_FLASH_fn(void) {
   next_state_ts_us = (synctimer_getSyncTime() + ST_SAVE_FLASH_TIME_MS * 1000 + ST_MARGIN_TIME_MS * 1000);
   synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb); // Schedule the Timestamp event
   start_time_ts_us = synctimer_getSyncTime();                          // Get the current Timestamp
+
+  bm_cli_log("Radio Activity Time: %u%u\n", (uint32_t)(bm_op_time_counter_getOPTime() >> 32), (uint32_t)bm_op_time_counter_getOPTime()); // For Debug
+  #ifndef BENCHMARK_MASTER
+  bm_message_info msg = {UINT16_MAX,bm_op_time_counter_getOPTime()};
+  bm_log_append_ram(msg);
+  #endif
+
   bm_log_save_to_flash();                                              // Save the log to FLASH;
 
   bm_sleep(1000);

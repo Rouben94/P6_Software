@@ -105,7 +105,6 @@ while len(had_nodes_ind) < len(df.index):
         if x == 'q':
             break
         print("Get Report of Node " + str(df['Dev ID'][ind]) +" in 3 seconds")
-        time.sleep(3)
         ser.reset_input_buffer()
         print("getNodeReport " + str(int(str(df['Dev ID'][ind]), 16)))
         serialcmd = "getNodeReport " + str(int(str(df['Dev ID'][ind]), 16)) + "\r"
