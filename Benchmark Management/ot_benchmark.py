@@ -10,7 +10,7 @@ import csv
 
 dirpath = os.getcwd()
 
-serial_port = serial.Serial(port="COM78", baudrate=115200, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
+serial_port = serial.Serial(port="COM84", baudrate=115200, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
 bm_result_list = []
 
 stop_threads = False
@@ -36,6 +36,7 @@ def read():
                 print(bm_result)
 
             elif "<REPORT_END>" in serialString:
+                sleep(1)
                 if stop_threads:
                     df = pd.DataFrame(bm_result_list, columns = ['Message ID', 'Timestamp (us)','Ack Timestamp (us)', 'Hops','RSSI','Source Address','Destination Address','Group Address','Data Size'])
                     path = dirpath+'\\result_files\\'+csv_title+'.csv'

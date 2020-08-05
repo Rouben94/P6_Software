@@ -80,6 +80,8 @@ def chart(request):
     bar_list = zip(bar_div_array, nodes)
     return render(request, 'p2p/chart.html', {'bar_list': bar_list})
 
+
+
 def connect(request):
     if request.method == 'POST':
         form = PortForm(request.POST)
