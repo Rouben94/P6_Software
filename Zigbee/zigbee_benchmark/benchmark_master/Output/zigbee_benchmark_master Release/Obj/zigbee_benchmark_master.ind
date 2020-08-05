@@ -104,6 +104,7 @@
 "Output/zigbee_benchmark_master Release/Obj/bm_statemachine.o"
 "Output/zigbee_benchmark_master Release/Obj/bm_timesync.o"
 "Output/zigbee_benchmark_master Release/Obj/bm_flash_save.o"
+"Output/zigbee_benchmark_master Release/Obj/bm_radio_operating_time_counter.o"
 "C:/Program Files/SEGGER/SEGGER Embedded Studio for ARM 4.30/lib/libdebugio_mempoll_v7em_fpv4_sp_d16_hard_t_le_eabi.a"
 "C:/Program Files/SEGGER/SEGGER Embedded Studio for ARM 4.30/lib/libm_v7em_fpv4_sp_d16_hard_t_le_eabi.a"
 "C:/Program Files/SEGGER/SEGGER Embedded Studio for ARM 4.30/lib/libc_v7em_fpv4_sp_d16_hard_t_le_eabi.a"

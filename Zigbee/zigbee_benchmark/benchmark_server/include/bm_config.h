@@ -33,7 +33,7 @@ typedef struct
   uint32_t DestMAC_2; // Zigbee Directed Destination 2
   uint32_t DestMAC_3; // Zigbee Directed Destination 3
 } bm_params_t;
-extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a benchmark is active. 
+extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a benchmark is active.
 
 /* =============== Defines for Reporting ===================== */
 #define NUMBER_OF_BENCHMARK_REPORT_MESSAGES 3000 /* Size of the Benchmark Reporting Array message_info */
@@ -51,8 +51,8 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 
 //#define HA_DIMMABLE_LIGHT_ENDPOINT 10    /**< Device endpoint, used to receive light controlling commands. */
 #define ERASE_PERSISTENT_CONFIG ZB_TRUE /**< Do not erase NVRAM to save the network parameters after device reboot or power-off. */
-#define BULB_PWM_NAME PWM1               /**< PWM instance used to drive dimmable light bulb. */
-#define BULB_PWM_TIMER 2                 /**< Timer number used by PWM. */
+//#define BULB_PWM_NAME PWM1               /**< PWM instance used to drive dimmable light bulb. */
+//#define BULB_PWM_TIMER 2                 /**< Timer number used by PWM. */
 
 /* Basic cluster attributes initial values. */
 #define BULB_INIT_BASIC_APP_VERSION 01                                   /**< Version of the application software (1 byte). */
@@ -74,17 +74,6 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 #define BULB_LED BSP_BOARD_LED_3                 /**< LED immitaing dimmable light bulb. */
 #define DONGLE_BUTTON BSP_EVENT_KEY_0            /**< Button event used trigger button actions on the dongle hardware */
 #define DONGLE_BUTTON_ON BSP_BOARD_BUTTON_0      /**< Button ID used to switch on the Dongle button */
-//#else
-//#define IDENTIFY_MODE_BSP_EVT BSP_EVENT_KEY_3    /**< Button event used to enter the Bulb into the Identify mode. */
-//#define ZIGBEE_NETWORK_STATE_LED BSP_BOARD_LED_2 /**< LED indicating that light switch successfully joind Zigbee network. */
-//
-//#define ZIGBEE_NETWORK_STATE_LED BSP_BOARD_LED_2   /**< LED indicating that light switch successfully joind Zigbee network. */
-//#define LIGHT_SWITCH_BUTTON_ON BSP_BOARD_BUTTON_0  /**< Button ID used to switch on the light bulb. */
-//#define LIGHT_SWITCH_BUTTON_OFF BSP_BOARD_BUTTON_1 /**< Button ID used to switch off the light bulb. */
-//#define BENCHMARK_BUTTON BSP_BOARD_BUTTON_2        /**< Button ID used to switch off the light bulb. */
-//#define TEST_BUTTON BSP_BOARD_BUTTON_3             /**< Button ID used to switch off the light bulb. */
-//
-//#endif
 
 /* Benchmark specific Definitions*/
 #define BENCHMARK_CLIENT_ENDPOINT 1  /* ZCL Endpoint of the Benchmark Client */

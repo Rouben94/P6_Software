@@ -150,6 +150,7 @@
       <file file_name="../../../SharedLib/bm_simple_buttons_and_leds.c" />
       <file file_name="../../../SharedLib/bm_statemachine.c" />
       <file file_name="../../../SharedLib/bm_timesync.c" />
+      <file file_name="../../../SharedLib/bm_radio_operating_time_counter.c" />
     </folder>
   </project>
   <configuration

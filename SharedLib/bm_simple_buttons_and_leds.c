@@ -138,7 +138,7 @@ void bm_init_leds() {
 
 #endif
 
-/* Set LED0 */
+/* Set LED0. pca10059 -> Green LED */
 void bm_led0_set(bool state) {
 #ifdef ZEPHYR_BLE_MESH
   gpio_pin_set(dev_led0, PIN_LED0, (int)state);
@@ -161,7 +161,7 @@ bool bm_led0_get() {
 #endif
 }
 
-/* Set LED1 */
+/* Set LED1. pca10059 -> Red LED (RGB) */
 void bm_led1_set(bool state) {
 #ifdef ZEPHYR_BLE_MESH
   gpio_pin_set(dev_led1, PIN_LED1, (int)state);
@@ -184,7 +184,7 @@ bool bm_led1_get() {
 #endif
 }
 
-/* Set LED2 */
+/* Set LED2. pca10059 -> Green LED (RGB) */
 void bm_led2_set(bool state) {
 #ifdef ZEPHYR_BLE_MESH
   gpio_pin_set(dev_led2, PIN_LED2, (int)state);
@@ -207,7 +207,7 @@ bool bm_led2_get() {
 #endif
 }
 
-/* Set LED3 */
+/* Set LED3. pca10059 -> Blue LED (RGB)  */
 void bm_led3_set(bool state) {
 #ifdef ZEPHYR_BLE_MESH
   gpio_pin_set(dev_led3, PIN_LED3, (int)state);
