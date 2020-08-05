@@ -24,7 +24,6 @@ along with Zigbee-Benchmark. If not, see <http://www.gnu.org/licenses/>.
 #include "zboss_api_addons.h"
 #include "zigbee_helpers.h"
 
-//#include "zb_mem_config_max.h"
 #include "bm_mem_config_custom.h"
 
 #include "app_timer.h"
@@ -38,6 +37,7 @@ along with Zigbee-Benchmark. If not, see <http://www.gnu.org/licenses/>.
 #include "bm_cli.h"
 #include "bm_config.h"
 #include "bm_log.h"
+#include "bm_simple_buttons_and_leds.h"
 #include "bm_timesync.h"
 #include "bm_zigbee.h"
 
@@ -362,6 +362,7 @@ void bm_send_message(void) {
 void bm_read_message_info(zb_uint16_t dst_addr_short, zb_uint8_t tsn) {
   bm_message_info message;
   zb_ieee_addr_t ieee_src_addr;
+  zb_bool_t led_toggle;
 
   message.number_of_hops = 0;
   message.data_size = 1;
@@ -382,6 +383,14 @@ void bm_read_message_info(zb_uint16_t dst_addr_short, zb_uint8_t tsn) {
 
   bm_cli_log("Benchmark read message data: Destination Address: 0x%x TimeStamp: %lld, MessageID: %d (%d)\n", message.dst_addr, message.net_time, message.message_id, seq_num);
   bm_log_append_ram(message);
+
+  /* Toggle blue LED to indicate  */
+  led_toggle = (zb_bool_t)seq_num % 2;
+  if (led_toggle) {
+    bm_led2_set(true);
+  } else {
+    bm_led2_set(false);
+  }
 }
 
 /************************************ Zigbee event handler ***********************************************/
@@ -397,16 +406,6 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid) {
 
   /* Set default response value. */
   device_cb_param->status = RET_OK;
-
-  switch (device_cb_param->device_cb_id) {
-    //  case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
-    //    bm_cli_log("Level control setting to %d\n", device_cb_param->cb_param.level_control_set_value_param.new_value);
-    //
-    //    break;
-  default:
-    device_cb_param->status = RET_ERROR;
-    break;
-  }
 }
 
 /************************************ ZBOSS signal handler ***********************************************/
@@ -453,7 +452,6 @@ void zboss_signal_handler(zb_bufid_t bufid) {
     ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
     break;
   }
-
   if (bufid) {
     zb_buf_free(bufid);
   }
@@ -484,8 +482,6 @@ void bm_zigbee_init(void) {
   ZB_INIT("light_switch");
 
   /* Set device address to the value read from FICR registers. */
-  //  zb_osif_get_ieee_eui64(ieee_addr);
-  //  zb_set_long_address(ieee_addr);
   bm_get_ieee_eui64(ieee_addr);
   zb_set_long_address(ieee_addr);
 
@@ -508,8 +504,8 @@ void bm_zigbee_init(void) {
 
 void bm_zigbee_enable(void) {
   zb_ret_t zb_err_code;
-
   /** Start Zigbee Stack. */
   zb_err_code = zboss_start_no_autostart();
   ZB_ERROR_CHECK(zb_err_code);
+  bm_led2_set(true);
 }
