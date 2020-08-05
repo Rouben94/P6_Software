@@ -50,6 +50,7 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 #define MAX_CHILDREN 10                 /**< The maximum amount of connected devices. Setting this value to 0 disables association to this device.  */
 #define IEEE_CHANNEL_MASK (1l << ZIGBEE_CHANNEL) /**< Scan only one, predefined channel to find the coordinator. */
 //#define IEEE_CHANNEL_MASK 0x07fff800U
+#define DEFAULT_PAN_ID_EXT 0x11223344
 #define ZB_COORDINATOR_ROLE
 
 #define ZIGBEE_NETWORK_STATE_LED BSP_BOARD_LED_2        /**< LED indicating that network is opened for new nodes. */

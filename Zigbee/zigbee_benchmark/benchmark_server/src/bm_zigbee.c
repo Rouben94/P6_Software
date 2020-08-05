@@ -469,8 +469,8 @@ void zboss_signal_handler(zb_bufid_t bufid) {
 
   case ZB_BDB_SIGNAL_DEVICE_REBOOT:
     ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid)); /* Call default signal handler. */
-    bm_cli_log("Zigbee device restarted\n");
-    bm_cli_log("Active channel %d\n", nrf_802154_channel_get());
+//    bm_cli_log("Zigbee device restarted\n");
+//    bm_cli_log("Active channel %d\n", nrf_802154_channel_get());
 
     if (status == RET_OK) {
       /* Schedule Add Group ID request */
