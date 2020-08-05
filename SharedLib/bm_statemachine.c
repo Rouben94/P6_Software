@@ -70,12 +70,12 @@ IV.    if yess -> change to next state*/
 #define ST_INIT_BENCHMARK_TIME_MS 10000 // Time required to init the BLE Mesh Stack
 #endif
 // The Benchmark time is obtained by the arameters from Timesync
-#define ST_BENCHMARK_MIN_GAP_TIME_US 1000 // Minimal Gap Time to not exit the interrupt context while waiting for another package.
+#define ST_BENCHMARK_MIN_GAP_TIME_US 1000         // Minimal Gap Time to not exit the interrupt context while waiting for another package.
 #define ST_BENCHMARK_ADDITIONAL_WAIT_TIME_MS 5000 // Additional Waittime for finishing the Benchmark State (if all transitions are at the end)
-#define ST_SAVE_FLASH_TIME_MS 1000        // Time required to Save Log to Flash
+#define ST_SAVE_FLASH_TIME_MS 1000                // Time required to Save Log to Flash
 
-#define ST_MARGIN_TIME_MS 5            // Margin for State Transition (Let the State Terminate)
-#define BM_LED_BLINK_TIME_MS 500       /* Blink Time for LED's */
+#define ST_MARGIN_TIME_MS 5      // Margin for State Transition (Let the State Terminate)
+#define BM_LED_BLINK_TIME_MS 500 /* Blink Time for LED's */
 
 uint32_t LSB_MAC_Address;               // Preprogrammed Randomly Static MAC-Address (LSB)
 uint8_t currentState = ST_INIT;         // Init the Statemachine in the Timesync State
@@ -148,7 +148,7 @@ void ST_INIT_fn(void) {
   bm_radio_init();
   synctimer_init();
   synctimer_start();
-  bm_rand_init();  
+  bm_rand_init();
   bm_log_init();
 
 #ifdef NRF_SDK_ZIGBEE
@@ -236,7 +236,7 @@ void ST_CONTROL_fn(void) {
 #endif
     bm_sleep(100); // Poll Interval is 100ms
 #else              // If not MASTER then Server or Client
-    memset(&bm_control_msg,0,sizeof(bm_control_msg)); // Clean Received Controll Message
+    memset(&bm_control_msg, 0, sizeof(bm_control_msg)); // Clean Received Controll Message
     if (bm_control_msg_subscribe(&bm_control_msg)) {
       if (bm_control_msg.benchmark_time_s > 0 && bm_control_msg.benchmark_packet_cnt > 0 && bm_control_msg.benchmark_packet_cnt <= 1000 && bm_control_msg.NextStateNr == ST_TIMESYNC && bm_control_msg.MACAddressDst == 0xFFFFFFFF) {
         // DO Start Benchmark
@@ -248,7 +248,7 @@ void ST_CONTROL_fn(void) {
         bm_sleep(BM_LED_BLINK_TIME_MS);
         bm_led3_set(false);
         break;
-      } else if (bm_control_msg.MACAddressDst == LSB_MAC_Address && (bm_control_msg.GroupAddress > 0 || bm_control_msg.NodeId > 0)) {
+      } else if (bm_control_msg.MACAddressDst == LSB_MAC_Address && bm_control_msg.NextStateNr == 0) {
         // DO set Node Settings
         bm_params.GroupAddress = bm_control_msg.GroupAddress;
         bm_params.Node_Id = bm_control_msg.NodeId;
@@ -257,8 +257,8 @@ void ST_CONTROL_fn(void) {
         bm_params.DestMAC_1 = bm_control_msg.DestMAC_1;
         bm_params.DestMAC_2 = bm_control_msg.DestMAC_2;
         bm_params.DestMAC_3 = bm_control_msg.DestMAC_3;
-        bm_cli_log("New Settings Saved Group: %u, NodeId: %u, Additional Payload Size: %u, ", bm_params.GroupAddress,bm_params.Node_Id,bm_params.AdditionalPayloadSize);
-        bm_cli_log("Ack: %u, Dst_MAC1: %u, Dst_MAC2: %u, Dst_MAC3: %u \n", bm_params.Ack,bm_params.DestMAC_1,bm_params.DestMAC_2,bm_params.DestMAC_3);
+        bm_cli_log("New Settings Saved Group: %u, NodeId: %u, Additional Payload Size: %u, ", bm_params.GroupAddress, bm_params.Node_Id, bm_params.AdditionalPayloadSize);
+        bm_cli_log("Ack: %u, Dst_MAC1: %u, Dst_MAC2: %u, Dst_MAC3: %u \n", bm_params.Ack, bm_params.DestMAC_1, bm_params.DestMAC_2, bm_params.DestMAC_3);
         bm_cli_log("Ready for Control Message\n");
         bm_led3_set(true);
         bm_sleep(BM_LED_BLINK_TIME_MS);
@@ -299,7 +299,7 @@ void ST_TIMESYNC_fn(void) {
 #ifdef BENCHMARK_MASTER
   bm_timesync_msg_publish(next_state_ts_us - ST_MARGIN_TIME_MS * 1000);
 #else
-  if (bm_timesync_msg_subscribe(next_state_ts_us - ST_MARGIN_TIME_MS * 1000,ST_transition_cb,ST_MARGIN_TIME_MS)) {
+  if (bm_timesync_msg_subscribe(next_state_ts_us - ST_MARGIN_TIME_MS * 1000, ST_transition_cb, ST_MARGIN_TIME_MS)) {
     bm_timesync_msg_publish(synctimer_getSyncTimeCompareIntTS() - ST_MARGIN_TIME_MS * 1000); // Publish as long as there is time left...
   }
 #endif

@@ -342,7 +342,7 @@ void bm_read_message_info(zb_uint16_t dst_addr_short, zb_uint8_t tsn) {
 
   zb_get_long_address(ieee_src_addr);
   message.src_addr = zb_address_short_by_ieee(ieee_src_addr);
-  message.group_addr = 0;
+  message.group_addr = bm_params.GroupAddress + GROUP_ID;
   message.dst_addr = dst_addr_short;
 
   message.message_id = bm_get_overflow_tid_from_overflow_handler(tsn, message.src_addr);
@@ -478,7 +478,6 @@ void bm_zigbee_init(void) {
 
 void bm_zigbee_enable(void) {
   zb_ret_t zb_err_code;
-  zb_ieee_addr_t ieee_addr;
 
   /** Start Zigbee Stack. */
   zb_err_code = zboss_start_no_autostart();

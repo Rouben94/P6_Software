@@ -643,7 +643,6 @@ void bm_zigbee_init(void) {
 
 void bm_zigbee_enable(void) {
   zb_ret_t zb_err_code;
-  zb_ieee_addr_t ieee_addr;
 
   /** Start Zigbee Stack. */
   zb_err_code = zboss_start_no_autostart();
