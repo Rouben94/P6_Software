@@ -101,6 +101,7 @@ static void bsp_event_handler(bsp_event_t event)
             NRF_LOG_INFO("Button short");
 #if defined(BM_CLIENT) || defined(BM_SERVER)
             bm_increment_group_address();
+            bsp_board_led_invert(BSP_BOARD_LED_1);
 #endif //BM_CLIENT || BM_SERVER
             break;
 
@@ -109,6 +110,7 @@ static void bsp_event_handler(bsp_event_t event)
 
 #if defined(BM_CLIENT) || defined(BM_SERVER)
             bm_decrement_group_address();
+            bsp_board_led_invert(BSP_BOARD_LED_1);
 #endif //BM_CLIENT || BM_SERVER
 
 #ifdef BM_CLIENT

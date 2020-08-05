@@ -499,6 +499,7 @@ static void bm_coap_start_response_handler(void                * p_context,
       if (otCoapMessageGetType(p_message) == OT_COAP_TYPE_ACKNOWLEDGMENT)
       {
           NRF_LOG_INFO("Slave: Start Benchmark");
+          bsp_board_led_on(BSP_BOARD_LED_2);
           if (m_config.coap_client_enabled)
           {
             bm_sm_new_state_set(BM_STATE_1_SLAVE);
@@ -781,13 +782,13 @@ static void bm_probe_message_handler(void                 * p_context,
         {
             NRF_LOG_INFO("Server: Got 1 bit message");
             message.message_id = bm_get_overflow_tid_from_overflow_handler(bm_probe[0], ((bm_probe[1] & 0xff) | (bm_probe[2] << 8)));
-            bsp_board_led_invert(BSP_BOARD_LED_2);
+            bsp_board_led_invert(BSP_BOARD_LED_3);
             message.data_size = 3;
         } else
         {
             NRF_LOG_INFO("Server: Got 1024 byte message");
             message.message_id = bm_get_overflow_tid_from_overflow_handler(bm_probe[0], ((bm_probe[1] & 0xff) | (bm_probe[2] << 8)));
-            bsp_board_led_invert(BSP_BOARD_LED_2);
+            bsp_board_led_invert(BSP_BOARD_LED_3);
             message.data_size = 1024;
         }
 
@@ -824,9 +825,7 @@ void bm_coap_probe_message_send(uint8_t state)
     message.dest_address = bm_group_address.mFields.m16[7];
     message.grp_address = bm_group_address.mFields.m16[7];
     message.net_time_ack = 0;
-    NRF_LOG_INFO("TID: %u", bm_message_ID);
     message.message_id = bm_get_overflow_tid_from_overflow_handler(bm_message_ID, message.source_address);
-    NRF_LOG_INFO("Message ID: %u", message.message_id);
     otNetworkTimeGet(thread_ot_instance_get(), &message.net_time);
 
     uint8_t bm_big_probe[DATA_SIZE];

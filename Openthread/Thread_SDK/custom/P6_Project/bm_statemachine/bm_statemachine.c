@@ -148,61 +148,61 @@ static void start_timer(void)
  **************************************************************************************************/
 static void m_msg_1_handler(void * p_context)
 {
-    bsp_board_led_invert(BSP_BOARD_LED_2);
+    bsp_board_led_invert(BSP_BOARD_LED_3);
     bm_coap_probe_message_send(data_size);
 }
 
 static void m_msg_2_handler(void * p_context)
 {
-    bsp_board_led_invert(BSP_BOARD_LED_2);
+    bsp_board_led_invert(BSP_BOARD_LED_3);
     bm_coap_probe_message_send(data_size);
 }
 
 static void m_msg_3_handler(void * p_context)
 {
-    bsp_board_led_invert(BSP_BOARD_LED_2);
+    bsp_board_led_invert(BSP_BOARD_LED_3);
     bm_coap_probe_message_send(data_size);
 }
 
 static void m_msg_4_handler(void * p_context)
 {
-    bsp_board_led_invert(BSP_BOARD_LED_2);
+    bsp_board_led_invert(BSP_BOARD_LED_3);
     bm_coap_probe_message_send(data_size);
 }
 
 static void m_msg_5_handler(void * p_context)
 {
-    bsp_board_led_invert(BSP_BOARD_LED_2);
+    bsp_board_led_invert(BSP_BOARD_LED_3);
     bm_coap_probe_message_send(data_size);
 }
 
 static void m_msg_6_handler(void * p_context)
 {
-    bsp_board_led_invert(BSP_BOARD_LED_2);
+    bsp_board_led_invert(BSP_BOARD_LED_3);
     bm_coap_probe_message_send(data_size);
 }
 
 static void m_msg_7_handler(void * p_context)
 {
-    bsp_board_led_invert(BSP_BOARD_LED_2);
+    bsp_board_led_invert(BSP_BOARD_LED_3);
     bm_coap_probe_message_send(data_size);
 }
 
 static void m_msg_8_handler(void * p_context)
 {
-    bsp_board_led_invert(BSP_BOARD_LED_2);
+    bsp_board_led_invert(BSP_BOARD_LED_3);
     bm_coap_probe_message_send(data_size);
 }
 
 static void m_msg_9_handler(void * p_context)
 {
-    bsp_board_led_invert(BSP_BOARD_LED_2);
+    bsp_board_led_invert(BSP_BOARD_LED_3);
     bm_coap_probe_message_send(data_size);
 }
 
 static void m_msg_10_handler(void * p_context)
 {
-    bsp_board_led_invert(BSP_BOARD_LED_2);
+    bsp_board_led_invert(BSP_BOARD_LED_3);
     bm_coap_probe_message_send(data_size);
 }
 
@@ -221,7 +221,7 @@ static void m_result_handler(void * p_context)
  **************************************************************************************************/
 static void state_1_slave(void)
 {
-    start_timer();       
+    start_timer();
     bm_new_state = BM_EMPTY_STATE;
 }
 
@@ -243,13 +243,14 @@ static void state_2_slave(void)
         }
         bm_coap_results_send(bm_result_struct, sizeof(bm_result_struct));
     }
+    bsp_board_led_off(BSP_BOARD_LED_2);
 
     bm_new_state = BM_EMPTY_STATE;
 }
 
 static void state_3_slave(void)
 {
-    bsp_board_led_off(BSP_BOARD_LED_2);
+    bsp_board_led_off(BSP_BOARD_LED_3);
     bm_message_info_nr = 0;
     memset(message_info, 0, sizeof(message_info));
 
@@ -277,7 +278,7 @@ static void state_2_master(void)
     {
         bm_slave_nr--;
         bm_coap_result_request_send(bm_slave_address[bm_slave_nr]);
-        error = app_timer_start(m_result_timer, APP_TIMER_TICKS(5000), NULL);
+        error = app_timer_start(m_result_timer, APP_TIMER_TICKS(3000), NULL);
         ASSERT(error == NRF_SUCCESS);
     }
     
