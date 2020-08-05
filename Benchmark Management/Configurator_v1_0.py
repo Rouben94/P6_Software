@@ -15,8 +15,6 @@ df = pd.read_excel('Config.xlsx', sheet_name='Config')
 
 # creating a list of dataframe columns 
 columns = list(df) 
-
-
         
 
 #Get the COM Ports
@@ -51,7 +49,7 @@ for ind in df.index:
             print(serdataline_str)            
             if 'Ready for Control Message' in serdataline_str:
                 print("Ready for next Node")
-                time.sleep(3)
+                time.sleep(2)
                 break
     
 
