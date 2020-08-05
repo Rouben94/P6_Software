@@ -106,10 +106,7 @@ def doAnalysis(df):
                     group_servers_cnt +=1
                     srv_addr_seen.append(df['Destination Address'][ind_srv])
         server_cnt[ind_cli] = group_servers_cnt
-        if group_servers_cnt == 0:
-            pktloss[ind_cli] = 100 # 100% Packet Loss
-        else:
-            pktloss[ind_cli] = (group_servers_cnt - pkt_arrived_cnt) / group_servers_cnt * 100
+        pktloss[ind_cli] = (group_servers_cnt - pkt_arrived_cnt) / group_servers_cnt * 100
 
     # #Correct CdC
     # for srv in latency_per_hop_per_server_cdc_y:

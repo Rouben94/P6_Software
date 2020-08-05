@@ -93,10 +93,6 @@ def doAnalysis(df):
             #Servers        
             servers = df_sorted.query('RSSI != "0" and Group_Address == "' + str(group) +'" ')['Destination_Address'].unique().tolist()
             for server in servers:
-                clock_drift_func_prev = 0
-                clock_drift_last_diff = 0
-                clock_drift_func = []
-                clock_drift_func_time = []
                 #Client Messages        
                 client_messages = df_sorted.query('RSSI == "0" and Group_Address == "' + str(group) + '" and Source_Address == "' + str(client) +'"')['Message_ID'].unique().tolist()
                 for client_message in client_messages:
@@ -109,50 +105,23 @@ def doAnalysis(df):
                     if len(server_message_df.index) != 0:
                         latency[server_message_df['Timestamp_(us)'].index.item()] = (server_message_df['Timestamp_(us)'].item() - client_message_df['Timestamp_(us)'].item()) / 1000
                         latency_per_hop[server_message_df['Timestamp_(us)'].index.item()] = latency[server_message_df['Timestamp_(us)'].index.item()] / (server_message_df['Hops'].item() + 1)
-                        diff = latency_per_hop[server_message_df['Timestamp_(us)'].index.item()] /1e3 - clock_drift_func_prev
-                        if -1e-3 <= diff <= 1e-3: #Filter Value is 1ms
-                            clock_drift_func.append(clock_drift_last_diff + diff)
-                            clock_drift_func_time.append(server_message_df['Timestamp_(us)'].item() / 1e6)
-                            clock_drift_last_diff += diff
-                        clock_drift_func_prev = latency_per_hop[server_message_df['Timestamp_(us)'].index.item()] / 1e3
                         throughput[server_message_df['Timestamp_(us)'].index.item()] = server_message_df['Data_Size'].item() / (latency[server_message_df['Timestamp_(us)'].index.item()] / 1000)
                         #ongoing_transactions[server_message_df['Timestamp_(us)'].index.item()] -= 1
                         if ongoing_transactions[server_message_df['Timestamp_(us)'].index.item()] < 0:
                             ongoing_transactions[server_message_df['Timestamp_(us)'].index.item()] = 0
                         pkt_ok[client_message_df['Timestamp_(us)'].index.item()] += 1
                     pkt_loss_rate[client_message_df['Timestamp_(us)'].index.item()] = (1 - (pkt_ok[client_message_df['Timestamp_(us)'].index.item()] / len(servers))) * 100
-                #Clock Drift Correction                       
-                #print(clock_drift_func)
-                x = np.array(clock_drift_func_time).reshape((-1, 1))
-                y = np.array(clock_drift_func)
-                model = LinearRegression().fit(x, y)
-                #print('slope:', model.coef_) # ppm (s/s)
-                #print('intercept:', model.intercept_)
-                for client_message in client_messages:
-                    #Append Clock Drift Information
-                    server_message_df = df_sorted.query('RSSI != "0" and Group_Address == "' + str(group) + '" and Destination_Address == "' + str(server) +'" and Message_ID == "' + str(client_message) + '"')
-                    if len(server_message_df.index) != 0:
-                        clock_drift_func_slope_a[server_message_df['Timestamp_(us)'].index.item()] = model.coef_
-                        clock_drift_func_intercept_b[server_message_df['Timestamp_(us)'].index.item()] = model.intercept_
-                        latency_cdc[server_message_df['Timestamp_(us)'].index.item()] = latency[server_message_df['Timestamp_(us)'].index.item()] + (model.coef_ * server_message_df['Timestamp_(us)'].item() / 1e6)  * 1e3
-                        latency_per_hop_cdc[server_message_df['Timestamp_(us)'].index.item()] = latency_per_hop[server_message_df['Timestamp_(us)'].index.item()] + (model.coef_ * server_message_df['Timestamp_(us)'].item() / 1e6)  * 1e3
-                        throughput_cdc[server_message_df['Timestamp_(us)'].index.item()] = server_message_df['Data_Size'].item() / latency_cdc[server_message_df['Timestamp_(us)'].index.item()]
-                #plt.plot(x, y, marker='.', markersize=0, linewidth='0.5', color='green')
-                #plt.plot(x, model.coef_ * x + model.intercept_, color='orange', linestyle='--')
-                #plt.show()
+                
 
     #Append Data
     df_sorted['Latency_Time_(ms)'] = latency
     df_sorted['Latency_Time_(ms)_per_Hop'] = latency_per_hop
     df_sorted['Throughput_(B/s)'] = throughput
     df_sorted['Paket_Loss_%'] = pkt_loss_rate
-    df_sorted['Latency_Time_(ms)_cdc'] = latency_cdc
-    df_sorted['Latency_Time_(ms)_per_Hop_cdc'] = latency_per_hop_cdc
-    df_sorted['Throughput_(B/s)_cdc'] = throughput_cdc
     df_sorted['Subscribed Server Count'] = server_cnt
 
     #Create Ongoing Transactions
-    ongoing_transactions = [0 for i in range(len(df.index))]
+    ongoing_transactions = [0 for i in range(len(df_sorted.index))]
     last_ongoing_transactions = 0
     for ind in df_sorted.index:
         #Is a Client Message
