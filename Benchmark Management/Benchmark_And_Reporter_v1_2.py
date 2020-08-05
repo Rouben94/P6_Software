@@ -94,7 +94,7 @@ while len(had_nodes_ind) < len(df.index):
 #for ind in df.index:
     if str(df['Number'][ind]) == 'nan':
         break
-    if str(df['Number'][ind]) not in had_nodes_ind :
+    elif str(df['Number'][ind]) not in had_nodes_ind :
         #Get Device Report
         x = input('Please go near to Dongle number ' + str(df['Number'][ind]) + ' ... Press enter to continue. \nPress s followed by Enter to skip. \nPress q followed by Enter')
         if x == 's':
@@ -130,6 +130,10 @@ while len(had_nodes_ind) < len(df.index):
             ind = ind + 1
             if (ind >= len(df.index)):
                 ind = 0
+    else:
+        print("Error with Node ID: " + str(df['Number'][ind]))
+        break
+    
 ser.close()
 
 print(report)
