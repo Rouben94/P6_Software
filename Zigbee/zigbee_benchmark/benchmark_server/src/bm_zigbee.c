@@ -384,7 +384,6 @@ void bm_receive_message(zb_bufid_t bufid) {
   message.number_of_hops = 0;
   message.data_size = 1;
   message.ack_net_time = 0;
-
   message.net_time = synctimer_getSyncTime();
 
   message.src_addr = aps_info->src_addr;

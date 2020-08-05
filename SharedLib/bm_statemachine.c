@@ -23,10 +23,10 @@ along with Benchmark-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 #include "bm_control.h"
 #include "bm_log.h"
 #include "bm_radio.h"
+#include "bm_radio_operating_time_counter.h"
 #include "bm_rand.h"
 #include "bm_report.h"
 #include "bm_timesync.h"
-#include "bm_radio_operating_time_counter.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -66,7 +66,7 @@ IV.    if yess -> change to next state*/
 // Timeslots for the Sates in ms. The Timesync has to be accurate enough.
 #define ST_TIMESYNC_TIME_MS 5000 // -> Optimized for 50 Nodes, 3 Channels and BLE LR125kBit
 #ifdef NRF_SDK_ZIGBEE
-#define ST_INIT_BENCHMARK_TIME_MS 30000 // Time required to init the Zigbee Mesh Stack
+#define ST_INIT_BENCHMARK_TIME_MS 60000 // Time required to init the Zigbee Mesh Stack
 #elif defined ZEPHYR_BLE_MESH
 #define ST_INIT_BENCHMARK_TIME_MS 10000 // Time required to init the BLE Mesh Stack
 #endif
@@ -287,10 +287,11 @@ void ST_REPORT_fn(void) {
   memset(message_info, 0, sizeof(message_info)); // Erase old Log Buffer Content
   bm_report_msg_subscribe(message_info);         // Get the Reports
 #else                                            // Servers and Clients wait for Reports
-  if (bm_report_msg_publish(message_info)) {       // Send out Reports
-    memset(message_info, 0, sizeof(message_info)); // Erase old Log Buffer Content
-    bm_log_clear_flash();                          // Erase old Log Buffer Content
-  }
+  bm_report_msg_publish(message_info);
+//  if (bm_report_msg_publish(message_info)) {       // Send out Reports
+//    memset(message_info, 0, sizeof(message_info)); // Erase old Log Buffer Content
+//    bm_log_clear_flash();                          // Erase old Log Buffer Content
+//  }
 #endif
   wait_for_transition = true; // Self trigger Transition
   ST_transition_cb();
@@ -315,6 +316,11 @@ void ST_INIT_BENCHMARK_fn(void) {
 #elif defined NRF_SDK_ZIGBEE
   uint64_t next_state_ts_us = (synctimer_getSyncTime() + ST_INIT_BENCHMARK_TIME_MS * 1000 + ST_MARGIN_TIME_MS * 1000 + ZBOSS_MAIN_LOOP_ITERATION_TIME_MARGIN_MS * 1000);
 #endif
+#ifndef BENCHMARK_MASTER
+  memset(message_info, 0, sizeof(message_info)); // Erase old Log Buffer Content
+  bm_log_clear_flash();                          // Erase old Log Buffer Content
+#endif
+
   synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb);
   start_time_ts_us = synctimer_getSyncTime(); // Get the current Timestamp
 
@@ -358,7 +364,7 @@ void ST_BENCHMARK_fn(void) {
   synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb); // Shedule the Timestamp event
   benchmark_messageing_done = true;
 #endif
-bm_op_time_counter_enable();
+  bm_op_time_counter_enable();
 #ifdef ZEPHYR_BLE_MESH
 // The Benchmark is Timer Interrupt Driven. do Nothing here and wait for transition
 #elif defined NRF_SDK_ZIGBEE
@@ -408,12 +414,12 @@ void ST_SAVE_FLASH_fn(void) {
   start_time_ts_us = synctimer_getSyncTime();                          // Get the current Timestamp
 
   bm_cli_log("Radio Activity Time: %u%u\n", (uint32_t)(bm_op_time_counter_getOPTime() >> 32), (uint32_t)bm_op_time_counter_getOPTime()); // For Debug
-  #ifndef BENCHMARK_MASTER
-  bm_message_info msg = {UINT16_MAX,bm_op_time_counter_getOPTime()};
+#ifndef BENCHMARK_MASTER
+  bm_message_info msg = {UINT16_MAX, bm_op_time_counter_getOPTime()};
   bm_log_append_ram(msg);
-  #endif
+#endif
 
-  bm_log_save_to_flash();                                              // Save the log to FLASH;
+  bm_log_save_to_flash(); // Save the log to FLASH;
 
   bm_sleep(1000);
   /* Do a System Reset */
