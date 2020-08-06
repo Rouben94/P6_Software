@@ -33,6 +33,8 @@
 #define HOP_LIMIT_DEFAULT 64
 #define max_number_of_nodes 100
 
+APP_TIMER_DEF(m_slave_timer);
+
 uint8_t bm_message_ID = 0;
 
 // TID OVerflow Handler -> Allows an Overflow of of the TID when the next TID is dropping by 250... (uint8 overflows at 255 so there is a margin of 5)
@@ -637,11 +639,17 @@ void bm_coap_master_start_request_send()
     }
 }
 
+static void m_slave_timer_handler(void * p_context)
+{
+    bm_coap_master_start_request_send();
+}
+
 static void bm_start_handler(void                 * p_context,
                              otMessage            * p_message,
                              const otMessageInfo  * p_message_info)
 {
     bm_master_message message;
+    uint32_t error;
 
     do
     {
@@ -672,7 +680,10 @@ static void bm_start_handler(void                 * p_context,
           bm_sm_new_state_set(BM_STATE_1_SLAVE);
         }
 
-        bm_coap_master_start_request_send();
+        error = app_timer_start(m_slave_timer, APP_TIMER_TICKS(otRandomNonCryptoGetUint16InRange(1, 20)), NULL);
+        ASSERT(error == NRF_SUCCESS);
+
+        //bm_coap_master_start_request_send(); // delay this
     } while(false);
 }
 
@@ -924,6 +935,9 @@ void thread_coap_utils_init(const thread_coap_utils_configuration_t * p_config)
 
     error = otIp6AddressFromString(bm_group_address_array[0], &bm_group_address);
     ASSERT(error == OT_ERROR_NONE);
+
+    error = app_timer_create(&m_slave_timer, APP_TIMER_MODE_SINGLE_SHOT, m_slave_timer_handler);
+    ASSERT(error == NRF_SUCCESS);
 
     if (m_config.coap_server_enabled)
     {
