@@ -416,6 +416,7 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid) {
   zb_uint8_t attr_id;
   zb_zcl_device_callback_param_t *p_device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
 
+
   msg_receive_cnt++;
   bm_cli_log("Message received in zcl_device_cb: %d\n", msg_receive_cnt);
 
@@ -469,8 +470,6 @@ void zboss_signal_handler(zb_bufid_t bufid) {
 
   case ZB_BDB_SIGNAL_DEVICE_REBOOT:
     ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid)); /* Call default signal handler. */
-                                                          //    bm_cli_log("Zigbee device restarted\n");
-                                                          //    bm_cli_log("Active channel %d\n", nrf_802154_channel_get());
 
     if (status == RET_OK) {
       /* Schedule Add Group ID request */
@@ -512,10 +511,6 @@ void bm_get_ieee_eui64(zb_ieee_addr_t ieee_eui64) {
 void bm_zigbee_init(void) {
   zb_ieee_addr_t ieee_addr;
   uint64_t long_address;
-  //  uint64_t pan_id_64;
-  //  zb_ext_pan_id_t ext_pan_id;
-  //  pan_id_64 = DEFAULT_PAN_ID_EXT;
-  //  memcpy(ext_pan_id, &pan_id_64, sizeof(pan_id_64));
 
   /* Initialize timer, logging system and GPIOs. */
   timer_init();
@@ -531,9 +526,6 @@ void bm_zigbee_init(void) {
   /* Set device address to the value read from FICR registers. */
   bm_get_ieee_eui64(ieee_addr);
   zb_set_long_address(ieee_addr);
-
-  //  zb_set_extended_pan_id(ext_pan_id);
-  //  zb_set_pan_id(DEFAULT_PAN_ID_SHORT);
 
   /* Set static long IEEE address. */
   zb_set_network_router_role(IEEE_CHANNEL_MASK);

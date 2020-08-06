@@ -18,7 +18,7 @@ along with Zigbee-Benchmark. If not, see <http://www.gnu.org/licenses/>.
 /* AUTHOR 	   :    Cyrill Horath      */
 
 #include "bm_cli.h"
-#include "bm_config.h"
+//#include "bm_config.h"
 #include "bm_statemachine.h"
 
 /**@brief Function for application main entry.

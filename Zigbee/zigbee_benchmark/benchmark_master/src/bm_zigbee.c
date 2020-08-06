@@ -125,20 +125,11 @@ void zboss_signal_handler(zb_bufid_t bufid) {
     if (status == RET_OK) {
       /* Schedule an alarm to notify about the end of steering period */
       bm_cli_log("Network steering started\n");
-            zb_err_code = ZB_SCHEDULE_APP_ALARM(steering_finished, 0, ZB_TIME_ONE_SECOND * ZB_ZGP_DEFAULT_COMMISSIONING_WINDOW);
-            ZB_ERROR_CHECK(zb_err_code);
+      zb_err_code = ZB_SCHEDULE_APP_ALARM(steering_finished, 0, ZB_TIME_ONE_SECOND * ZB_ZGP_DEFAULT_COMMISSIONING_WINDOW);
+      ZB_ERROR_CHECK(zb_err_code);
     }
     zb_enable_auto_pan_id_conflict_resolution(ZB_FALSE);
     break;
-
-    //  case ZB_ZDO_SIGNAL_DEVICE_ANNCE:
-    //    if (status == RET_OK) {
-    //      zb_zdo_signal_device_annce_params_t *dev_annce_params = ZB_ZDO_SIGNAL_GET_PARAMS(p_sg_p, zb_zdo_signal_device_annce_params_t);
-    //      bm_cli_log("New device commissioned or rejoined (short: 0x%04hx)\n", dev_annce_params->device_short_addr);
-
-    //      zb_err_code = ZB_SCHEDULE_APP_ALARM_CANCEL(steering_finished, ZB_ALARM_ANY_PARAM);
-    //    }
-    //    break;
 
   default:
     /* Call default signal handler. */
@@ -172,10 +163,6 @@ void bm_get_ieee_eui64(zb_ieee_addr_t ieee_eui64) {
 void bm_zigbee_init(void) {
   zb_ret_t zb_err_code;
   zb_ieee_addr_t ieee_addr;
-  //  uint64_t pan_id_64;
-  //  zb_ext_pan_id_t ext_pan_id;
-  //  pan_id_64 = DEFAULT_PAN_ID_EXT;
-  //  memcpy(ext_pan_id, &pan_id_64, sizeof(pan_id_64));
 
   /* Set Zigbee stack logging level and traffic dump subsystem. */
   ZB_SET_TRACE_LEVEL(ZIGBEE_TRACE_LEVEL);
@@ -186,13 +173,8 @@ void bm_zigbee_init(void) {
   ZB_INIT("zc");
 
   /* Set device address to the value read from FICR registers. */
-  //  zb_osif_get_ieee_eui64(ieee_addr);
-  //  zb_set_long_address(ieee_addr);
   bm_get_ieee_eui64(ieee_addr);
   zb_set_long_address(ieee_addr);
-
-//  zb_set_extended_pan_id(ext_pan_id);
-//  zb_set_pan_id(DEFAULT_PAN_ID_SHORT);
 
   /* Set channels on which the coordinator will try to create a new network. */
   zb_set_network_coordinator_role(IEEE_CHANNEL_MASK);

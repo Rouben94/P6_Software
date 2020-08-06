@@ -470,10 +470,6 @@ void bm_get_ieee_eui64(zb_ieee_addr_t ieee_eui64) {
 void bm_zigbee_init(void) {
   zb_ret_t zb_err_code;
   zb_ieee_addr_t ieee_addr;
-  //  uint64_t pan_id_64;
-  //  zb_ext_pan_id_t ext_pan_id;
-  //  pan_id_64 = DEFAULT_PAN_ID_EXT;
-  //  memcpy(ext_pan_id, &pan_id_64, sizeof(pan_id_64));
 
   /* Initialize timers, loging system and GPIOs. */
   timers_init();
@@ -489,9 +485,6 @@ void bm_zigbee_init(void) {
   /* Set device address to the value read from FICR registers. */
   bm_get_ieee_eui64(ieee_addr);
   zb_set_long_address(ieee_addr);
-
-  //  zb_set_extended_pan_id(ext_pan_id);
-  //  zb_set_pan_id(DEFAULT_PAN_ID_SHORT);
 
   zb_set_network_router_role(IEEE_CHANNEL_MASK);
   zb_set_max_children(MAX_CHILDREN);
