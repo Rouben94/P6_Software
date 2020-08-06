@@ -118,6 +118,11 @@ static void ST_transition_cb(void) {
     }
 #endif
   } else if (currentState == ST_INIT_BENCHMARK) {
+    bm_op_time_counter_disable(); // Disable Operation Time Counter
+    bm_op_time_counter_stop(); // Stop The Timer
+    bm_op_time_counter_clear(); // Clear The Timer
+    //bm_cli_log("Radio Activity Time: %u%u\n", (uint32_t)(bm_op_time_counter_getOPTime() >> 32), (uint32_t)bm_op_time_counter_getOPTime()); // For Debug
+    bm_op_time_counter_enable(); // Disable Operation Time Counter
     currentState = ST_BENCHMARK;
   } else if (currentState == ST_BENCHMARK) {
 #ifdef BENCHMARK_CLIENT
@@ -127,7 +132,12 @@ static void ST_transition_cb(void) {
       return;
     }
 #endif
-    bm_op_time_counter_disable(); // Disable Operation Time Counter
+    uint64_t act_time_us = bm_op_time_counter_getOPTime() - ST_BENCHMARK_ADDITIONAL_WAIT_TIME_MS * 1e3;
+    bm_cli_log("Radio Activity Time: %u%u\n", (uint32_t)(act_time_us >> 32), (uint32_t)act_time_us); // For Debug
+    #ifndef BENCHMARK_MASTER
+      bm_message_info msg = {UINT16_MAX, act_time_us};
+      bm_log_append_ram(msg);
+    #endif
     currentState = ST_SAVE_FLASH;
   }
   if (!wait_for_transition) {
@@ -328,9 +338,7 @@ void ST_INIT_BENCHMARK_fn(void) {
   bm_log_clear_ram();
   bm_log_clear_flash();
 
-  bm_op_time_counter_disable();
-  bm_op_time_counter_clear();
-
+ 
 #ifdef ZEPHYR_BLE_MESH
   bm_blemesh_enable(); // Will return faster than the Stack is realy ready... keep on waiting in the transition.
 #elif defined NRF_SDK_ZIGBEE
@@ -355,6 +363,7 @@ void ST_BENCHMARK_fn(void) {
   bm_rand_msg_ts_ind = 0; // Init the Random Timestamp Array INdex
   benchmark_messageing_done = false;
   start_time_ts_us = synctimer_getSyncTime(); // Get the current Timestamp
+
 #ifdef BENCHMARK_CLIENT
   next_state_ts_us = (start_time_ts_us + bm_rand_msg_ts[bm_rand_msg_ts_ind] + 1000); // Add a satfy margin of 1000us incase Random value was 0
   synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb);               // Shedule the Timestamp event
@@ -364,7 +373,7 @@ void ST_BENCHMARK_fn(void) {
   synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb); // Shedule the Timestamp event
   benchmark_messageing_done = true;
 #endif
-  bm_op_time_counter_enable();
+  
 #ifdef ZEPHYR_BLE_MESH
 // The Benchmark is Timer Interrupt Driven. do Nothing here and wait for transition
 #elif defined NRF_SDK_ZIGBEE
@@ -412,12 +421,6 @@ void ST_SAVE_FLASH_fn(void) {
   next_state_ts_us = (synctimer_getSyncTime() + ST_SAVE_FLASH_TIME_MS * 1000 + ST_MARGIN_TIME_MS * 1000);
   synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb); // Schedule the Timestamp event
   start_time_ts_us = synctimer_getSyncTime();                          // Get the current Timestamp
-
-  bm_cli_log("Radio Activity Time: %u%u\n", (uint32_t)(bm_op_time_counter_getOPTime() >> 32), (uint32_t)bm_op_time_counter_getOPTime()); // For Debug
-#ifndef BENCHMARK_MASTER
-  bm_message_info msg = {UINT16_MAX, bm_op_time_counter_getOPTime()};
-  bm_log_append_ram(msg);
-#endif
 
   bm_log_save_to_flash(); // Save the log to FLASH;
 

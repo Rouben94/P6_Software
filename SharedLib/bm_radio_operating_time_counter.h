@@ -50,6 +50,11 @@ void bm_op_time_counter_enable();
 */
 void bm_op_time_counter_disable();
 /**
+* Operation Time Counter Stop
+*
+*/
+void bm_op_time_counter_stop();
+/**
 * Operation Time Counter get
 *
 */

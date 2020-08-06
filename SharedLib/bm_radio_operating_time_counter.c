@@ -97,6 +97,11 @@ void bm_op_time_counter_init() {
   OverflowCNT = 0;
 }
 
+/* Stop Timer */
+void bm_op_time_counter_stop() {
+  nrf_timer_task_trigger(op_time_counter, NRF_TIMER_TASK_STOP);
+}
+
 /* Clear Timer */
 void bm_op_time_counter_clear() {
   nrf_timer_task_trigger(op_time_counter, NRF_TIMER_TASK_CLEAR);

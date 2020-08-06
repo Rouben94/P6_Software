@@ -24,7 +24,7 @@ along with Benchmark-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 
 struct device *dev_led0, *dev_led1, *dev_led2, *dev_led3, *dev_button0;
 bool led0_is_on, led1_is_on, led2_is_on, led3_is_on = true;
-bool button0_toggel_state = false;
+bool button0_toggel_state = true;
 int ret;
 
 static struct gpio_callback button_cb_data;
