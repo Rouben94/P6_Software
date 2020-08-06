@@ -243,7 +243,6 @@ static void state_2_slave(void)
         }
         bm_coap_results_send(bm_result_struct, sizeof(bm_result_struct));
     }
-    bsp_board_led_off(BSP_BOARD_LED_2);
 
     bm_new_state = BM_EMPTY_STATE;
 }
@@ -251,6 +250,7 @@ static void state_2_slave(void)
 static void state_3_slave(void)
 {
     bsp_board_led_off(BSP_BOARD_LED_3);
+    bsp_board_led_off(BSP_BOARD_LED_2);
     bm_message_info_nr = 0;
     memset(message_info, 0, sizeof(message_info));
 

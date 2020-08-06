@@ -399,7 +399,7 @@ void bm_coap_results_send(bm_message_info message_info[], uint16_t size)
         messafe_info.mPeerPort = OT_DEFAULT_COAP_PORT;
         messafe_info.mAllowZeroHopLimit = false;
         messafe_info.mHopLimit = HOP_LIMIT_DEFAULT;
-        memcpy(&messafe_info.mPeerAddr, &bm_master_address, sizeof(messafe_info.mPeerAddr));
+        messafe_info.mPeerAddr = bm_master_address;
         
         error = otCoapSendRequest(p_instance, p_request, &messafe_info, bm_coap_result_response_handler, p_instance);
     } while (false);
@@ -924,7 +924,7 @@ void thread_coap_utils_init(const thread_coap_utils_configuration_t * p_config)
 {
     otInstance * p_instance = thread_ot_instance_get();
 
-    otIp6AddressFromString("ff03::28", &bm_master_address);
+    otIp6AddressFromString("ff00::28", &bm_master_address);
 
     otError error = otCoapStart(p_instance, OT_DEFAULT_COAP_PORT);
     ASSERT(error == OT_ERROR_NONE);
@@ -962,7 +962,7 @@ void thread_coap_utils_init(const thread_coap_utils_configuration_t * p_config)
 
     if (!m_config.coap_client_enabled || !m_config.coap_server_enabled)
     {
-        error = otIp6SubscribeMulticastAddress(thread_ot_instance_get(), &bm_master_address);
+        error = otIp6SubscribeMulticastAddress(p_instance, &bm_master_address);
         ASSERT(error == OT_ERROR_NONE);
 
         m_bm_result_resource.mContext   = p_instance;
