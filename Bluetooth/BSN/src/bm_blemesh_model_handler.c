@@ -184,7 +184,7 @@ static void button0_cb(){
 	} else {
 		err = bt_mesh_onoff_cli_set_unack_additional_payload(&on_off_cli, NULL, &set,bm_params.AdditionalPayloadSize);
 	}
-	bm_led3_set(!bm_led3_get()); // Toggle the Blue LED
+	bm_led2_set(!bm_led2_get()); // Toggle the Blue LED
 	msg.message_id = bm_get_overflow_tid_from_overflow_handler(on_off_cli.tid,addr);
 	msg.number_of_hops = on_off_cli.model->pub->ttl;
 	msg.rssi = 0;

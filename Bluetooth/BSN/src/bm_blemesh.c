@@ -19,12 +19,16 @@ along with Bluetooth-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 
 
 #include "bm_config.h"
+#include "bm_rand.h"
+#include "bm_timesync.h"
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/mesh/models.h>
 #include <drivers/hwinfo.h>
 #include "bm_blemesh_model_handler.h"
 #include "bm_blemesh.h"
+#include <bluetooth/mesh/main.h>
 #include "bm_simple_buttons_and_leds.h"
+
 
 
 
@@ -186,6 +190,7 @@ void bm_blemesh_enable(void)
 	printk("Err Code: %d\n", stat);
 	/* Bind to Generic ON/OFF Model */
 #ifdef BENCHMARK_SERVER
+	bm_led3_set(true); // Signal that the Configuring was sucessfull
 	bt_mesh_cfg_mod_app_bind(net_idx, addr, addr, app_idx,
 							 BT_MESH_MODEL_ID_GEN_ONOFF_SRV, &stat);
 	printk("Err Code: %d\n", stat);
@@ -195,8 +200,10 @@ void bm_blemesh_enable(void)
 	printk("Err Code: %d\n", stat);
 #endif
 #ifdef BENCHMARK_CLIENT
+	bm_led2_set(true); // Signal that the Configuring was sucessfull
 	bt_mesh_cfg_mod_app_bind(net_idx, addr, addr, app_idx,
 							 BT_MESH_MODEL_ID_GEN_ONOFF_CLI, &stat);
+	bt_mesh_cfg_friend_set(net_idx,addr,false,&stat);
 	printk("Err Code: %d\n", stat);
 	/* Add model publishing */
 	struct bt_mesh_cfg_mod_pub pub = {
@@ -207,6 +214,10 @@ void bm_blemesh_enable(void)
 	bt_mesh_cfg_mod_pub_set(net_idx, addr, addr, BT_MESH_MODEL_ID_GEN_ONOFF_CLI,
 						 &pub, &stat);
 	printk("Err Code: %d\n",stat);
+	//bm_sleep(bm_rand_32 % 5000); // Sleep Random Time for LPN Activation
+	bt_mesh_cfg_friend_set(net_idx,addr,false,&stat);
+	printk("Err Code: %d\n", stat);
+	bt_mesh_lpn_set(true); // Enable Low Power Node
 #endif
 	
 	printk("Configuring done\n");
