@@ -669,8 +669,6 @@ static void bm_start_handler(void                 * p_context,
             NRF_LOG_INFO("benchmark request handler - missing message")
         }
 
-        
-        bm_master_address = message.bm_master_ip6_address;
         bm_sm_time_set(message.bm_time);
 
         NRF_LOG_INFO("Slave: Start Benchmark");
@@ -743,40 +741,40 @@ void bm_coap_multicast_start_send(bm_master_message message)
 /***************************************************************************************************
  * @section Benchmark Coap probe message.
  **************************************************************************************************/
-static void bm_probe_message_response_send(otMessage           * p_request_message,
-                                           const otMessageInfo * p_message_info)
-{
-    otError      error = OT_ERROR_NO_BUFS;
-    otMessage  * p_response;
-    otInstance * p_instance = thread_ot_instance_get();
-
-    do
-    {
-        p_response = otCoapNewMessage(p_instance, NULL);
-        if (p_response == NULL)
-        {
-            break;
-        }
-
-        error = otCoapMessageInitResponse(p_response,
-                                          p_request_message,
-                                          OT_COAP_TYPE_ACKNOWLEDGMENT,
-                                          OT_COAP_CODE_CHANGED);
-
-        if (error != OT_ERROR_NONE)
-        {
-            break;
-        }
-
-        error = otCoapSendResponse(p_instance, p_response, p_message_info);
-
-    } while (false);
-
-    if ((error != OT_ERROR_NONE) && (p_response != NULL))
-    {
-        otMessageFree(p_response);
-    }
-}
+//static void bm_probe_message_response_send(otMessage           * p_request_message,
+//                                           const otMessageInfo * p_message_info)
+//{
+//    otError      error = OT_ERROR_NO_BUFS;
+//    otMessage  * p_response;
+//    otInstance * p_instance = thread_ot_instance_get();
+//
+//    do
+//    {
+//        p_response = otCoapNewMessage(p_instance, NULL);
+//        if (p_response == NULL)
+//        {
+//            break;
+//        }
+//
+//        error = otCoapMessageInitResponse(p_response,
+//                                          p_request_message,
+//                                          OT_COAP_TYPE_ACKNOWLEDGMENT,
+//                                          OT_COAP_CODE_CHANGED);
+//
+//        if (error != OT_ERROR_NONE)
+//        {
+//            break;
+//        }
+//
+//        error = otCoapSendResponse(p_instance, p_response, p_message_info);
+//
+//    } while (false);
+//
+//    if ((error != OT_ERROR_NONE) && (p_response != NULL))
+//    {
+//        otMessageFree(p_response);
+//    }
+//}
 
 static void bm_probe_message_handler(void                 * p_context,
                                      otMessage            * p_message,
@@ -824,7 +822,7 @@ static void bm_probe_message_handler(void                 * p_context,
         if (otCoapMessageGetType(p_message) == OT_COAP_TYPE_CONFIRMABLE)
         {
             NRF_LOG_INFO("Server: OT_COAP_TYPE_CONFIRMABLE");
-            bm_probe_message_response_send(p_message, p_message_info);
+            //bm_probe_message_response_send(p_message, p_message_info);
         }
     } while (false);
 }
@@ -926,6 +924,8 @@ void thread_coap_utils_init(const thread_coap_utils_configuration_t * p_config)
 {
     otInstance * p_instance = thread_ot_instance_get();
 
+    otIp6AddressFromString("ff03::28", &bm_master_address);
+
     otError error = otCoapStart(p_instance, OT_DEFAULT_COAP_PORT);
     ASSERT(error == OT_ERROR_NONE);
 
@@ -962,6 +962,9 @@ void thread_coap_utils_init(const thread_coap_utils_configuration_t * p_config)
 
     if (!m_config.coap_client_enabled || !m_config.coap_server_enabled)
     {
+        error = otIp6SubscribeMulticastAddress(thread_ot_instance_get(), &bm_master_address);
+        ASSERT(error == OT_ERROR_NONE);
+
         m_bm_result_resource.mContext   = p_instance;
         error = otCoapAddResource(p_instance, &m_bm_result_resource);
         ASSERT(error == OT_ERROR_NONE);

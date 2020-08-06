@@ -260,8 +260,10 @@ static void state_3_slave(void)
 static void state_1_master(void)
 {    
     uint32_t error;
-    error = app_timer_start(m_benchmark_timer, APP_TIMER_TICKS(bm_time+15000), NULL);
+    memset(bm_slave_address, 0, sizeof(bm_slave_address));
+    error = app_timer_start(m_benchmark_timer, APP_TIMER_TICKS(bm_time+5000), NULL);
     ASSERT(error == NRF_SUCCESS);
+
     bm_new_state = BM_EMPTY_STATE;
 }
 
