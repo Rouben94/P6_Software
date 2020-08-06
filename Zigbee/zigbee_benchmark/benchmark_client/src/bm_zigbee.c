@@ -466,9 +466,14 @@ void bm_get_ieee_eui64(zb_ieee_addr_t ieee_eui64) {
 
 /**************************************** Zigbee Stack Init and Enable ***********************************************/
 
+/** Init Zigbee Stack. */
 void bm_zigbee_init(void) {
   zb_ret_t zb_err_code;
   zb_ieee_addr_t ieee_addr;
+  //  uint64_t pan_id_64;
+  //  zb_ext_pan_id_t ext_pan_id;
+  //  pan_id_64 = DEFAULT_PAN_ID_EXT;
+  //  memcpy(ext_pan_id, &pan_id_64, sizeof(pan_id_64));
 
   /* Initialize timers, loging system and GPIOs. */
   timers_init();
@@ -484,6 +489,9 @@ void bm_zigbee_init(void) {
   /* Set device address to the value read from FICR registers. */
   bm_get_ieee_eui64(ieee_addr);
   zb_set_long_address(ieee_addr);
+
+  //  zb_set_extended_pan_id(ext_pan_id);
+  //  zb_set_pan_id(DEFAULT_PAN_ID_SHORT);
 
   zb_set_network_router_role(IEEE_CHANNEL_MASK);
   zb_set_max_children(MAX_CHILDREN);
@@ -502,9 +510,16 @@ void bm_zigbee_init(void) {
   bm_client_clusters_attr_init();
 }
 
+/** Start Zigbee Stack. */
 void bm_zigbee_enable(void) {
   zb_ret_t zb_err_code;
-  /** Start Zigbee Stack. */
+  zb_uint16_t stack_enable_max_delay_ms = STACK_STARTUP_MAX_DELAY;
+  zb_uint16_t network_formation_delay = NETWORK_FORMATION_DELAY;
+  zb_uint16_t stack_enable_delay_ms = ZB_RANDOM_VALUE(stack_enable_max_delay_ms) + network_formation_delay;
+
+  /* Stack Enable Timeout to prevent crash at stack startup in order of too many simultaneous commissioning requests. */
+  bm_cli_log("Zigbee Stack starts in: %d milliseconds\n", stack_enable_delay_ms);
+  bm_sleep(stack_enable_delay_ms);
   zb_err_code = zboss_start_no_autostart();
   ZB_ERROR_CHECK(zb_err_code);
   bm_led2_set(true);

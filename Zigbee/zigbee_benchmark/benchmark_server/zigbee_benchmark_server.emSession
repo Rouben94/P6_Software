@@ -67,17 +67,17 @@
  </Watch4>
  <Files>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="31" useTextEdit="1" useBinaryEdit="0" left="0" path="main.c" selected="0" top="9" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="473" useTextEdit="1" useBinaryEdit="0" left="0" path="src/bm_zigbee.c" selected="1" top="449" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="1" y="552" useTextEdit="1" useBinaryEdit="0" left="0" path="src/bm_zigbee.c" selected="1" top="545" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="1004" useTextEdit="1" useBinaryEdit="0" left="0" path="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/external/zboss/include/zcl/zb_zcl_common.h" selected="0" top="977" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="214" useTextEdit="1" useBinaryEdit="0" left="0" path="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/external/zboss/include/zboss_api_aps.h" selected="0" top="196" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="351" useTextEdit="1" useBinaryEdit="0" left="0" path="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/external/zboss/osif/zb_nrf52_common.c" selected="0" top="344" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="68" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../SharedLib/bm_statemachine.c" selected="0" top="54" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="444" useTextEdit="1" useBinaryEdit="0" left="0" path="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/external/zboss/include/zcl/zb_zcl_level_control.h" selected="0" top="418" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="75" y="795" useTextEdit="1" useBinaryEdit="0" left="0" path="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/components/zigbee/common/zigbee_helpers.c" selected="0" top="768" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="795" useTextEdit="1" useBinaryEdit="0" left="0" path="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/components/zigbee/common/zigbee_helpers.c" selected="0" top="768" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="220" useTextEdit="1" useBinaryEdit="0" left="0" path="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/external/zboss/include/zboss_api_buf.h" selected="0" top="203" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="1341" useTextEdit="1" useBinaryEdit="0" left="0" path="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/external/zboss/include/zboss_api_zcl.h" selected="0" top="1329" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="802" useTextEdit="1" useBinaryEdit="0" left="0" path="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/external/zboss/include/zboss_api_zdo.h" selected="0" top="787" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="76" useTextEdit="1" useBinaryEdit="0" left="0" path="include/bm_config.h" selected="0" top="69" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="53" useTextEdit="1" useBinaryEdit="0" left="0" path="include/bm_config.h" selected="0" top="33" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="1667" useTextEdit="1" useBinaryEdit="0" left="0" path="include/sdk_config.h" selected="0" top="1651" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="119" useTextEdit="1" useBinaryEdit="0" left="0" path="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/components/libraries/pwm/app_pwm.h" selected="0" top="100" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" useBinaryEdit="0" left="0" path="include/bm_zigbee.h" selected="0" top="0" codecName="Default"/>
@@ -86,5 +86,5 @@
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="91" useTextEdit="1" useBinaryEdit="0" left="0" path="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/modules/nrfx/drivers/nrfx_common.h" selected="0" top="66" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="77" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../SharedLib/bm_log.c" selected="0" top="64" codecName="Default"/>
  </Files>
- <ARMCrossStudioWindow activeProject="zigbee_benchmark_server" fileDialogDefaultFilter="*.c" autoConnectTarget="J-Link" buildConfiguration="Release" sessionSettings="" debugSearchFileMap="" fileDialogInitialDirectory="C:/Users/cyril/Documents/GitHub/P6_Software/SharedLib" debugSearchPath="" autoConnectCapabilities="3199"/>
+ <ARMCrossStudioWindow activeProject="zigbee_benchmark_server" fileDialogDefaultFilter="*.c" autoConnectTarget="J-Link" buildConfiguration="Release" sessionSettings="" debugSearchFileMap="" fileDialogInitialDirectory="C:/Users/cyril/Documents/GitHub/P6_Software/SharedLib" debugSearchPath="" autoConnectCapabilities="3711"/>
 </session>

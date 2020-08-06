@@ -48,6 +48,10 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 #define MAX_CHILDREN 10 /**< The maximum amount of connected devices. Setting this value to 0 disables association to this device.  */
 //#define IEEE_CHANNEL_MASK (1l << ZIGBEE_CHANNEL) /**< Scan only one, predefined channel to find the coordinator. */
 #define IEEE_CHANNEL_MASK 0x07fff800U
+#define DEFAULT_PAN_ID_EXT 0x11223344
+#define DEFAULT_PAN_ID_SHORT 0x0D13
+#define STACK_STARTUP_MAX_DELAY 20000
+#define NETWORK_FORMATION_DELAY 5000
 
 //#define HA_DIMMABLE_LIGHT_ENDPOINT 10    /**< Device endpoint, used to receive light controlling commands. */
 #define ERASE_PERSISTENT_CONFIG ZB_TRUE /**< Do not erase NVRAM to save the network parameters after device reboot or power-off. */
