@@ -489,68 +489,68 @@ void bm_coap_result_request_send(otIp6Address address)
 /***************************************************************************************************
  * @section Benchmark Coap Multicast Benchmark start message
  **************************************************************************************************/
-static void bm_coap_start_response_handler(void                * p_context,
-                                           otMessage           * p_message,
-                                           const otMessageInfo * p_message_info,
-                                           otError               result)
-{
-    if (result == OT_ERROR_NONE)
-    {
-      if (otCoapMessageGetType(p_message) == OT_COAP_TYPE_ACKNOWLEDGMENT)
-      {
-          NRF_LOG_INFO("Slave: Start Benchmark");
-          bsp_board_led_on(BSP_BOARD_LED_2);
-          if (m_config.coap_client_enabled)
-          {
-            bm_sm_new_state_set(BM_STATE_1_SLAVE);
-          }
-      }      
-    }
-    else 
-    {
-      if (result == OT_ERROR_RESPONSE_TIMEOUT)  // Coap response or acknowledgment or DNS response not received
-      {
-          NRF_LOG_INFO("Slave: Response not received");
-      }    
-    }
-}
+//static void bm_coap_start_response_handler(void                * p_context,
+//                                           otMessage           * p_message,
+//                                           const otMessageInfo * p_message_info,
+//                                           otError               result)
+//{
+//    if (result == OT_ERROR_NONE)
+//    {
+//      if (otCoapMessageGetType(p_message) == OT_COAP_TYPE_ACKNOWLEDGMENT)
+//      {
+//          NRF_LOG_INFO("Slave: Start Benchmark");
+//          bsp_board_led_on(BSP_BOARD_LED_2);
+//          if (m_config.coap_client_enabled)
+//          {
+//            bm_sm_new_state_set(BM_STATE_1_SLAVE);
+//          }
+//      }      
+//    }
+//    else 
+//    {
+//      if (result == OT_ERROR_RESPONSE_TIMEOUT)  // Coap response or acknowledgment or DNS response not received
+//      {
+//          NRF_LOG_INFO("Slave: Response not received");
+//      }    
+//    }
+//}
 
-static void bm_coap_start_response_send(otMessage           * p_request_message,
-                                        const otMessageInfo * p_message_info)
-{
-    otError      error = OT_ERROR_NO_BUFS;
-    otMessage  * p_response;
-    otInstance * p_instance = thread_ot_instance_get();
-
-    NRF_LOG_INFO("Master: start response send")
-
-    do
-    {
-        p_response = otCoapNewMessage(p_instance, NULL);
-        if (p_response == NULL)
-        {
-            break;
-        }
-
-        error = otCoapMessageInitResponse(p_response,
-                                          p_request_message,
-                                          OT_COAP_TYPE_ACKNOWLEDGMENT,
-                                          OT_COAP_CODE_CHANGED);
-
-        if (error != OT_ERROR_NONE)
-        {
-            break;
-        }
-
-        error = otCoapSendResponse(p_instance, p_response, p_message_info);
-
-    } while (false);
-
-    if ((error != OT_ERROR_NONE) && (p_response != NULL))
-    {
-        otMessageFree(p_response);
-    }
-}
+//static void bm_coap_start_response_send(otMessage           * p_request_message,
+//                                        const otMessageInfo * p_message_info)
+//{
+//    otError      error = OT_ERROR_NO_BUFS;
+//    otMessage  * p_response;
+//    otInstance * p_instance = thread_ot_instance_get();
+//
+//    NRF_LOG_INFO("Master: start response send")
+//
+//    do
+//    {
+//        p_response = otCoapNewMessage(p_instance, NULL);
+//        if (p_response == NULL)
+//        {
+//            break;
+//        }
+//
+//        error = otCoapMessageInitResponse(p_response,
+//                                          p_request_message,
+//                                          OT_COAP_TYPE_ACKNOWLEDGMENT,
+//                                          OT_COAP_CODE_CHANGED);
+//
+//        if (error != OT_ERROR_NONE)
+//        {
+//            break;
+//        }
+//
+//        error = otCoapSendResponse(p_instance, p_response, p_message_info);
+//
+//    } while (false);
+//
+//    if ((error != OT_ERROR_NONE) && (p_response != NULL))
+//    {
+//        otMessageFree(p_response);
+//    }
+//}
 
 static void bm_start_request_handler(void                 * p_context,
                                      otMessage            * p_message,
@@ -581,7 +581,7 @@ static void bm_start_request_handler(void                 * p_context,
 
         if (otCoapMessageGetType(p_message) == OT_COAP_TYPE_CONFIRMABLE)
         {
-            bm_coap_start_response_send(p_message, p_message_info);
+            //bm_coap_start_response_send(p_message, p_message_info);
         }
     } while(false);
 }
@@ -605,7 +605,7 @@ void bm_coap_master_start_request_send()
           break;
         }
 
-        otCoapMessageInit(p_request, OT_COAP_TYPE_CONFIRMABLE, OT_COAP_CODE_PUT);
+        otCoapMessageInit(p_request, OT_COAP_TYPE_NON_CONFIRMABLE, OT_COAP_CODE_PUT);
 
         error = otCoapMessageAppendUriPathOptions(p_request, "bm_start_request");
         ASSERT(error == OT_ERROR_NONE);
@@ -625,7 +625,9 @@ void bm_coap_master_start_request_send()
         message_info.mAllowZeroHopLimit = false;
         message_info.mHopLimit = HOP_LIMIT_DEFAULT;
 
-        error = otCoapSendRequest(p_instance, p_request, &message_info, bm_coap_start_response_handler, p_instance);
+        error = otCoapSendRequest(p_instance, p_request, &message_info, NULL, p_instance);
+
+//        error = otCoapSendRequest(p_instance, p_request, &message_info, bm_coap_start_response_handler, p_instance);
     } while (false);
 
     if (error != OT_ERROR_NONE && p_request != NULL)
@@ -662,6 +664,13 @@ static void bm_start_handler(void                 * p_context,
         
         bm_master_address = message.bm_master_ip6_address;
         bm_sm_time_set(message.bm_time);
+
+        NRF_LOG_INFO("Slave: Start Benchmark");
+        bsp_board_led_on(BSP_BOARD_LED_2);
+        if (m_config.coap_client_enabled)
+        {
+          bm_sm_new_state_set(BM_STATE_1_SLAVE);
+        }
 
         bm_coap_master_start_request_send();
     } while(false);
