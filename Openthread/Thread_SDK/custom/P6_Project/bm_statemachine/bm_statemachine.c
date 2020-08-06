@@ -50,6 +50,7 @@ bool      bm_stop = true;
 void bm_reset_slave_address(void)
 {
     bm_slave_nr = 0;
+    memset(bm_slave_address, 0, sizeof(bm_slave_address));
 }
 
 void bm_save_message_info(bm_message_info message)
@@ -249,8 +250,8 @@ static void state_2_slave(void)
 
 static void state_3_slave(void)
 {
-    bsp_board_led_off(BSP_BOARD_LED_3);
     bsp_board_led_off(BSP_BOARD_LED_2);
+    bsp_board_led_off(BSP_BOARD_LED_3);
     bm_message_info_nr = 0;
     memset(message_info, 0, sizeof(message_info));
 
@@ -260,7 +261,6 @@ static void state_3_slave(void)
 static void state_1_master(void)
 {    
     uint32_t error;
-    memset(bm_slave_address, 0, sizeof(bm_slave_address));
     error = app_timer_start(m_benchmark_timer, APP_TIMER_TICKS(bm_time+5000), NULL);
     ASSERT(error == NRF_SUCCESS);
 

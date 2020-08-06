@@ -69,8 +69,8 @@
 #define SCHED_QUEUE_SIZE      32                              /**< Maximum number of events in the scheduler queue. */
 #define SCHED_EVENT_DATA_SIZE APP_TIMER_SCHED_EVENT_DATA_SIZE /**< Maximum app_scheduler event size. */
 
-#define BM_MASTER
-//#define BM_CLIENT
+//#define BM_MASTER
+#define BM_CLIENT
 //#define BM_SERVER
 
 #ifdef BM_CLIENT
@@ -99,6 +99,7 @@ static void bsp_event_handler(bsp_event_t event)
     {
         case BSP_EVENT_KEY_0:
             NRF_LOG_INFO("Button short");
+            //bm_coap_master_start_request_send();
 #if defined(BM_CLIENT) || defined(BM_SERVER)
             bm_increment_group_address();
             bsp_board_led_invert(BSP_BOARD_LED_1);

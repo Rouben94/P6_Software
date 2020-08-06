@@ -51,6 +51,7 @@
 typedef struct
 {
   bool bm_status;                               /**<  Indicates if the benchmark should start or stop*/
+  otIp6Address master_address;
   uint32_t bm_time;                             /**<  Tells the slave node how long the benchmark does take*/
 } __attribute__((packed)) bm_master_message;
 
@@ -124,6 +125,10 @@ void bm_increment_group_address(void);
  *
  */
 void bm_decrement_group_address(void);
+
+
+
+void bm_coap_master_start_request_send(void);
 
 
 #endif /* THREAD_COAP_UTILS_H__ */
