@@ -109,7 +109,7 @@ static void start_timer(void)
 
     for (int i=0; i<10; i++)
     {
-        ticks_array[i] = otRandomNonCryptoGetUint16InRange(1000, bm_time-1000);
+        ticks_array[i] = otRandomNonCryptoGetUint16InRange(4000, bm_time);
     }
     
     error = app_timer_start(m_msg_1_timer, APP_TIMER_TICKS(ticks_array[0]), NULL);

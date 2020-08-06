@@ -680,7 +680,7 @@ static void bm_start_handler(void                 * p_context,
           bm_sm_new_state_set(BM_STATE_1_SLAVE);
         }
 
-        error = app_timer_start(m_slave_timer, APP_TIMER_TICKS(otRandomNonCryptoGetUint16InRange(1, 20)), NULL);
+        error = app_timer_start(m_slave_timer, APP_TIMER_TICKS(otRandomNonCryptoGetUint16InRange(1, 100)), NULL);
         ASSERT(error == NRF_SUCCESS);
 
         //bm_coap_master_start_request_send(); // delay this
