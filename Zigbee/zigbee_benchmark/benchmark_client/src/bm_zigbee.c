@@ -302,6 +302,15 @@ void bm_send_group_message_cb(zb_bufid_t bufid, zb_uint16_t seq_num) {
       bm_send_message_status_cb,
       seq_num,
       BENCHMARK_LEVEL_SEND_TRANSACTION_TIME);
+
+  //    zb_uint8_t *ptr = ZB_ZCL_START_PACKET_REQ(bufid)
+  //        ZB_ZCL_CONSTRUCT_SPECIFIC_COMMAND_REQ_FRAME_CONTROL(ptr, (ZB_ZCL_DISABLE_DEFAULT_RESPONSE))
+  //            ZB_ZCL_CONSTRUCT_COMMAND_HEADER_REQ(ptr, ZB_ZCL_GET_SEQ_NUM(), (ZB_ZCL_CMD_LEVEL_CONTROL_MOVE_TO_LEVEL));
+  //    ZB_ZCL_PACKET_PUT_DATA8(ptr, (seq_num));
+  //    ZB_ZCL_PACKET_PUT_DATA16_VAL(ptr, (BENCHMARK_LEVEL_SEND_TRANSACTION_TIME));
+  //    ZB_ZCL_PACKET_PUT_DATA16_VAL(ptr, (seq_num));
+  //    ZB_ZCL_FINISH_PACKET((bufid), ptr)
+  //    ZB_ZCL_SEND_COMMAND_SHORT(bufid, groupID, ZB_APS_ADDR_MODE_16_GROUP_ENDP_NOT_PRESENT, BENCHMARK_SERVER_ENDPOINT, BENCHMARK_CLIENT_ENDPOINT, ZB_AF_HA_PROFILE_ID, ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL, bm_send_message_status_cb);
 }
 
 /* Callback function to send Benchmark Message */
@@ -516,4 +525,5 @@ void bm_zigbee_enable(void) {
   zb_err_code = zboss_start_no_autostart();
   ZB_ERROR_CHECK(zb_err_code);
   bm_led2_set(true);
+  bm_cli_log("BENCHMARK Client ready\n");
 }

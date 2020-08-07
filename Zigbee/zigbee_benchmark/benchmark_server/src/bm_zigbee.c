@@ -377,6 +377,7 @@ void bm_receive_message(zb_bufid_t bufid) {
   zb_uint8_t seq_num;
   zb_zcl_device_callback_param_t *p_device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
   zb_aps_hdr_t *aps_info = ZB_BUF_GET_PARAM(bufid, zb_aps_hdr_t);
+  //  zb_zcl_parsed_hdr_t *zcl_info = ZB_BUF_GET_PARAM(bufid, zb_zcl_parsed_hdr_t);
 
   seq_num = p_device_cb_param->cb_param.level_control_set_value_param.new_value;
 
@@ -415,7 +416,6 @@ static zb_void_t zcl_device_cb(zb_bufid_t bufid) {
   zb_uint8_t cluster_id;
   zb_uint8_t attr_id;
   zb_zcl_device_callback_param_t *p_device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
-
 
   msg_receive_cnt++;
   bm_cli_log("Message received in zcl_device_cb: %d\n", msg_receive_cnt);
@@ -558,4 +558,5 @@ void bm_zigbee_enable(void) {
   zb_err_code = zboss_start_no_autostart();
   ZB_ERROR_CHECK(zb_err_code);
   bm_led3_set(true);
+  bm_cli_log("BENCHMARK Server ready\n");
 }
