@@ -215,9 +215,11 @@ void bm_blemesh_enable(void)
 						 &pub, &stat);
 	printk("Err Code: %d\n",stat);
 	//bm_sleep(bm_rand_32 % 5000); // Sleep Random Time for LPN Activation
+	/*
 	bt_mesh_cfg_friend_set(net_idx,addr,false,&stat);
 	printk("Err Code: %d\n", stat);
 	bt_mesh_lpn_set(true); // Enable Low Power Node
+	*/
 #endif
 	
 	printk("Configuring done\n");

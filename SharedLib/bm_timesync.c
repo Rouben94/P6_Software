@@ -127,8 +127,8 @@ extern void synctimer_init() {
   IRQ_DIRECT_CONNECT(TIMER4_IRQn, 6, bm_timer_handler, 0); // Connect Timer ISR Zephyr WAY
   irq_enable(TIMER4_IRQn);                                 // Enable Timer ISR Zephyr WAY
 #elif defined NRF_SDK_ZIGBEE
-
   NVIC_EnableIRQ(TIMER4_IRQn); // Enable Timer ISR NRF SDK WAY
+  NVIC_SetPriority(TIMER4_IRQn, 4);
 #endif
   nrf_timer_task_trigger(synctimer, NRF_TIMER_TASK_CLEAR);
   synctimer->CC[1] = 0;
