@@ -321,7 +321,7 @@ void bm_send_dir_message_cb(zb_bufid_t bufid, zb_uint16_t dst_addr_short, zb_uin
   bm_cli_log("Benchmark send message cb dst: 0x%x, Bufid: %d, Seq Num: %d\n", dst_addr_short, bufid, seq_num);
 
   /* Send Move to level request. Level value is uint8 and is used as benchmark sequence number to identify the benchmark packet.*/
-  //  ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
+  // ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
   //      dst_addr_short,
   //      ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
   //      BENCHMARK_SERVER_ENDPOINT,
@@ -333,9 +333,8 @@ void bm_send_dir_message_cb(zb_bufid_t bufid, zb_uint16_t dst_addr_short, zb_uin
   //      BENCHMARK_LEVEL_SEND_TRANSACTION_TIME);
 
   zb_uint8_t *cmd_ptr = ZB_ZCL_START_PACKET(bufid);
-  ZB_ZCL_CONSTRUCT_GENERAL_COMMAND_REQ_FRAME_CONTROL_A(cmd_ptr, (ZB_ZCL_FRAME_DIRECTION_TO_SRV),
-      (ZB_ZCL_MANUFACTURER_SPECIFIC), ZB_ZCL_DISABLE_DEFAULT_RESPONSE);
-  ZB_ZCL_CONSTRUCT_COMMAND_HEADER_EXT(cmd_ptr, ZB_ZCL_GET_SEQ_NUM(), (ZB_TRUE), seq_num, (bm_params.AdditionalPayloadSize));
+  ZB_ZCL_CONSTRUCT_GENERAL_COMMAND_REQ_FRAME_CONTROL_A(cmd_ptr, (ZB_ZCL_FRAME_DIRECTION_TO_SRV), (ZB_ZCL_MANUFACTURER_SPECIFIC), ZB_ZCL_DISABLE_DEFAULT_RESPONSE);
+  ZB_ZCL_CONSTRUCT_COMMAND_HEADER_EXT(cmd_ptr, ZB_ZCL_GET_SEQ_NUM(), (ZB_TRUE), seq_num, (ZB_ZCL_CMD_LEVEL_CONTROL_MOVE_TO_LEVEL));
   ZB_ZCL_PACKET_PUT_DATA8(cmd_ptr, (DUMMY_PAYLOAD));
   ZB_ZCL_PACKET_PUT_DATA8(cmd_ptr, (DUMMY_PAYLOAD));
   for (zb_uint8_t i = 0; i < bm_params.AdditionalPayloadSize; i++) {

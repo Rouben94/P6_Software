@@ -414,10 +414,6 @@ zb_uint8_t bm_ep_handler(zb_bufid_t bufid) {
 
   bm_cli_log("Message received in bm_ep_handler from source: 0x%x, cnt: %d, cmd_id: %d\n", src_addr, msg_receive_cnt1, zcl_info->cmd_id);
 
-  //  bm_message_t *message_data zb_buf_begin(bufid);
-  //  zb_uint8_t *data;
-  //  ZB_ZCL_PACKET_GET_DATA8(data, message_data);
-
   switch (zcl_info->cluster_id) {
   case ZB_ZCL_CLUSTER_ID_GROUPS:
     bm_cli_log("ZCL Groups command received\n");
@@ -584,7 +580,7 @@ void bm_zigbee_init(void) {
 void bm_zigbee_enable(void) {
   zb_ret_t zb_err_code;
   zb_uint16_t stack_enable_max_delay_ms = STACK_STARTUP_MAX_DELAY;
-  zb_uint16_t network_formation_delay = NETWORK_FORMATION_DELAY;
+  zb_uint16_t network_formation_delay = NETWORK_FORMATION_DELAY; 
   zb_uint16_t stack_enable_delay_ms = ZB_RANDOM_VALUE(stack_enable_max_delay_ms) + network_formation_delay;
 
   /* Stack Enable Timeout to prevent crash at stack startup in order of too many simultaneous commissioning requests. */
