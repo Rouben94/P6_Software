@@ -54,8 +54,6 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 #define NETWORK_FORMATION_DELAY 15000
 
 #define ERASE_PERSISTENT_CONFIG ZB_TRUE /**< Do not erase NVRAM to save the network parameters after device reboot or power-off. */
-//#define BULB_PWM_NAME PWM1               /**< PWM instance used to drive dimmable light bulb. */
-//#define BULB_PWM_TIMER 2                 /**< Timer number used by PWM. */
 
 /* Basic cluster attributes initial values. */
 #define BULB_INIT_BASIC_APP_VERSION 01                                   /**< Version of the application software (1 byte). */

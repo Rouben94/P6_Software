@@ -53,6 +53,8 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 #define STACK_STARTUP_MAX_DELAY 40000
 #define NETWORK_FORMATION_DELAY 15000
 
+#define DUMMY_PAYLOAD 0xFE
+
 #define MATCH_DESC_REQ_START_DELAY (2 * ZB_TIME_ONE_SECOND)  /**< Delay between the light switch startup and light bulb finding procedure. */
 #define MATCH_DESC_REQ_TIMEOUT (5 * ZB_TIME_ONE_SECOND)      /**< Timeout for finding procedure. */
 #define MATCH_DESC_REQ_ROLE ZB_NWK_BROADCAST_RX_ON_WHEN_IDLE /**< Find only non-sleepy device. */

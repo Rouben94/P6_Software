@@ -105,10 +105,10 @@ ZBOSS_DECLARE_DEVICE_CTX_1_EP(bm_client_ctx, dimmer_switch_ep);
 void buttons_handler(bsp_event_t evt);
 static void light_switch_send_on_off(zb_bufid_t bufid, zb_uint16_t on_off);
 void bm_send_message(void);
-void bm_read_message_info(zb_uint16_t dst_addr_short, zb_uint8_t tsn);
+void bm_read_message_info(zb_uint16_t dst_addr_short, zb_uint16_t tsn);
 void bm_report_data(zb_uint8_t param);
 
-zb_uint8_t seq_num = 0;
+zb_uint16_t seq_num = 0;
 zb_uint16_t msg_sent_cnt = 0;
 zb_uint16_t rem_dev_id;
 
@@ -278,8 +278,10 @@ uint16_t bm_get_overflow_tid_from_overflow_handler(uint8_t tid, uint16_t src_add
 
 /* Callback function for Benchmark send message status. Free's the used buffer. */
 void bm_send_message_status_cb(zb_bufid_t bufid) {
+  zb_zcl_command_send_status_t *send_cmd_status = ZB_BUF_GET_PARAM(bufid, zb_zcl_command_send_status_t);
+
   msg_sent_cnt++;
-  bm_cli_log("Message successfully sent: %d\n", msg_sent_cnt);
+  bm_cli_log("Message successfully sent: %d, Status Code: %d\n", msg_sent_cnt, send_cmd_status->status);
 
   if (bufid) {
     zb_buf_free(bufid);
@@ -292,42 +294,55 @@ void bm_send_group_message_cb(zb_bufid_t bufid, zb_uint16_t seq_num) {
   bm_cli_log("Benchmark send message cb group: 0x%x, Seq Num: %d\n", groupID, seq_num);
 
   /* Send Move to level request. Level value is uint8. */
-  ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
-      groupID,
-      ZB_APS_ADDR_MODE_16_GROUP_ENDP_NOT_PRESENT,
-      BENCHMARK_SERVER_ENDPOINT,
-      BENCHMARK_CLIENT_ENDPOINT,
-      ZB_AF_HA_PROFILE_ID,
-      ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
-      bm_send_message_status_cb,
-      seq_num,
-      BENCHMARK_LEVEL_SEND_TRANSACTION_TIME);
+  //  ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
+  //      groupID,
+  //      ZB_APS_ADDR_MODE_16_GROUP_ENDP_NOT_PRESENT,
+  //      BENCHMARK_SERVER_ENDPOINT,
+  //      BENCHMARK_CLIENT_ENDPOINT,
+  //      ZB_AF_HA_PROFILE_ID,
+  //      ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
+  //      bm_send_message_status_cb,
+  //      seq_num,
+  //      BENCHMARK_LEVEL_SEND_TRANSACTION_TIME);
 
-  //    zb_uint8_t *ptr = ZB_ZCL_START_PACKET_REQ(bufid)
-  //        ZB_ZCL_CONSTRUCT_SPECIFIC_COMMAND_REQ_FRAME_CONTROL(ptr, (ZB_ZCL_DISABLE_DEFAULT_RESPONSE))
-  //            ZB_ZCL_CONSTRUCT_COMMAND_HEADER_REQ(ptr, ZB_ZCL_GET_SEQ_NUM(), (ZB_ZCL_CMD_LEVEL_CONTROL_MOVE_TO_LEVEL));
-  //    ZB_ZCL_PACKET_PUT_DATA8(ptr, (seq_num));
-  //    ZB_ZCL_PACKET_PUT_DATA16_VAL(ptr, (BENCHMARK_LEVEL_SEND_TRANSACTION_TIME));
-  //    ZB_ZCL_PACKET_PUT_DATA16_VAL(ptr, (seq_num));
-  //    ZB_ZCL_FINISH_PACKET((bufid), ptr)
-  //    ZB_ZCL_SEND_COMMAND_SHORT(bufid, groupID, ZB_APS_ADDR_MODE_16_GROUP_ENDP_NOT_PRESENT, BENCHMARK_SERVER_ENDPOINT, BENCHMARK_CLIENT_ENDPOINT, ZB_AF_HA_PROFILE_ID, ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL, bm_send_message_status_cb);
+  zb_uint8_t *cmd_ptr = ZB_ZCL_START_PACKET(bufid);
+  ZB_ZCL_CONSTRUCT_GENERAL_COMMAND_REQ_FRAME_CONTROL_A(cmd_ptr, (ZB_ZCL_FRAME_DIRECTION_TO_SRV),
+      (ZB_ZCL_MANUFACTURER_SPECIFIC), ZB_ZCL_DISABLE_DEFAULT_RESPONSE);
+  ZB_ZCL_CONSTRUCT_COMMAND_HEADER_EXT(cmd_ptr, ZB_ZCL_GET_SEQ_NUM(), (ZB_TRUE), seq_num, (bm_params.AdditionalPayloadSize));
+  for (zb_uint8_t i = 0; i < bm_params.AdditionalPayloadSize; i++) {
+    ZB_ZCL_PACKET_PUT_DATA8(cmd_ptr, (DUMMY_PAYLOAD));
+  }
+  ZB_ZCL_FINISH_PACKET(bufid, cmd_ptr)
+  ZB_ZCL_SEND_COMMAND_SHORT(bufid, groupID, ZB_APS_ADDR_MODE_16_GROUP_ENDP_NOT_PRESENT, BENCHMARK_SERVER_ENDPOINT, BENCHMARK_CLIENT_ENDPOINT, ZB_AF_HA_PROFILE_ID, ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL, bm_send_message_status_cb);
 }
 
 /* Callback function to send Benchmark Message */
-void bm_send_dir_message_cb(zb_bufid_t bufid, zb_uint16_t dst_addr_short, zb_uint8_t seq_num) {
+void bm_send_dir_message_cb(zb_bufid_t bufid, zb_uint16_t dst_addr_short, zb_uint16_t seq_num) {
   bm_cli_log("Benchmark send message cb dst: 0x%x, Bufid: %d, Seq Num: %d\n", dst_addr_short, bufid, seq_num);
 
   /* Send Move to level request. Level value is uint8 and is used as benchmark sequence number to identify the benchmark packet.*/
-  ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
-      dst_addr_short,
-      ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
-      BENCHMARK_SERVER_ENDPOINT,
-      BENCHMARK_CLIENT_ENDPOINT,
-      ZB_AF_HA_PROFILE_ID,
-      ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
-      bm_send_message_status_cb,
-      seq_num,
-      BENCHMARK_LEVEL_SEND_TRANSACTION_TIME);
+  //  ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
+  //      dst_addr_short,
+  //      ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
+  //      BENCHMARK_SERVER_ENDPOINT,
+  //      BENCHMARK_CLIENT_ENDPOINT,
+  //      ZB_AF_HA_PROFILE_ID,
+  //      ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
+  //      bm_send_message_status_cb,
+  //      seq_num,
+  //      BENCHMARK_LEVEL_SEND_TRANSACTION_TIME);
+
+  zb_uint8_t *cmd_ptr = ZB_ZCL_START_PACKET(bufid);
+  ZB_ZCL_CONSTRUCT_GENERAL_COMMAND_REQ_FRAME_CONTROL_A(cmd_ptr, (ZB_ZCL_FRAME_DIRECTION_TO_SRV),
+      (ZB_ZCL_MANUFACTURER_SPECIFIC), ZB_ZCL_DISABLE_DEFAULT_RESPONSE);
+  ZB_ZCL_CONSTRUCT_COMMAND_HEADER_EXT(cmd_ptr, ZB_ZCL_GET_SEQ_NUM(), (ZB_TRUE), seq_num, (bm_params.AdditionalPayloadSize));
+  ZB_ZCL_PACKET_PUT_DATA8(cmd_ptr, (DUMMY_PAYLOAD));
+  ZB_ZCL_PACKET_PUT_DATA8(cmd_ptr, (DUMMY_PAYLOAD));
+  for (zb_uint8_t i = 0; i < bm_params.AdditionalPayloadSize; i++) {
+    ZB_ZCL_PACKET_PUT_DATA8(cmd_ptr, (DUMMY_PAYLOAD));
+  }
+  ZB_ZCL_FINISH_PACKET(bufid, cmd_ptr)
+  ZB_ZCL_SEND_COMMAND_SHORT(bufid, dst_addr_short, ZB_APS_ADDR_MODE_16_ENDP_PRESENT, BENCHMARK_SERVER_ENDPOINT, BENCHMARK_CLIENT_ENDPOINT, ZB_AF_HA_PROFILE_ID, ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL, bm_send_message_status_cb);
 }
 
 /* Benchmark send message function. Function will be called from BENCHMARK state in bm_statemachine.c */
@@ -368,7 +383,7 @@ void bm_send_message(void) {
 }
 
 /* Benchmark read message info function. Reads Benchmark data from message.*/
-void bm_read_message_info(zb_uint16_t dst_addr_short, zb_uint8_t tsn) {
+void bm_read_message_info(zb_uint16_t dst_addr_short, zb_uint16_t tsn) {
   bm_message_info message;
   zb_ieee_addr_t ieee_src_addr;
   zb_bool_t led_toggle;
@@ -387,7 +402,8 @@ void bm_read_message_info(zb_uint16_t dst_addr_short, zb_uint8_t tsn) {
   } else {
     message.dst_addr = dst_addr_short;
   }
-  message.message_id = bm_get_overflow_tid_from_overflow_handler(tsn, message.src_addr);
+  //  message.message_id = bm_get_overflow_tid_from_overflow_handler(tsn, message.src_addr);
+  message.message_id = tsn;
   message.net_time = synctimer_getSyncTime();
 
   bm_cli_log("Benchmark read message data: Destination Address: 0x%x TimeStamp: %lld, MessageID: %d (%d)\n", message.dst_addr, message.net_time, message.message_id, seq_num);
@@ -479,6 +495,9 @@ void bm_get_ieee_eui64(zb_ieee_addr_t ieee_eui64) {
 void bm_zigbee_init(void) {
   zb_ret_t zb_err_code;
   zb_ieee_addr_t ieee_addr;
+  //  uint64_t ext_pan_id_64 = DEFAULT_PAN_ID_EXT;
+  //  zb_ext_pan_id_t ext_pan_id;
+  //  memcpy(ext_pan_id, &ext_pan_id_64, sizeof(ext_pan_id_64));
 
   /* Initialize timers, loging system and GPIOs. */
   timers_init();
@@ -494,6 +513,10 @@ void bm_zigbee_init(void) {
   /* Set device address to the value read from FICR registers. */
   bm_get_ieee_eui64(ieee_addr);
   zb_set_long_address(ieee_addr);
+
+  /* Set short and extended pan id to the default value. */
+  //  zb_set_pan_id((zb_uint16_t)DEFAULT_PAN_ID_SHORT);
+  //  zb_set_extended_pan_id(ext_pan_id);
 
   zb_set_network_router_role(IEEE_CHANNEL_MASK);
   zb_set_max_children(MAX_CHILDREN);

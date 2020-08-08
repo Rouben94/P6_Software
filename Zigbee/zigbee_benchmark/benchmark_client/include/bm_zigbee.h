@@ -45,15 +45,11 @@ typedef struct
   uint8_t TID_OverflowCnt;
 } __attribute__((packed)) bm_tid_overflow_handler_t;
 
-void bm_send_control_message_cb(zb_bufid_t bufid, zb_uint16_t level);
+void bm_send_dir_message_cb(zb_bufid_t bufid, zb_uint16_t dst_addr_short, zb_uint16_t seq_num);
 
-void bm_send_dir_message_cb(zb_bufid_t bufid, zb_uint16_t dst_addr_short, zb_uint8_t seq_num);
-
-void bm_send_group_message_cb(zb_bufid_t bufid, zb_uint16_t level);
+void bm_send_group_message_cb(zb_bufid_t bufid, zb_uint16_t seq_num);
 
 void bm_send_message(void);
-
-void bm_receive_config(zb_uint8_t bufid);
 
 void bm_zigbee_init(void);
 
