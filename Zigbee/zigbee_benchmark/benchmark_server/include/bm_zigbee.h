@@ -44,6 +44,12 @@ typedef struct
   uint8_t TID_OverflowCnt;
 } __attribute__((packed)) bm_tid_overflow_handler_t;
 
+typedef struct
+{
+  uint8_t level;
+  uint16_t transition_time;
+} bm_data_t;
+
 void bm_zigbee_init(void);
 
 void bm_zigbee_enable(void);

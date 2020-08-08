@@ -50,13 +50,10 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 #define IEEE_CHANNEL_MASK 0x07fff800U
 #define DEFAULT_PAN_ID_EXT 0x11223344
 #define DEFAULT_PAN_ID_SHORT 0x0D13
-#define STACK_STARTUP_MAX_DELAY 20000
-#define NETWORK_FORMATION_DELAY 5000
+#define STACK_STARTUP_MAX_DELAY 40000
+#define NETWORK_FORMATION_DELAY 15000
 
-//#define HA_DIMMABLE_LIGHT_ENDPOINT 10    /**< Device endpoint, used to receive light controlling commands. */
 #define ERASE_PERSISTENT_CONFIG ZB_TRUE /**< Do not erase NVRAM to save the network parameters after device reboot or power-off. */
-//#define BULB_PWM_NAME PWM1               /**< PWM instance used to drive dimmable light bulb. */
-//#define BULB_PWM_TIMER 2                 /**< Timer number used by PWM. */
 
 /* Basic cluster attributes initial values. */
 #define BULB_INIT_BASIC_APP_VERSION 01                                   /**< Version of the application software (1 byte). */

@@ -50,8 +50,10 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 #define IEEE_CHANNEL_MASK 0x07fff800U
 #define DEFAULT_PAN_ID_EXT 0x11223344
 #define DEFAULT_PAN_ID_SHORT 0x0D13
-#define STACK_STARTUP_MAX_DELAY 20000
-#define NETWORK_FORMATION_DELAY 5000
+#define STACK_STARTUP_MAX_DELAY 40000
+#define NETWORK_FORMATION_DELAY 15000
+
+#define DUMMY_PAYLOAD 0xFE
 
 #define MATCH_DESC_REQ_START_DELAY (2 * ZB_TIME_ONE_SECOND)  /**< Delay between the light switch startup and light bulb finding procedure. */
 #define MATCH_DESC_REQ_TIMEOUT (5 * ZB_TIME_ONE_SECOND)      /**< Timeout for finding procedure. */

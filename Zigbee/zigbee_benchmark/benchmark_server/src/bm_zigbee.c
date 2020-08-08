@@ -116,6 +116,8 @@ zb_uint16_t local_node_short_addr;
 
 zb_uint8_t seq_num = 0;
 zb_uint16_t msg_receive_cnt = 0;
+zb_uint16_t msg_receive_cnt1 = 0;
+
 bm_tid_overflow_handler_t bm_tid_overflow_handler[max_number_of_nodes]; /* Excpect not more than max_number_of_nodes Different Adresses */
 
 static void buttons_handler(bsp_event_t evt);
@@ -223,7 +225,6 @@ zb_void_t bm_button_handler(zb_uint8_t button) {
   zb_bool_t short_expired;
   zb_bool_t on_off;
   zb_ret_t zb_err_code;
-  zb_uint8_t random_level_value;
 
   bm_cli_log("Button pressed: %d\n", button);
 
@@ -372,40 +373,67 @@ void bm_receive_message(zb_bufid_t bufid) {
   bm_message_info message;
   zb_uint8_t lqi = ZB_MAC_LQI_UNDEFINED;
   zb_int8_t rssi = 0;
-  zb_uint8_t random_level;
   zb_ieee_addr_t ieee_dst_addr;
-  zb_uint8_t seq_num;
-  zb_zcl_device_callback_param_t *p_device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
-  zb_aps_hdr_t *aps_info = ZB_BUF_GET_PARAM(bufid, zb_aps_hdr_t);
+  zb_zcl_parsed_hdr_t *zcl_info = ZB_BUF_GET_PARAM(bufid, zb_zcl_parsed_hdr_t);
 
-  seq_num = p_device_cb_param->cb_param.level_control_set_value_param.new_value;
-
-  /* TODO: Number of hops is not yet available from the ZBOSS API */
-  message.number_of_hops = 0;
-  message.data_size = 1;
-  message.ack_net_time = 0;
   message.net_time = synctimer_getSyncTime();
 
-  message.src_addr = aps_info->src_addr;
+  message.number_of_hops = 0; /* TODO: Number of hops is not yet available from the ZBOSS API */
+  message.data_size = bm_params.AdditionalPayloadSize;
+  message.ack_net_time = 0;
+
+  message.src_addr = zcl_info->addr_data.common_data.source.u.short_addr;
   zb_get_long_address(ieee_dst_addr);
   message.dst_addr = zb_address_short_by_ieee(ieee_dst_addr);
   message.group_addr = bm_params.GroupAddress + GROUP_ID;
 
-  message.message_id = bm_get_overflow_tid_from_overflow_handler(seq_num, message.src_addr);
+  if (zcl_info->is_manuf_specific) {
+    message.message_id = zcl_info->manuf_specific;
+  } else {
+    message.message_id = 0;
+  }
 
   zb_zdo_get_diag_data(message.src_addr, &lqi, &rssi);
   message.rssi = rssi;
 
-  bm_cli_log("Benchmark Packet received with ID: %d from Src Address: 0x%x to Destination 0x%x with RSSI: %d (dB), Time: %llu\n", message.message_id, message.src_addr, message.dst_addr, rssi, message.net_time);
+  bm_cli_log("Benchmark Packet received with ID: %d from Src Address: 0x%x to Destination 0x%x with RSSI: %d (dB), Time: %llu, Data size: %d\n", message.message_id, message.src_addr, message.dst_addr, rssi, message.net_time, message.data_size);
 
   bm_log_append_ram(message);
-  random_level = ZB_RANDOM_VALUE(255);
-  bm_on_off_set_value((zb_bool_t)seq_num % 2);
+  bm_on_off_set_value((zb_bool_t)message.message_id % 2);
 
   return;
 }
 
 /************************************ Zigbee event handler ***********************************************/
+
+zb_uint8_t bm_ep_handler(zb_bufid_t bufid) {
+  zb_zcl_parsed_hdr_t *zcl_info = ZB_BUF_GET_PARAM(bufid, zb_zcl_parsed_hdr_t);
+  zb_uint16_t src_addr;
+  msg_receive_cnt1++;
+  src_addr = zcl_info->addr_data.common_data.source.u.short_addr;
+
+  bm_cli_log("Message received in bm_ep_handler from source: 0x%x, cnt: %d, cmd_id: %d\n", src_addr, msg_receive_cnt1, zcl_info->cmd_id);
+
+  switch (zcl_info->cluster_id) {
+  case ZB_ZCL_CLUSTER_ID_GROUPS:
+    bm_cli_log("ZCL Groups command received\n");
+    return ZB_FALSE;
+    break;
+
+  case ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL:
+
+    bm_receive_message(bufid);
+
+    if (bufid) {
+      zb_buf_free(bufid);
+    }
+    return ZB_TRUE;
+
+  default:
+    return ZB_FALSE;
+    break;
+  }
+}
 
 /**@brief Callback function for handling ZCL commands.
  *
@@ -460,25 +488,19 @@ void zboss_signal_handler(zb_bufid_t bufid) {
       zb_err_code = ZB_SCHEDULE_APP_ALARM(add_group_id, bufid, 2 * ZB_TIME_ONE_SECOND);
       ZB_ERROR_CHECK(zb_err_code);
 
-      // zb_err_code = ZB_SCHEDULE_APP_ALARM(bm_schedule_lqi, 0, 5 * ZB_TIME_ONE_SECOND);
-      // ZB_ERROR_CHECK(zb_err_code);
-
       bufid = 0;
     }
     break;
 
   case ZB_BDB_SIGNAL_DEVICE_REBOOT:
     ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid)); /* Call default signal handler. */
-                                                          //    bm_cli_log("Zigbee device restarted\n");
-                                                          //    bm_cli_log("Active channel %d\n", nrf_802154_channel_get());
+    bm_cli_log("Zigbee Network Steering\n");
+    bm_cli_log("Active channel %d\n", nrf_802154_channel_get());
 
     if (status == RET_OK) {
       /* Schedule Add Group ID request */
       zb_err_code = ZB_SCHEDULE_APP_ALARM(add_group_id, bufid, 2 * ZB_TIME_ONE_SECOND);
       ZB_ERROR_CHECK(zb_err_code);
-
-      //      zb_err_code = ZB_SCHEDULE_APP_ALARM(bm_get_lqi, bufid, 15 * ZB_TIME_ONE_SECOND);
-      //      ZB_ERROR_CHECK(zb_err_code);
 
       bufid = 0;
     }
@@ -512,10 +534,9 @@ void bm_get_ieee_eui64(zb_ieee_addr_t ieee_eui64) {
 void bm_zigbee_init(void) {
   zb_ieee_addr_t ieee_addr;
   uint64_t long_address;
-  //  uint64_t pan_id_64;
+  //  uint64_t ext_pan_id_64 = DEFAULT_PAN_ID_EXT;
   //  zb_ext_pan_id_t ext_pan_id;
-  //  pan_id_64 = DEFAULT_PAN_ID_EXT;
-  //  memcpy(ext_pan_id, &pan_id_64, sizeof(pan_id_64));
+  //  memcpy(ext_pan_id, &ext_pan_id_64, sizeof(ext_pan_id_64));
 
   /* Initialize timer, logging system and GPIOs. */
   timer_init();
@@ -532,8 +553,9 @@ void bm_zigbee_init(void) {
   bm_get_ieee_eui64(ieee_addr);
   zb_set_long_address(ieee_addr);
 
+  /* Set short and extended pan id to the default value. */
+  //  zb_set_pan_id((zb_uint16_t)DEFAULT_PAN_ID_SHORT);
   //  zb_set_extended_pan_id(ext_pan_id);
-  //  zb_set_pan_id(DEFAULT_PAN_ID_SHORT);
 
   /* Set static long IEEE address. */
   zb_set_network_router_role(IEEE_CHANNEL_MASK);
@@ -548,6 +570,7 @@ void bm_zigbee_init(void) {
   ZB_AF_REGISTER_DEVICE_CTX(&bm_server_ctx);
 
   /* Register callback for handling ZCL commands. */
+  ZB_AF_SET_ENDPOINT_HANDLER(BENCHMARK_SERVER_ENDPOINT, bm_ep_handler);
   ZB_ZCL_REGISTER_DEVICE_CB(zcl_device_cb);
 
   bm_server_clusters_attr_init();
@@ -557,7 +580,7 @@ void bm_zigbee_init(void) {
 void bm_zigbee_enable(void) {
   zb_ret_t zb_err_code;
   zb_uint16_t stack_enable_max_delay_ms = STACK_STARTUP_MAX_DELAY;
-  zb_uint16_t network_formation_delay = NETWORK_FORMATION_DELAY;
+  zb_uint16_t network_formation_delay = NETWORK_FORMATION_DELAY; 
   zb_uint16_t stack_enable_delay_ms = ZB_RANDOM_VALUE(stack_enable_max_delay_ms) + network_formation_delay;
 
   /* Stack Enable Timeout to prevent crash at stack startup in order of too many simultaneous commissioning requests. */
@@ -566,4 +589,5 @@ void bm_zigbee_enable(void) {
   zb_err_code = zboss_start_no_autostart();
   ZB_ERROR_CHECK(zb_err_code);
   bm_led3_set(true);
+  bm_cli_log("BENCHMARK Server ready\n");
 }
