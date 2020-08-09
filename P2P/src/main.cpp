@@ -560,26 +560,18 @@ void ST_PACKETS_fn(void)
 		//printk("TIME NOW: %u\n",(uint32_t)synctimer_getSyncTime());
 		if (isMaster)
 		{
-			//chrep_local.back().Avg_NOISE_RSSI = simple_nrf_radio.RSSI(40); //Find out how long it takes and rise itirations
 			k_sleep(K_MSEC(5)); //Let Slave meassure noise and prepare Reception
-			//printk("TIME Sending %d : %u\n",ch,k_timer_remaining_get(&state_timer2) - 55);
 			PktCnt_temp = 0;
 			while ((k_timer_remaining_get(&state_timer2)) > 55)
 			{
 				simple_nrf_radio.Send(radio_pkt_Tx, ParamLocal.CCMA_CA);
 				PktCnt_temp++;
 			}
-			//PktCnt_temp = simple_nrf_radio.BurstCntPkt(radio_pkt_Tx, ParamLocal.CCMA_CA ,K_MSEC(k_timer_remaining_get(&state_timer2) - 55)); //Margin to let Slave Receive longer than sending and log data
-			//printk("TIME End CH: %d : %u\n",ch,(u32_t)synctimer_getSyncTime());
 		}
 		else
 		{
-			//======================= TODO ============================
 			chrep_local.back().CHRepPkt.Avg_NOISE_RSSI = simple_nrf_radio.RSSI(8); //Find out how long it takes and rise itirations
-			//======================= TODO ============================
-			//printk("TIME Start CH: %d : %u\n",ch,(u32_t)synctimer_getSyncTime());
 			log = simple_nrf_radio.ReceivePktStatLog(K_MSEC(k_timer_remaining_get(&state_timer2) - 20));
-			//printk("TIME End CH: %d : %u\n",ch,(u32_t)synctimer_getSyncTime());
 		}
 		// Slave and Master log all Data to keep timesync
 		chrep_local.back().TxPkt_CNT = PktCnt_temp;
