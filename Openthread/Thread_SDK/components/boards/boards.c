@@ -43,6 +43,11 @@
 #endif
 #include <stdint.h>
 #include <stdbool.h>
+#include "app_timer.h"
+
+uint32_t blink_led;
+
+APP_TIMER_DEF(m_blink_timer);
 
 #if LEDS_NUMBER > 0
 static const uint8_t m_board_led_list[LEDS_NUMBER] = LEDS_LIST;
@@ -94,6 +99,20 @@ void bsp_board_led_invert(uint32_t led_idx)
 {
     ASSERT(led_idx < LEDS_NUMBER);
     nrf_gpio_pin_toggle(m_board_led_list[led_idx]);
+}
+
+void bsp_board_led_blink(uint32_t led_idx)
+{
+    uint32_t error;
+    blink_led = led_idx;
+    bsp_board_led_on(led_idx);
+    error = app_timer_start(m_blink_timer, APP_TIMER_TICKS(100), NULL);
+    ASSERT(error == NRF_SUCCESS);
+}
+
+static void m_blink_handler(void * p_context)
+{
+    bsp_board_led_off(blink_led);
 }
 
 #if defined(BOARD_PCA10059)
@@ -208,6 +227,10 @@ uint32_t bsp_board_button_idx_to_pin(uint32_t button_idx)
 
 void bsp_board_init(uint32_t init_flags)
 {
+    uint32_t error;
+    error = app_timer_create(&m_blink_timer, APP_TIMER_MODE_SINGLE_SHOT, m_blink_handler);
+    ASSERT(error == NRF_SUCCESS);
+
     #if defined(BOARDS_WITH_USB_DFU_TRIGGER) && defined(BOARD_PCA10059)
     (void) nrf_dfu_trigger_usb_init();
     #endif

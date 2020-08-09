@@ -9,11 +9,15 @@
 typedef enum
 {
     BM_EMPTY_STATE,
-    BM_STATE_1_SLAVE,
-    BM_STATE_2_SLAVE,
+    BM_STATE_1_CLIENT,
+    BM_STATE_2_CLIENT,
+    BM_STATE_1_SERVER,
+    BM_STATE_2_SERVER,
     BM_STATE_3_SLAVE,
+    BM_STATE_4_SLAVE,
     BM_STATE_1_MASTER,
     BM_STATE_2_MASTER,
+    BM_STATE_3_MASTER,
 } bm_state;
 
 /* Typdef for benchmark state */
@@ -37,6 +41,17 @@ typedef struct
     int8_t   RSSI;
 } __attribute__((packed)) bm_message_info;
 
+/**@brief Benchmark configuration structure. */
+typedef struct
+{
+  bool bm_status;                               /**<  Indicates if the benchmark should start or stop*/
+  otIp6Address master_address;
+  uint64_t bm_master_time_stamp;
+  uint16_t bm_time;                             /**<  Tells the slave node how long the benchmark does take*/
+  uint16_t bm_nbr_of_msg;
+  uint16_t bm_msg_size;
+} __attribute__((packed)) bm_master_message;
+
 /**@brief Function for processing the benchmark pending tasks.
  *
  * @details This function must be periodically executed to process the benchmark pending tasks.
@@ -53,13 +68,7 @@ void bm_sm_process(void);
  *
  * @details 
  */
-void bm_reset_slave_address(void);
-
-/**@brief 
- *
- * @details 
- */
-void bm_sm_time_set(uint32_t time);
+void bm_start_param_set(bm_master_message *start_param);
 
 /**@brief 
  *
@@ -83,18 +92,18 @@ void bm_save_result(bm_message_info message[], uint16_t size);
  *
  * @details 
  */
-void bm_save_slave_address(otIp6Address slave_address);
+void bm_set_additional_payload(bool state);
 
 /**@brief 
  *
  * @details 
  */
-void bm_stop_set(bool state);
+void bm_set_ack_received(uint8_t received);
 
 /**@brief 
  *
  * @details 
  */
-void bm_set_data_size(uint8_t size);
+uint8_t bm_get_node_id(void);
 
 #endif // BM_STATEMACHINE_H_

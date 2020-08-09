@@ -143,6 +143,11 @@ void bsp_board_leds_off(void);
 void bsp_board_leds_on(void);
 
 /**
+ * Function for blink once a LED.
+ */
+void bsp_board_led_blink(uint32_t led_idx);
+
+/**
  * Function for initializing the BSP handling for the board.
  *
  * @note This also initializes the USB DFU trigger library if @ref BOARDS_WITH_USB_DFU_TRIGGER is 1.

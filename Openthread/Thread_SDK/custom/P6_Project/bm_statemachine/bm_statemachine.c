@@ -1,57 +1,55 @@
 #include "bm_statemachine.h"
 
+#include "FreeRTOS.h"
+#include "task.h"
+
 #include "app_timer.h"
-#include "boards.h"
 #include "bm_coap.h"
 #include "bm_master_cli.h"
+#include "boards.h"
 
-#include "nrf_log_ctrl.h"
 #include "nrf_log.h"
+#include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
 
+#include <openthread/cli.h>
 #include <openthread/network_time.h>
 #include <openthread/random_noncrypto.h>
-#include <openthread/cli.h>
 
 #define NUMBER_OF_NETWORK_TIME_ELEMENTS 1000
 #define NUMBER_OF_NODES 60
+#define BM_START_DELAY 10000000
+#define BM_SECONDS 1000000
 
-APP_TIMER_DEF(m_benchmark_timer);
+APP_TIMER_DEF(m_request_timer);
+APP_TIMER_DEF(m_probe_timer);
 APP_TIMER_DEF(m_result_timer);
-APP_TIMER_DEF(m_msg_1_timer);
-APP_TIMER_DEF(m_msg_2_timer);
-APP_TIMER_DEF(m_msg_3_timer);
-APP_TIMER_DEF(m_msg_4_timer);
-APP_TIMER_DEF(m_msg_5_timer);
-APP_TIMER_DEF(m_msg_6_timer);
-APP_TIMER_DEF(m_msg_7_timer);
-APP_TIMER_DEF(m_msg_8_timer);
-APP_TIMER_DEF(m_msg_9_timer);
-APP_TIMER_DEF(m_msg_10_timer);
 
 bm_message_info message_info[NUMBER_OF_NETWORK_TIME_ELEMENTS] = {0};
-bm_message_info result[NUMBER_OF_NODES][NUMBER_OF_NETWORK_TIME_ELEMENTS] = {0};
+uint32_t bm_time_stamps[NUMBER_OF_NETWORK_TIME_ELEMENTS];
+bm_message_info result;
 
+bm_master_message * bm_start_params;
+otInstance * p_instance;
+
+static uint32_t LSB_MAC_Address[52] = {0xFDBD, 0xE5BF, 0xC5A8, 0x0972, 0x3CE7, 0x4711, 0xD6F4,
+    0xEB69, 0xCD5B, 0x1458, 0x0C96, 0x1E13, 0x3E8E, 0x3E8A, 0xE907, 0xD775, 0x7E84, 0x5B66, 0x496D,
+    0x29D5, 0xBF27, 0x87C1, 0x7CC4, 0xA564, 0x7935, 0x4551, 0xFADA, 0xAD40, 0xC37B, 0xD38A, 0xCC89,
+    0x263F, 0x8236, 0xDCA0, 0x3C69, 0x14CB, 0xBBA6, 0xF1BB, 0x0FAF, 0xCCB8, 0x30B7, 0x9ED9, 0x50C1,
+    0xD85A, 0x7965, 0xA00B, 0xAF03, 0x2713, 0x8169, 0x9D49, 0x7795, 0x067B};
+uint8_t BM_NODE_ID;
+
+uint64_t last_net_time_seen = 0xffffffffffffff;
 uint16_t bm_message_info_nr = 0;
-uint16_t bm_slave_nr = 0;
-
-otIp6Address bm_slave_address[NUMBER_OF_NODES] = {};
-uint32_t  bm_time = 0;
-uint64_t  last_net_time_seen = 0xffffffffffffff;
-uint8_t   bm_new_state = 0;
-uint8_t   bm_actual_state = 0;
-uint8_t   data_size = 1;
-
-bool      bm_stop = true;
+uint16_t payload = 0;
+uint8_t bm_new_state = 0;
+uint8_t bm_actual_state = 0;
+uint8_t ack_received = 1;
+bool additional_payload = false;
 
 /***************************************************************************************************
- * @section State machine - Functions
+ * @section State machine - External Functions
  **************************************************************************************************/
-void bm_reset_slave_address(void)
-{
-    bm_slave_nr = 0;
-    memset(bm_slave_address, 0, sizeof(bm_slave_address));
-}
 
 void bm_save_message_info(bm_message_info message)
 {
@@ -61,248 +59,243 @@ void bm_save_message_info(bm_message_info message)
 
 void bm_save_result(bm_message_info message[], uint16_t size)
 {
-    if(last_net_time_seen != message[0].net_time)
+    if (last_net_time_seen != message[0].net_time)
     {
-        for(int i=0; i<size; i++)
+        for (int i = 0; i < size; i++)
         {
-            if(message[i].net_time != 0)
+            if (message[i].net_time != 0)
             {
                 bm_cli_write_result(message[i]);
             }
         }
-
-        app_timer_stop(m_result_timer);
-        bm_sm_new_state_set(BM_STATE_2_MASTER);
-    }  
-}
-
-void bm_save_slave_address(otIp6Address slave_address)
-{
-    bm_slave_address[bm_slave_nr] = slave_address;
-    bm_slave_nr++;
-}
-
-void bm_stop_set(bool state)
-{
-    bm_stop = state;
-}
-
-void bm_sm_time_set(uint32_t time)
-{
-    bm_time = time;
-}
-
-void bm_sm_new_state_set(uint8_t state)
-{
-    bm_new_state = state;
-}
-
-void bm_set_data_size(uint8_t size)
-{
-    data_size = size;
-    (data_size == 2) ?  bsp_board_led_on(BSP_BOARD_LED_3) : bsp_board_led_off(BSP_BOARD_LED_3);
-}
-
-static void start_timer(void)
-{
-    uint32_t error;
-    uint16_t ticks_array[10];
-
-    for (int i=0; i<10; i++)
-    {
-        ticks_array[i] = otRandomNonCryptoGetUint16InRange(4000, bm_time);
     }
-    
-    error = app_timer_start(m_msg_1_timer, APP_TIMER_TICKS(ticks_array[0]), NULL);
-    ASSERT(error == NRF_SUCCESS);
-
-    error = app_timer_start(m_msg_2_timer, APP_TIMER_TICKS(ticks_array[1]), NULL);
-    ASSERT(error == NRF_SUCCESS);
-
-    error = app_timer_start(m_msg_3_timer, APP_TIMER_TICKS(ticks_array[2]), NULL);
-    ASSERT(error == NRF_SUCCESS);
-
-    error = app_timer_start(m_msg_4_timer, APP_TIMER_TICKS(ticks_array[3]), NULL);
-    ASSERT(error == NRF_SUCCESS);
-
-    error = app_timer_start(m_msg_5_timer, APP_TIMER_TICKS(ticks_array[4]), NULL);
-    ASSERT(error == NRF_SUCCESS);
-
-    error = app_timer_start(m_msg_6_timer, APP_TIMER_TICKS(ticks_array[5]), NULL);
-    ASSERT(error == NRF_SUCCESS);
-
-    error = app_timer_start(m_msg_7_timer, APP_TIMER_TICKS(ticks_array[6]), NULL);
-    ASSERT(error == NRF_SUCCESS);
-
-    error = app_timer_start(m_msg_8_timer, APP_TIMER_TICKS(ticks_array[7]), NULL);
-    ASSERT(error == NRF_SUCCESS);
-
-    error = app_timer_start(m_msg_9_timer, APP_TIMER_TICKS(ticks_array[8]), NULL);
-    ASSERT(error == NRF_SUCCESS);
-
-    error = app_timer_start(m_msg_10_timer, APP_TIMER_TICKS(ticks_array[9]), NULL);
-    ASSERT(error == NRF_SUCCESS);
 }
+
+void bm_start_param_set(bm_master_message * start_param) { bm_start_params = start_param; }
+
+void bm_sm_new_state_set(uint8_t state) { bm_new_state = state; }
+
+void bm_set_additional_payload(bool state)
+{
+    additional_payload = state;
+    (state) ? bsp_board_led_on(BSP_BOARD_LED_1) : bsp_board_led_off(BSP_BOARD_LED_1);
+}
+
+void bm_set_ack_received(uint8_t received) { ack_received = received; }
+
+uint8_t bm_get_node_id(void) { return BM_NODE_ID; }
 
 /***************************************************************************************************
- * @section State machine - Timer handlers
+ * @section State machine - Internal Functions
  **************************************************************************************************/
-static void m_msg_1_handler(void * p_context)
-{
-    bsp_board_led_invert(BSP_BOARD_LED_3);
-    bm_coap_probe_message_send(data_size);
-}
+static int compare(const void * a, const void * b) { return (*(int *)a - *(int *)b); }
 
-static void m_msg_2_handler(void * p_context)
-{
-    bsp_board_led_invert(BSP_BOARD_LED_3);
-    bm_coap_probe_message_send(data_size);
-}
+static void m_request_handler(void * p_context) { bm_coap_multicast_start_send(bm_start_params); }
 
-static void m_msg_3_handler(void * p_context)
+static void m_probe_handler(void * p_context)
 {
-    bsp_board_led_invert(BSP_BOARD_LED_3);
-    bm_coap_probe_message_send(data_size);
-}
-
-static void m_msg_4_handler(void * p_context)
-{
-    bsp_board_led_invert(BSP_BOARD_LED_3);
-    bm_coap_probe_message_send(data_size);
-}
-
-static void m_msg_5_handler(void * p_context)
-{
-    bsp_board_led_invert(BSP_BOARD_LED_3);
-    bm_coap_probe_message_send(data_size);
-}
-
-static void m_msg_6_handler(void * p_context)
-{
-    bsp_board_led_invert(BSP_BOARD_LED_3);
-    bm_coap_probe_message_send(data_size);
-}
-
-static void m_msg_7_handler(void * p_context)
-{
-    bsp_board_led_invert(BSP_BOARD_LED_3);
-    bm_coap_probe_message_send(data_size);
-}
-
-static void m_msg_8_handler(void * p_context)
-{
-    bsp_board_led_invert(BSP_BOARD_LED_3);
-    bm_coap_probe_message_send(data_size);
-}
-
-static void m_msg_9_handler(void * p_context)
-{
-    bsp_board_led_invert(BSP_BOARD_LED_3);
-    bm_coap_probe_message_send(data_size);
-}
-
-static void m_msg_10_handler(void * p_context)
-{
-    bsp_board_led_invert(BSP_BOARD_LED_3);
-    bm_coap_probe_message_send(data_size);
-}
-
-static void m_benchmark_handler(void * p_context)
-{
-    bm_new_state = BM_STATE_2_MASTER;
-}
-
-static void m_result_handler(void * p_context)
-{
-    bm_new_state = BM_STATE_2_MASTER;
-}
-
-/***************************************************************************************************
- * @section State machine
- **************************************************************************************************/
-static void state_1_slave(void)
-{
-    start_timer();
-    bm_new_state = BM_EMPTY_STATE;
-}
-
-static void state_2_slave(void)
-{
-    uint32_t error;
-    if(bm_message_info_nr==0)
+    if (bm_start_params->bm_msg_size <= 3)
     {
-        bm_message_info bm_result_struct[1];
-        memset(bm_result_struct, 0, sizeof(bm_result_struct));
-        bm_coap_results_send(bm_result_struct, sizeof(bm_result_struct));
-    } else
+        payload = 3;
+    }
+    else if (bm_start_params->bm_msg_size >= 1024)
     {
-        bm_message_info bm_result_struct[bm_message_info_nr];
-    
-        for(int i=0; i<bm_message_info_nr; i++)
+        payload = 1024;
+    }
+    else
+    {
+        payload = bm_start_params->bm_msg_size;
+    }
+
+    if (!additional_payload)
+    {
+        bm_coap_probe_message_send(3);
+    }
+    else if (additional_payload)
+    {
+        bm_coap_probe_message_send(payload);
+    }
+
+    bsp_board_led_invert(BSP_BOARD_LED_3);
+}
+
+static void m_result_handler(void * p_context) { bm_coap_results_send(&result); }
+
+static void wait_for_event(uint64_t end_time)
+{
+    uint64_t netTime = 0;
+    end_time += bm_start_params->bm_master_time_stamp;
+
+    do
+    {
+        otNetworkTimeGet(p_instance, &netTime);
+        if (end_time < netTime)
         {
-            bm_result_struct[i] = message_info[i];
+            break;
         }
-        bm_coap_results_send(bm_result_struct, sizeof(bm_result_struct));
+
+    } while (true);
+}
+
+/***************************************************************************************************
+ * @section State machine Slave
+ **************************************************************************************************/
+static void state_1_server(void)
+{
+    wait_for_event(BM_START_DELAY);
+    bm_new_state = BM_STATE_2_SERVER;
+}
+
+static void state_2_server(void)
+{
+    NRF_LOG_INFO("Slave: Start Benchmark");
+    bsp_board_led_on(BSP_BOARD_LED_2);
+
+    wait_for_event(BM_START_DELAY + bm_start_params->bm_time * BM_SECONDS);
+    bm_new_state = BM_STATE_3_SLAVE;
+}
+
+static void state_1_client(void)
+{
+    memset(bm_time_stamps, 0, NUMBER_OF_NETWORK_TIME_ELEMENTS * sizeof(*bm_time_stamps));
+    for (int i = 0; i < bm_start_params->bm_nbr_of_msg; i++)
+    {
+        bm_time_stamps[i] =
+            otRandomNonCryptoGetUint32InRange(10, (bm_start_params->bm_time * 1000) - 10);
+    }
+    qsort(bm_time_stamps, bm_start_params->bm_nbr_of_msg, sizeof(uint32_t), compare);
+    wait_for_event(BM_START_DELAY);
+    bm_new_state = BM_STATE_2_CLIENT;
+}
+
+static void state_2_client(void)
+{
+    NRF_LOG_INFO("Slave: Start Benchmark");
+    bsp_board_led_on(BSP_BOARD_LED_2);
+    uint32_t error;
+
+    for (int i = 0; i < bm_start_params->bm_nbr_of_msg; i++)
+    {
+        wait_for_event(BM_START_DELAY + bm_time_stamps[i] * 1000);
+        error = app_timer_start(m_probe_timer, 5, NULL);
+        ASSERT(error == NRF_SUCCESS);
     }
 
-    bm_new_state = BM_EMPTY_STATE;
+    wait_for_event(BM_START_DELAY + bm_start_params->bm_time * BM_SECONDS);
+    bm_new_state = BM_STATE_3_SLAVE;
 }
 
 static void state_3_slave(void)
 {
+    NRF_LOG_INFO("Slave: End Benchmark");
     bsp_board_led_off(BSP_BOARD_LED_2);
     bsp_board_led_off(BSP_BOARD_LED_3);
+    wait_for_event(BM_START_DELAY + bm_start_params->bm_time * BM_SECONDS +
+                   otRandomNonCryptoGetUint32InRange(1 * BM_SECONDS, 120 * BM_SECONDS));
+
+    bm_new_state = BM_STATE_4_SLAVE;
+}
+
+static void state_4_slave(void)
+{
+    NRF_LOG_INFO("Slave: Send Results");
+    bsp_board_led_on(BSP_BOARD_LED_3);
+    uint32_t error;
+    error = app_timer_start(m_result_timer, 5, NULL);
+    ASSERT(error == NRF_SUCCESS);
+
+    do
+    {
+        if (bm_message_info_nr == 0 && ack_received == 1)
+        {
+            break;
+        }
+        if (ack_received == 1)
+        {
+            bm_message_info_nr--;
+            result = message_info[bm_message_info_nr];
+            error = app_timer_start(m_result_timer, 5, NULL);
+            ASSERT(error == NRF_SUCCESS);
+            ack_received = 0;
+        }
+        else if (ack_received == 2)
+        {
+            result = message_info[bm_message_info_nr];
+            error = app_timer_start(m_result_timer, 5, NULL);
+            ASSERT(error == NRF_SUCCESS);
+            ack_received = 0;
+        }
+    } while (true);
+
     bm_message_info_nr = 0;
     memset(message_info, 0, sizeof(message_info));
+    bsp_board_led_off(BSP_BOARD_LED_3);
 
     bm_new_state = BM_EMPTY_STATE;
 }
 
+/***************************************************************************************************
+ * @section State machine Master
+ **************************************************************************************************/
 static void state_1_master(void)
-{    
+{
     uint32_t error;
-    error = app_timer_start(m_benchmark_timer, APP_TIMER_TICKS(bm_time+5000), NULL);
-    ASSERT(error == NRF_SUCCESS);
 
-    bm_new_state = BM_EMPTY_STATE;
+    for (int i = 1; i < 9; i++)
+    {
+        error = app_timer_start(m_request_timer, 5, NULL);
+        ASSERT(error == NRF_SUCCESS)
+        wait_for_event(BM_SECONDS * i);
+    }
+
+    wait_for_event(BM_START_DELAY);
+    bm_new_state = BM_STATE_2_MASTER;
 }
 
 static void state_2_master(void)
-{   
-    uint32_t error;
+{
+    otCliOutput("<BENCHMARK_START> \r\n", sizeof("<BENCHMARK_START> \r\n"));
+    wait_for_event(BM_START_DELAY + bm_start_params->bm_time * BM_SECONDS);
+    bm_new_state = BM_STATE_3_MASTER;
+}
 
-    if (bm_slave_nr == 0)
-    {
-        otCliOutput("<REPORT_END> \r\n", sizeof("<REPORT_END> \r\n"));
-    }
-
-    if (bm_slave_nr > 0)
-    {
-        bm_slave_nr--;
-        bm_coap_result_request_send(bm_slave_address[bm_slave_nr]);
-        error = app_timer_start(m_result_timer, APP_TIMER_TICKS(3000), NULL);
-        ASSERT(error == NRF_SUCCESS);
-    }
-    
+static void state_3_master(void)
+{
+    otCliOutput("<BENCHMARK_END> \r\n", sizeof("<BENCHMARK_END> \r\n"));
     bm_new_state = BM_EMPTY_STATE;
 }
 
+/***************************************************************************************************
+ * @section State machine Process
+ **************************************************************************************************/
 void bm_sm_process(void)
 {
     bm_actual_state = bm_new_state;
 
-    switch(bm_actual_state)
-    {        
-        case BM_STATE_1_SLAVE:
-            state_1_slave();
+    switch (bm_actual_state)
+    {
+        case BM_STATE_1_CLIENT:
+            state_1_client();
             break;
 
-        case BM_STATE_2_SLAVE:
-            state_2_slave();
+        case BM_STATE_2_CLIENT:
+            state_2_client();
+            break;
+
+        case BM_STATE_1_SERVER:
+            state_1_server();
+            break;
+
+        case BM_STATE_2_SERVER:
+            state_2_server();
             break;
 
         case BM_STATE_3_SLAVE:
             state_3_slave();
+            break;
+
+        case BM_STATE_4_SLAVE:
+            state_4_slave();
             break;
 
         case BM_STATE_1_MASTER:
@@ -313,9 +306,13 @@ void bm_sm_process(void)
             state_2_master();
             break;
 
+        case BM_STATE_3_MASTER:
+            state_3_master();
+            break;
+
         case BM_EMPTY_STATE:
             break;
-        
+
         default:
             break;
     }
@@ -326,31 +323,20 @@ void bm_sm_process(void)
  **************************************************************************************************/
 void bm_statemachine_init(void)
 {
+    p_instance = thread_ot_instance_get();
     uint32_t error;
-
-    error = app_timer_create(&m_benchmark_timer, APP_TIMER_MODE_SINGLE_SHOT, m_benchmark_handler);
+    error = app_timer_create(&m_request_timer, APP_TIMER_MODE_SINGLE_SHOT, m_request_handler);
+    ASSERT(error == NRF_SUCCESS);
+    error = app_timer_create(&m_probe_timer, APP_TIMER_MODE_SINGLE_SHOT, m_probe_handler);
     ASSERT(error == NRF_SUCCESS);
     error = app_timer_create(&m_result_timer, APP_TIMER_MODE_SINGLE_SHOT, m_result_handler);
     ASSERT(error == NRF_SUCCESS);
 
-    error = app_timer_create(&m_msg_1_timer, APP_TIMER_MODE_SINGLE_SHOT, m_msg_1_handler);
-    ASSERT(error == NRF_SUCCESS);
-    error = app_timer_create(&m_msg_2_timer, APP_TIMER_MODE_SINGLE_SHOT, m_msg_2_handler);
-    ASSERT(error == NRF_SUCCESS);
-    error = app_timer_create(&m_msg_3_timer, APP_TIMER_MODE_SINGLE_SHOT, m_msg_3_handler);
-    ASSERT(error == NRF_SUCCESS);
-    error = app_timer_create(&m_msg_4_timer, APP_TIMER_MODE_SINGLE_SHOT, m_msg_4_handler);
-    ASSERT(error == NRF_SUCCESS);
-    error = app_timer_create(&m_msg_5_timer, APP_TIMER_MODE_SINGLE_SHOT, m_msg_5_handler);
-    ASSERT(error == NRF_SUCCESS);
-    error = app_timer_create(&m_msg_6_timer, APP_TIMER_MODE_SINGLE_SHOT, m_msg_6_handler);
-    ASSERT(error == NRF_SUCCESS);
-    error = app_timer_create(&m_msg_7_timer, APP_TIMER_MODE_SINGLE_SHOT, m_msg_7_handler);
-    ASSERT(error == NRF_SUCCESS);
-    error = app_timer_create(&m_msg_8_timer, APP_TIMER_MODE_SINGLE_SHOT, m_msg_8_handler);
-    ASSERT(error == NRF_SUCCESS);
-    error = app_timer_create(&m_msg_9_timer, APP_TIMER_MODE_SINGLE_SHOT, m_msg_9_handler);
-    ASSERT(error == NRF_SUCCESS);
-    error = app_timer_create(&m_msg_10_timer, APP_TIMER_MODE_SINGLE_SHOT, m_msg_10_handler);
-    ASSERT(error == NRF_SUCCESS);
+    for (int i = 0; i < 52; i++)
+    {
+        if (LSB_MAC_Address[i] == NRF_FICR->DEVICEADDR[0])
+        {
+            BM_NODE_ID = i + 1;
+        }
+    }
 }

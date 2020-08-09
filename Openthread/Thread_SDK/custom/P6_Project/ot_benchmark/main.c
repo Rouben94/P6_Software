@@ -46,48 +46,60 @@
  *
  */
 
+#include "FreeRTOS.h"
+#include "nrf_drv_clock.h"
+#include "task.h"
+
 #include "app_scheduler.h"
 #include "app_timer.h"
 #include "bm_board_support_thread.h"
-#include "nrf_log_ctrl.h"
+
 #include "nrf_log.h"
+#include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
 
-#include "bm_coap.h"
-#include "thread_utils.h"
-#include "bm_master_cli.h"
 #include "bm_board_support_config.h"
+#include "bm_coap.h"
+#include "bm_master_cli.h"
+#include "thread_utils.h"
 
-#include <openthread/thread.h>
+#include <openthread/channel_manager.h>
 #include <openthread/instance.h>
-#include <openthread/ip6.h>
-#include <openthread/cli.h>
 #include <openthread/network_time.h>
 #include <openthread/platform/time.h>
-#include <openthread/channel_manager.h>
+#include <openthread/cli.h>
+#include <openthread/thread.h>
 
-#define SCHED_QUEUE_SIZE      32                              /**< Maximum number of events in the scheduler queue. */
-#define SCHED_EVENT_DATA_SIZE APP_TIMER_SCHED_EVENT_DATA_SIZE /**< Maximum app_scheduler event size. */
+#define THREAD_STACK_TASK_STACK_SIZE     (( 1024 * 8 ) / sizeof(StackType_t))   /**< FreeRTOS task stack size is determined in multiples of StackType_t. */
+#define LOG_TASK_STACK_SIZE              ( 1024 / sizeof(StackType_t))          /**< FreeRTOS task stack size is determined in multiples of StackType_t. */
+#define THREAD_STACK_TASK_PRIORITY       2
+#define LOG_TASK_PRIORITY                1
+#define STATE_MACHINE_TASK_PRIORITY      1
+#define LOG_TASK_INTERVAL                10
+
+typedef struct
+{
+    TaskHandle_t thread_stack_task;   /**< Thread stack task handle */
+    TaskHandle_t state_machine_task;  /**< LED1 task handle*/
+    TaskHandle_t logger_task;         /**< Definition of Logger thread. */
+} application_t;
+
+application_t m_app =
+{
+    .thread_stack_task  = NULL,
+    .state_machine_task = NULL,
+    .logger_task        = NULL,
+};
 
 //#define BM_MASTER
-#define BM_CLIENT
-//#define BM_SERVER
+//#define BM_CLIENT
+#define BM_SERVER
 
 #ifdef BM_CLIENT
 bool toggle_data_size = true;
-#endif //BM_CLIENT
-
-#ifdef BM_MASTER
-static void bm_cli_benchmark_start(uint8_t aArgsLength, char *aArgs[]);
-static void bm_cli_benchmark_stop(uint8_t aArgsLength, char *aArgs[]);
-
-otCliCommand bm_cli_usercommands[2] = {
-  {"benchmark_start", bm_cli_benchmark_start},
-  {"benchmark_stop" , bm_cli_benchmark_stop}
-};
+#endif // BM_CLIENT
 
 bm_master_message master_message;
-#endif //BM_MASTER
 
 /***************************************************************************************************
  * @section Buttons
@@ -99,11 +111,10 @@ static void bsp_event_handler(bsp_event_t event)
     {
         case BSP_EVENT_KEY_0:
             NRF_LOG_INFO("Button short");
-            //bm_coap_master_start_request_send();
 #if defined(BM_CLIENT) || defined(BM_SERVER)
             bm_increment_group_address();
-            bsp_board_led_invert(BSP_BOARD_LED_1);
-#endif //BM_CLIENT || BM_SERVER
+            bsp_board_led_blink(BSP_BOARD_LED_3);
+#endif // BM_CLIENT || BM_SERVER
             break;
 
         case BSP_EVENT_KEY_0_LONG:
@@ -111,25 +122,53 @@ static void bsp_event_handler(bsp_event_t event)
 
 #if defined(BM_CLIENT) || defined(BM_SERVER)
             bm_decrement_group_address();
-            bsp_board_led_invert(BSP_BOARD_LED_1);
-#endif //BM_CLIENT || BM_SERVER
+#endif // BM_CLIENT || BM_SERVER
 
 #ifdef BM_CLIENT
             if (toggle_data_size)
             {
-                bm_set_data_size(BM_1024Bytes);
+                bm_set_additional_payload(true);
                 toggle_data_size = false;
-            } else
+            }
+            else
             {
-                bm_set_data_size(BM_1bit);
+                bm_set_additional_payload(false);
                 toggle_data_size = true;
             }
-#endif //BM_CLIENT
+#endif // BM_CLIENT
             break;
 
         default:
             return; // no implementation needed1
     }
+}
+
+/***************************************************************************************************
+ * @section Signal handling
+ **************************************************************************************************/
+
+void otTaskletsSignalPending(otInstance * p_instance)
+{
+    if (m_app.thread_stack_task == NULL)
+    {
+        return;
+    }
+
+    UNUSED_RETURN_VALUE(xTaskNotifyGive(m_app.thread_stack_task));
+}
+
+
+void otSysEventSignalPending(void)
+{
+    static BaseType_t xHigherPriorityTaskWoken;
+
+    if (m_app.thread_stack_task == NULL)
+    {
+        return;
+    }
+
+    vTaskNotifyGiveFromISR(m_app.thread_stack_task, &xHigherPriorityTaskWoken);
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
 /***************************************************************************************************
@@ -157,50 +196,57 @@ static void thread_state_changed_callback(uint32_t flags, void * p_context)
         otThreadGetDeviceRole(p_context));
 }
 
-static void thread_time_sync_callback(void * p_context) 
+static void thread_time_sync_callback(void * p_context)
 {
-    if (*(int*)p_context == OT_NETWORK_TIME_SYNCHRONIZED)
+    if (*(int *)p_context == OT_NETWORK_TIME_SYNCHRONIZED)
     {
-        NRF_LOG_INFO("time sync synchronized"); 
+        NRF_LOG_INFO("time sync synchronized");
     }
 
-    if (*(int*)p_context == OT_NETWORK_TIME_UNSYNCHRONIZED)
+    if (*(int *)p_context == OT_NETWORK_TIME_UNSYNCHRONIZED)
     {
         NRF_LOG_INFO("time sync unsynchronized");
     }
 
-    if (*(int*)p_context == OT_NETWORK_TIME_RESYNC_NEEDED)
+    if (*(int *)p_context == OT_NETWORK_TIME_RESYNC_NEEDED)
     {
-        NRF_LOG_INFO("time sync resync needed"); 
+        NRF_LOG_INFO("time sync resync needed");
     }
-    
 }
+
+/***************************************************************************************************
+ * @section Cli 
+ **************************************************************************************************/
+
+
 
 #ifdef BM_MASTER
-static void bm_cli_benchmark_start(uint8_t aArgsLength, char *aArgs[]) {
-    NRF_LOG_INFO("Benchmark start");
-    NRF_LOG_INFO("Argument: %s", aArgs[0]);
+    static void bm_cli_benchmark_start(uint8_t aArgsLength, char * aArgs[]);
 
-    bm_stop_set(false);
+    otCliCommand bm_cli_usercommands[1] = {
+    {"benchmark_start", bm_cli_benchmark_start}};
+
+    static void bm_cli_benchmark_start(uint8_t aArgsLength, char * aArgs[])
+    {
+    NRF_LOG_INFO("Benchmark start");
+
+    otInstance * p_instance = thread_ot_instance_get();
+    uint64_t tmp;
 
     master_message.bm_status = true;
-    master_message.bm_time = (uint32_t)atoi(aArgs[0]);
+    master_message.bm_time = (uint16_t)atoi(aArgs[0]);
+    master_message.bm_nbr_of_msg = (uint16_t)atoi(aArgs[1]);
+    master_message.bm_msg_size = (uint16_t)atoi(aArgs[2]);
+    otNetworkTimeGet(p_instance, &tmp);
+    master_message.bm_master_time_stamp = tmp;
+    master_message.master_address = *otThreadGetMeshLocalEid(p_instance);
 
-    bm_reset_slave_address();
-    bm_coap_multicast_start_send(master_message);
-
-    otCliOutput("done \r\n", sizeof("done \r\n"));
-}
-
-static void bm_cli_benchmark_stop(uint8_t aArgsLength, char *aArgs[]) {
-    NRF_LOG_INFO("Benchmark stop");
-
-    bm_stop_set(true);
+    bm_start_param_set(&master_message);
+    bm_sm_new_state_set(BM_STATE_1_MASTER);
 
     otCliOutput("done \r\n", sizeof("done \r\n"));
-}
-#endif //BM_MASTER
-
+    }
+#endif // BM_MASTER
 
 /***************************************************************************************************
  * @section Initialization
@@ -237,14 +283,21 @@ static void log_init(void)
     NRF_LOG_DEFAULT_BACKENDS_INIT();
 }
 
+#ifdef BM_MASTER
+/**@brief Function for initializing custom cli.
+ */
+void bm_custom_cli_init(void)
+{
+    otCliSetUserCommands(bm_cli_usercommands, 1 * sizeof(bm_cli_usercommands[0]));
+}
+#endif // BM_MASTER
 
 /**@brief Function for initializing the Thread Stack.
  */
 static void thread_instance_init(void)
 {
-    thread_configuration_t thread_configuration =
-    {
-        .radio_mode        = THREAD_RADIO_MODE_RX_ON_WHEN_IDLE,
+    thread_configuration_t thread_configuration = {
+        .radio_mode = THREAD_RADIO_MODE_RX_ON_WHEN_IDLE,
         .autocommissioning = true,
     };
 
@@ -252,7 +305,7 @@ static void thread_instance_init(void)
 
 #ifdef BM_MASTER
     thread_cli_init();
-#endif //BM_MASTER
+#endif // BM_MASTER
 
     thread_state_changed_callback_set(thread_state_changed_callback);
 }
@@ -260,30 +313,30 @@ static void thread_instance_init(void)
 
 /**@brief Function for initializing the Constrained Application Protocol Module
  */
-static void thread_coap_init(void) 
+static void thread_coap_init(void)
 {
 #ifdef BM_CLIENT
     thread_coap_utils_configuration_t thread_coap_configuration = {
         .coap_server_enabled = false,
         .coap_client_enabled = true,
     };
-#endif //BM_CLIENT
+#endif // BM_CLIENT
 
 #ifdef BM_SERVER
     thread_coap_utils_configuration_t thread_coap_configuration = {
         .coap_server_enabled = true,
         .coap_client_enabled = false,
     };
-#endif //BM_SERVER
+#endif // BM_SERVER
 
 #ifdef BM_MASTER
     thread_coap_utils_configuration_t thread_coap_configuration = {
         .coap_server_enabled = false,
         .coap_client_enabled = false,
     };
-#endif //BM_MASTER
+#endif // BM_MASTER
 
-  thread_coap_utils_init(&thread_coap_configuration);
+    thread_coap_utils_init(&thread_coap_configuration);
 }
 
 /**@brief Function for initializing the Thread Time Synchronizationt Package
@@ -292,14 +345,6 @@ static void thread_time_sync_init(void)
 {
     otNetworkTimeSyncSetCallback(thread_ot_instance_get(), thread_time_sync_callback, NULL);
 }
-
-
-#ifdef BM_MASTER
-/**@brief Function for initialize custom cli commands */
-void bm_custom_cli_init(void){
-    otCliSetUserCommands(bm_cli_usercommands, 2 * sizeof(bm_cli_usercommands[0]));
-}
-#endif //BM_MASTER
 
 /**@brief Function for initialize the auto channel manager */
 void bm_channel_manager_init(void)
@@ -312,52 +357,101 @@ void bm_channel_manager_init(void)
     error = otChannelManagerSetAutoChannelSelectionInterval(thread_ot_instance_get(), 60);
     ASSERT(error == OT_ERROR_NONE);
 }
-//#endif //BM_MASTER
 
-
-/**@brief Function for initializing scheduler module.
+/**@brief Function for initializing the clock.
  */
-static void scheduler_init(void)
+static void clock_init(void)
 {
-    APP_SCHED_INIT(SCHED_EVENT_DATA_SIZE, SCHED_QUEUE_SIZE);
+    ret_code_t err_code = nrf_drv_clock_init();
+    APP_ERROR_CHECK(err_code);
+}
+
+/***************************************************************************************************
+ * @section Tasks
+ **************************************************************************************************/
+static void thread_stack_task(void * arg)
+{
+    UNUSED_PARAMETER(arg);
+
+    while (1)
+    {
+        thread_process();
+        UNUSED_RETURN_VALUE(ulTaskNotifyTake(pdTRUE, portMAX_DELAY));
+    }
+}
+
+static void state_machine_task(void * pvParameter)
+{
+    UNUSED_PARAMETER(pvParameter);
+
+    while (true)
+    {
+        bm_sm_process();
+    }
+}
+
+static void logger_thread(void * pvParameter)
+{
+    UNUSED_PARAMETER(pvParameter);
+
+    while (true)
+    {
+        if (!(NRF_LOG_PROCESS()))
+        {
+            /* No more logs, let's sleep and wait for any */
+            vTaskDelay(LOG_TASK_INTERVAL);
+        }
+    }
 }
 
 /***************************************************************************************************
  * @section Main
  **************************************************************************************************/
 
-int main(int argc, char *argv[])
+int main(int argc, char * argv[])
 {
     log_init();
-    scheduler_init();
+    clock_init();
     timer_init();
 
     NRF_LOG_INFO("Start APP");
-
-    thread_time_sync_init();
     thread_instance_init();
     thread_coap_init();
 
 #ifdef BM_MASTER
     bm_custom_cli_init();
     bm_channel_manager_init();
-#endif //BM_MASTER
+#endif // BM_MASTER
 
     thread_bsp_init();
     thread_time_sync_init();
     bm_statemachine_init();
- 
+
+    // Start thread stack execution.
+    if (pdPASS != xTaskCreate(thread_stack_task, "THR", THREAD_STACK_TASK_STACK_SIZE, NULL, THREAD_STACK_TASK_PRIORITY, &m_app.thread_stack_task))
+    {
+        APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
+    }
+
+    // Start execution.
+    if (pdPASS != xTaskCreate(state_machine_task, "StMa", configMINIMAL_STACK_SIZE, NULL, STATE_MACHINE_TASK_PRIORITY, &m_app.state_machine_task))
+    {
+        APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
+    }
+
+    // Start execution.
+    if (pdPASS != xTaskCreate(logger_thread, "LOGGER", LOG_TASK_STACK_SIZE, NULL, LOG_TASK_PRIORITY, &m_app.logger_task))
+    {
+        APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
+    }
+
+    /* Start FreeRTOS scheduler. */
+    vTaskStartScheduler();
 
     while (true)
     {
-        thread_process();
-        bm_sm_process();
-        app_sched_execute();
-
-        if (NRF_LOG_PROCESS() == false)
-        {
-            thread_sleep();
-        }
+        /* FreeRTOS should not be here... FreeRTOS goes back to the start of stack
+         * in vTaskStartScheduler function. */
     }
 }
 
