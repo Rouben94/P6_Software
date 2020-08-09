@@ -241,7 +241,7 @@ static void state_1_master(void)
 {
     uint32_t error;
 
-    for (int i = 1; i < 9; i++)
+    for (int i = 1; i < 4; i++)
     {
         error = app_timer_start(m_request_timer, 5, NULL);
         ASSERT(error == NRF_SUCCESS)
