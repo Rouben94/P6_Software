@@ -6,7 +6,6 @@
 "Output/ot_benchmark Release/Obj/nrf_log_str_formatter.o"
 "Output/ot_benchmark Release/Obj/boards.o"
 "Output/ot_benchmark Release/Obj/bm_coap.o"
-"Output/ot_benchmark Release/Obj/bm_master_cli.o"
 "Output/ot_benchmark Release/Obj/ses_startup_nrf52840.o"
 "Output/ot_benchmark Release/Obj/ses_startup_nrf_common.o"
 "Output/ot_benchmark Release/Obj/system_nrf52840.o"

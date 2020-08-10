@@ -60,7 +60,6 @@
 
 #include "bm_board_support_config.h"
 #include "bm_coap.h"
-#include "bm_master_cli.h"
 #include "thread_utils.h"
 
 #include <openthread/channel_manager.h>
@@ -92,8 +91,8 @@ application_t m_app =
 };
 
 //#define BM_MASTER
-//#define BM_CLIENT
-#define BM_SERVER
+#define BM_CLIENT
+//#define BM_SERVER
 
 #ifdef BM_CLIENT
 bool toggle_data_size = true;
@@ -217,9 +216,6 @@ static void thread_time_sync_callback(void * p_context)
 /***************************************************************************************************
  * @section Cli 
  **************************************************************************************************/
-
-
-
 #ifdef BM_MASTER
     static void bm_cli_benchmark_start(uint8_t aArgsLength, char * aArgs[]);
 
@@ -251,7 +247,6 @@ static void thread_time_sync_callback(void * p_context)
 /***************************************************************************************************
  * @section Initialization
  **************************************************************************************************/
-
 /**@brief Function for initializing the Application Timer Module.
  */
 static void timer_init(void)

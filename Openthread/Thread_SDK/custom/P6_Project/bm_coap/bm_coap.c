@@ -18,7 +18,6 @@
 #include "sdk_config.h"
 #include "thread_utils.h"
 #include "bm_statemachine.h"
-#include "bm_master_cli.h"
 
 #include <openthread/ip6.h>
 #include <openthread/link.h>
@@ -317,6 +316,7 @@ static void bm_result_handler(void                 * p_context,
                                    const otMessageInfo  * p_message_info)
 {
     NRF_LOG_INFO("Master: Got result message");
+    bm_message_info message_info;
     do
     {
         if (otCoapMessageGetType(p_message) != OT_COAP_TYPE_CONFIRMABLE &&
@@ -329,12 +329,9 @@ static void bm_result_handler(void                 * p_context,
         {
             break;
         }
-
-        uint16_t size = (otMessageGetLength(p_message) - otMessageGetOffset(p_message))/sizeof(bm_message_info);
-        bm_message_info message_info[size];
    
-        otMessageRead(p_message, otMessageGetOffset(p_message), message_info, sizeof(message_info));
-        bm_save_result(message_info, size);
+        otMessageRead(p_message, otMessageGetOffset(p_message), &message_info, sizeof(bm_message_info));
+        bm_save_result(&message_info);
 
         if (otCoapMessageGetType(p_message) == OT_COAP_TYPE_CONFIRMABLE)
         {
@@ -400,83 +397,6 @@ void bm_coap_results_send(bm_message_info *message_info)
         otMessageFree(p_request);
     }
 }
-
-//static void bm_result_request_handler(void                 * p_context,
-//                                      otMessage            * p_message,
-//                                      const otMessageInfo  * p_message_info)
-//{
-//    bool result_request;
-//    NRF_LOG_INFO("Slave: got result request")
-//    do
-//    {
-//        if (otCoapMessageGetType(p_message) != OT_COAP_TYPE_CONFIRMABLE &&
-//            otCoapMessageGetType(p_message) != OT_COAP_TYPE_NON_CONFIRMABLE)
-//        {
-//            break;
-//        }
-//
-//        if (otCoapMessageGetCode(p_message) != OT_COAP_CODE_PUT)
-//        {
-//            break;
-//        }
-//
-//        if (otMessageRead(p_message, otMessageGetOffset(p_message), &result_request, sizeof(bool)) != 1)
-//        {
-//            NRF_LOG_INFO("benchmark request handler - missing message")
-//        }
-//        
-//        bm_sm_new_state_set(BM_STATE_2_CLIENT); //Achtung
-//    } while(false);
-//}
-//
-//void bm_coap_result_request_send(otIp6Address address)
-//{
-//    otError       error = OT_ERROR_NONE;
-//    otMessage   * p_request;
-//    otMessageInfo message_info;
-//    otInstance  * p_instance = thread_ot_instance_get();
-//
-//    NRF_LOG_INFO("Master:  Send result request");
-//    bool result_request = true;
-//
-//    do
-//    {
-//        p_request = otCoapNewMessage(p_instance, NULL);
-//        if (p_request == NULL)
-//        {
-//          NRF_LOG_INFO("Failed to allocate message for Coap request");
-//          break;
-//        }
-//
-//        otCoapMessageInit(p_request, OT_COAP_TYPE_NON_CONFIRMABLE, OT_COAP_CODE_PUT);
-//
-//        error = otCoapMessageAppendUriPathOptions(p_request, "test");
-//        ASSERT(error == OT_ERROR_NONE);
-//
-//        error = otCoapMessageSetPayloadMarker(p_request);
-//        ASSERT(error == OT_ERROR_NONE);
-//
-//        error = otMessageAppend(p_request, &result_request, sizeof(bool));
-//        if (error != OT_ERROR_NONE)
-//        {
-//            break;
-//        }
-//
-//        memset(&message_info, 0, sizeof(message_info));
-//        message_info.mPeerPort = OT_DEFAULT_COAP_PORT;
-//        message_info.mPeerAddr = address;
-//        message_info.mAllowZeroHopLimit = false;
-//        message_info.mHopLimit = HOP_LIMIT_DEFAULT;
-//
-//        error = otCoapSendRequest(p_instance, p_request, &message_info, NULL, p_instance);
-//    } while (false);
-//
-//    if (error != OT_ERROR_NONE && p_request != NULL)
-//    {
-//        NRF_LOG_INFO("Failed to send Coap request: %d\r\n", error);
-//        otMessageFree(p_request);
-//    }
-//}
 
 /***************************************************************************************************
  * @section Benchmark Coap Multicast Benchmark start message
@@ -608,6 +528,7 @@ static void bm_probe_message_handler(void                 * p_context,
         message.dest_address = (*otThreadGetMeshLocalEid(p_instance)).mFields.m16[7];
         message.grp_address = bm_group_address.mFields.m16[7];
         message.net_time_ack = 0;
+        message.node_id = bm_get_node_id();
         bm_save_message_info(message);
 
         if (otCoapMessageGetType(p_message) == OT_COAP_TYPE_CONFIRMABLE)
@@ -634,6 +555,7 @@ void bm_coap_probe_message_send(uint16_t size)
     message.grp_address = bm_group_address.mFields.m16[7];
     message.net_time_ack = 0;
     message.message_id = bm_get_overflow_tid_from_overflow_handler(bm_message_ID, message.source_address);
+    message.node_id = bm_get_node_id();
     otNetworkTimeGet(p_instance, &message.net_time);
 
     do

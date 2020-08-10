@@ -49,11 +49,7 @@
     <folder Name="Coap">
       <file file_name="../../../bm_coap/bm_coap.c" />
     </folder>
-    <folder Name="Cli">
-      <file file_name="../../../bm_master_cli/bm_master_cli.c">
-        <configuration Name="Release" build_exclude_from_build="No" />
-      </file>
-    </folder>
+    <folder Name="Cli" />
     <folder Name="None">
       <file file_name="../../../../../modules/nrfx/mdk/ses_startup_nrf52840.s" />
       <file file_name="../../../../../modules/nrfx/mdk/ses_startup_nrf_common.s" />

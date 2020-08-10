@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <inttypes.h>
+#include <stdio.h>
 #include <openthread/ip6.h>
 
 /* Typdef for benchmark state */
@@ -38,6 +40,7 @@ typedef struct
     uint16_t data_size;
     uint16_t message_id;
     uint8_t  number_of_hops;
+    uint8_t  node_id;
     int8_t   RSSI;
 } __attribute__((packed)) bm_message_info;
 
@@ -86,7 +89,7 @@ void bm_save_message_info(bm_message_info message);
  *
  * @details 
  */
-void bm_save_result(bm_message_info message[], uint16_t size);
+void bm_save_result(bm_message_info * message);
 
 /**@brief 
  *
@@ -105,5 +108,6 @@ void bm_set_ack_received(uint8_t received);
  * @details 
  */
 uint8_t bm_get_node_id(void);
+
 
 #endif // BM_STATEMACHINE_H_
