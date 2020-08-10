@@ -18,8 +18,8 @@ extern uint32_t LSB_MAC_Address; // LSB of Randomly Static Assigned MAC Address
 /* =============== Benchmark Parameters ===================== */
 // Change the following to switch the Protokoll Stack and SDK
 //#define BENCHMARK_SERVER                 /* Node is Benchmark Server */
-//#define BENCHMARK_CLIENT                 /* Node is Benchmark Client */
-#define BENCHMARK_MASTER                 /* Node is Benchmark Master and automatically Time Master */
+#define BENCHMARK_CLIENT                 /* Node is Benchmark Client */
+//#define BENCHMARK_MASTER                 /* Node is Benchmark Master and automatically Time Master */
 #define BENCHMARK_DEFAULT_TIME_S 10      // Default Benchmark Time (used when no Parameter available)
 #define BENCHMARK_DEFAULT_PACKETS_CNT 10 // Default Benchmark Packet Count (used when no Parameter available)
 
@@ -30,10 +30,11 @@ typedef struct
   uint8_t GroupAddress;
   uint8_t Node_Id;
   uint16_t AdditionalPayloadSize;
-  uint8_t Ack;
   uint32_t DestMAC_1; // Zigbee Directed Destination 1
   uint32_t DestMAC_2; // Zigbee Directed Destination 2
   uint32_t DestMAC_3; // Zigbee Directed Destination 3
+  bool Ack; // 0 = Not Acknowledged / 1 = Ack
+  bool benchmark_Traffic_Generation_Mode; // 0 = Random, 1 = Sequentialy
 } bm_params_t;
 extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a benchmark is active. 
 

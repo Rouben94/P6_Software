@@ -38,7 +38,6 @@ struct RxPktStatLog
 
 struct Radio_Handler_Context
 {
-	TxPktStatLog tx_stat;
 	RxPktStatLog rx_stat;
 	k_tid_t* thread_id; //Pointer for Thread ID waiting for ISR
 };
@@ -111,15 +110,6 @@ public:
 	 * @param CCA_Mode 0 = Disabled / 1 = Mode 1 (energy above threshold) / 2 = Mode 2 (carrier sense only) / 3 = Mode 3 (carrier sense and threshold) / 4 = Mode 4 (carrier sense or threshold)
 	 * @param timeout Waittimeout in ms for bursting
      * @return Number of Packeets sent
-	 */
-	u16_t BurstCntPkt(RADIO_PACKET tx_pkt, u8_t CCA_Mode ,k_timeout_t timeout);
-	/**
-	 * Receive a Payload
-	 *
-	 * @param payload Pointer where to store received payload
-	 * @param timeout Waittimeout in ms for a packet to be received
-	 * 
-	 * @return Zero of timeout occured or number of miliseconds till timeout occurs
 	 */
 	s32_t Receive(RADIO_PACKET *rx_pkt, k_timeout_t timeout);
 	/**

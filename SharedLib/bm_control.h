@@ -37,10 +37,11 @@ typedef struct
   uint64_t GroupAddress;          // Set the Group Address of the Dst -> 0 is ignored
   uint8_t NodeId;                 // Set the NodeId of the Dst -> 0 is ignored
   uint16_t AdditionalPayloadSize; // Set the Additional Payload Size of the Dst -> 0 is ignored
-  uint8_t Ack;                    // Set the Ack of the Dst
   uint32_t DestMAC_1;             // Zigbee Directed Destination 1
   uint32_t DestMAC_2;             // Zigbee Directed Destination 2
   uint32_t DestMAC_3;             // Zigbee Directed Destination 3
+  bool Ack;                       // Set the Ack of the Dst
+  bool benchmark_Traffic_Generation_Mode;  // 0 = Random, 1 = Sequentialy
 } __attribute__((packed)) bm_control_msg_t;
 
 void bm_control_msg_publish(bm_control_msg_t bm_control_msg);

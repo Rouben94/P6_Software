@@ -53,7 +53,8 @@ typedef struct {
   uint32_t MAC;
   uint8_t GroupAddress;
   uint8_t NodeId;
-  uint8_t Ack;
+  bool Ack;
+  bool benchmark_Traffic_Generation_Mode; // 0 = Random, 1 = Sequentialy
   uint16_t AdditionalPayloadSize;
   uint32_t DestMAC_1; // Zigbee Directed Destination 1
   uint32_t DestMAC_2; // Zigbee Directed Destination 2
