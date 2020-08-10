@@ -61,7 +61,8 @@ along with P2P-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 #define ST_PUBLISH 70
 // Timeslots for the Sates in ms. The Timesync has to be accurate enough. -> Optimized for 50 Nodes, 3 Channels and BLE LR125kBit
 #define ST_TIME_DISCOVERY_MS 300
-#define ST_TIME_MOCKUP_MS 1200
+#define ST_TIME_MOCKUP_MS 1200 // Collission Probability calculatet from with 50 Nodes and 1ms for a Answer: 
+// https://devzone.nordicsemi.com/f/nordic-q-a/13685/how-to-deal-with-broadcasting-collision
 #define ST_TIME_PARAM_MS 60
 #define ST_TIME_PACKETS_MS 5000 // Worst Case 40 CHs, Size 255 and BLE LR 125kBit -> ca. 2 Packets
 #define ST_TIME_REPORT_REQ_MS 30
