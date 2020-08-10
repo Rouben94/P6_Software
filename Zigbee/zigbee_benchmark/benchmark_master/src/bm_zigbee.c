@@ -41,6 +41,8 @@ along with Zigbee-Benchmark. If not, see <http://www.gnu.org/licenses/>.
 #include "bm_timesync.h"
 #include "bm_zigbee.h"
 
+zb_uint8_t bm_dev_joined_cnt = 0;
+
 /************************************ General Init Functions ***********************************************/
 
 /**@brief Callback used in order to visualise network steering period.
@@ -131,6 +133,36 @@ void zboss_signal_handler(zb_bufid_t bufid) {
     zb_enable_auto_pan_id_conflict_resolution(ZB_FALSE);
     break;
 
+  case ZB_ZDO_SIGNAL_DEVICE_AUTHORIZED:
+    /* This signal notifies the Zigbee Trust center application (usually implemented on the coordinator node)
+             * about authorization of a new device in the network.
+             *
+             * For Zigbee 3.0 (and newer) devices this signal is generated if:
+             *  - TCKL exchange procedure was successful
+             *  - TCKL exchange procedure timed out
+             *
+             * If the coordinator allows for legacy devices to join the network (enabled by zb_bdb_set_legacy_device_support(1) API call),
+             * this signal is generated:
+             *  - If the parent router generates Update Device command and the joining device does not perform TCLK exchange within timeout.
+             *  - If the TCLK exchange is successful.
+             */
+    {
+      zb_zdo_signal_device_authorized_params_t *p_authorize_params = ZB_ZDO_SIGNAL_GET_PARAMS(p_sg_p, zb_zdo_signal_device_authorized_params_t);
+      char ieee_addr_buf[17] = {0};
+      int addr_len;
+
+      addr_len = ieee_addr_to_str(ieee_addr_buf, sizeof(ieee_addr_buf), p_authorize_params->long_addr);
+      if (addr_len < 0) {
+        strcpy(ieee_addr_buf, "unknown");
+      }
+      bm_cli_log("Device authorization event received (short: 0x%04hx, long: %s, authorization type: %d, authorization status: %d)\n",
+          p_authorize_params->short_addr, ieee_addr_buf, p_authorize_params->authorization_type, p_authorize_params->authorization_status);
+    }
+    bm_dev_joined_cnt++;
+    bm_cli_log("New Zigbee Device joined the network. Device count: %d\n", bm_dev_joined_cnt);
+
+    break;
+
   default:
     /* Call default signal handler. */
     ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
@@ -158,14 +190,16 @@ void bm_get_ieee_eui64(zb_ieee_addr_t ieee_eui64) {
   memcpy(ieee_eui64, &factoryAddress, sizeof(factoryAddress));
 }
 
+static const zb_uint8_t g_key_nwk[16] = {0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89, 0, 0, 0, 0, 0, 0, 0, 0};
+
 /**************************************** Zigbee Stack Init and Enable ***********************************************/
 
 void bm_zigbee_init(void) {
   zb_ret_t zb_err_code;
   zb_ieee_addr_t ieee_addr;
-//  uint64_t ext_pan_id_64 = DEFAULT_PAN_ID_EXT;
-//  zb_ext_pan_id_t ext_pan_id;
-//  memcpy(ext_pan_id, &ext_pan_id_64, sizeof(ext_pan_id_64));
+  uint64_t ext_pan_id_64 = DEFAULT_PAN_ID_EXT;
+  zb_ext_pan_id_t ext_pan_id;
+  memcpy(ext_pan_id, &ext_pan_id_64, sizeof(ext_pan_id_64));
 
   /* Set Zigbee stack logging level and traffic dump subsystem. */
   ZB_SET_TRACE_LEVEL(ZIGBEE_TRACE_LEVEL);
@@ -180,8 +214,9 @@ void bm_zigbee_init(void) {
   zb_set_long_address(ieee_addr);
 
   /* Set short and extended pan id to the default value. */
-//  zb_set_pan_id((zb_uint16_t)DEFAULT_PAN_ID_SHORT);
-//  zb_set_extended_pan_id(ext_pan_id);
+  zb_set_pan_id((zb_uint16_t)DEFAULT_PAN_ID_SHORT);
+  zb_set_extended_pan_id(ext_pan_id);
+  zb_secur_setup_nwk_key((zb_uint8_t *)g_key_nwk, 0);
 
   /* Set channels on which the coordinator will try to create a new network. */
   zb_set_network_coordinator_role(IEEE_CHANNEL_MASK);

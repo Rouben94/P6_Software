@@ -37,6 +37,7 @@ along with Zigbee-Benchmark. If not, see <http://www.gnu.org/licenses/>.
 #include "bm_cli.h"
 #include "bm_config.h"
 #include "bm_log.h"
+#include "bm_rand.h"
 #include "bm_simple_buttons_and_leds.h"
 #include "bm_timesync.h"
 #include "bm_zigbee.h"
@@ -117,7 +118,12 @@ zb_uint16_t local_node_short_addr;
 char local_nodel_ieee_addr_buf[17] = {0};
 int local_node_addr_len;
 
-bm_tid_overflow_handler_t bm_tid_overflow_handler[max_number_of_nodes]; /* Expect not more than max_number_of_nodes Different Adresses */
+zb_uint32_t stack_enable_max_delay_ms = STACK_STARTUP_MAX_DELAY;
+zb_uint32_t network_formation_delay = NETWORK_FORMATION_DELAY;
+
+static const zb_uint8_t g_key_nwk[16] = {0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89, 0, 0, 0, 0, 0, 0, 0, 0};
+
+//bm_tid_overflow_handler_t bm_tid_overflow_handler[max_number_of_nodes]; /* Expect not more than max_number_of_nodes Different Adresses */
 
 /************************************ Benchmark Client Cluster Attribute Init ***********************************************/
 
@@ -254,27 +260,27 @@ void buttons_handler(bsp_event_t evt) {
 /************************************ Benchmark Functions ***********************************************/
 
 /* Insert the tid and src address to get the merged tid with the tid overlfow cnt -> resulting in a uint16_t */
-uint16_t bm_get_overflow_tid_from_overflow_handler(uint8_t tid, uint16_t src_addr) {
-  // Get the TID in array
-  for (int i = 0; i < max_number_of_nodes; i++) {
-    if (bm_tid_overflow_handler[i].src_addr == src_addr) {
-      // Check if Overflow happend
-      if ((bm_tid_overflow_handler[i].last_TID_seen - tid) > 250) {
-        bm_tid_overflow_handler[i].TID_OverflowCnt++;
-      }
-      // Add the last seen TID
-      bm_tid_overflow_handler[i].last_TID_seen = tid;
-      return (uint16_t)(bm_tid_overflow_handler[i].TID_OverflowCnt << 8) | (tid & 0xff);
-    } else if (bm_tid_overflow_handler[i].src_addr == 0) {
-      // Add the Src Adress
-      bm_tid_overflow_handler[i].src_addr = src_addr;
-      bm_tid_overflow_handler[i].last_TID_seen = tid;
-      bm_tid_overflow_handler[i].TID_OverflowCnt = 0;
-      return (uint16_t)(bm_tid_overflow_handler[i].TID_OverflowCnt << 8) | (tid & 0xff);
-    }
-  }
-  return 0;
-}
+//uint16_t bm_get_overflow_tid_from_overflow_handler(uint8_t tid, uint16_t src_addr) {
+//  // Get the TID in array
+//  for (int i = 0; i < max_number_of_nodes; i++) {
+//    if (bm_tid_overflow_handler[i].src_addr == src_addr) {
+//      // Check if Overflow happend
+//      if ((bm_tid_overflow_handler[i].last_TID_seen - tid) > 250) {
+//        bm_tid_overflow_handler[i].TID_OverflowCnt++;
+//      }
+//      // Add the last seen TID
+//      bm_tid_overflow_handler[i].last_TID_seen = tid;
+//      return (uint16_t)(bm_tid_overflow_handler[i].TID_OverflowCnt << 8) | (tid & 0xff);
+//    } else if (bm_tid_overflow_handler[i].src_addr == 0) {
+//      // Add the Src Adress
+//      bm_tid_overflow_handler[i].src_addr = src_addr;
+//      bm_tid_overflow_handler[i].last_TID_seen = tid;
+//      bm_tid_overflow_handler[i].TID_OverflowCnt = 0;
+//      return (uint16_t)(bm_tid_overflow_handler[i].TID_OverflowCnt << 8) | (tid & 0xff);
+//    }
+//  }
+//  return 0;
+//}
 
 /* Callback function for Benchmark send message status. Free's the used buffer. */
 void bm_send_message_status_cb(zb_bufid_t bufid) {
@@ -306,9 +312,10 @@ void bm_send_group_message_cb(zb_bufid_t bufid, zb_uint16_t seq_num) {
   //      BENCHMARK_LEVEL_SEND_TRANSACTION_TIME);
 
   zb_uint8_t *cmd_ptr = ZB_ZCL_START_PACKET(bufid);
-  ZB_ZCL_CONSTRUCT_GENERAL_COMMAND_REQ_FRAME_CONTROL_A(cmd_ptr, (ZB_ZCL_FRAME_DIRECTION_TO_SRV),
-      (ZB_ZCL_MANUFACTURER_SPECIFIC), ZB_ZCL_DISABLE_DEFAULT_RESPONSE);
+  ZB_ZCL_CONSTRUCT_GENERAL_COMMAND_REQ_FRAME_CONTROL_A(cmd_ptr, (ZB_ZCL_FRAME_DIRECTION_TO_SRV), (ZB_ZCL_MANUFACTURER_SPECIFIC), ZB_ZCL_DISABLE_DEFAULT_RESPONSE);
   ZB_ZCL_CONSTRUCT_COMMAND_HEADER_EXT(cmd_ptr, ZB_ZCL_GET_SEQ_NUM(), (ZB_TRUE), seq_num, (bm_params.AdditionalPayloadSize));
+  ZB_ZCL_PACKET_PUT_DATA8(cmd_ptr, (DUMMY_PAYLOAD));
+  ZB_ZCL_PACKET_PUT_DATA8(cmd_ptr, (DUMMY_PAYLOAD));
   for (zb_uint8_t i = 0; i < bm_params.AdditionalPayloadSize; i++) {
     ZB_ZCL_PACKET_PUT_DATA8(cmd_ptr, (DUMMY_PAYLOAD));
   }
@@ -388,7 +395,7 @@ void bm_read_message_info(zb_uint16_t dst_addr_short, zb_uint16_t tsn) {
   zb_bool_t led_toggle;
 
   message.number_of_hops = 0;
-  message.data_size = 1;
+  message.data_size = bm_params.AdditionalPayloadSize;
   message.rssi = 0;
   message.ack_net_time = 0;
 
@@ -494,9 +501,9 @@ void bm_get_ieee_eui64(zb_ieee_addr_t ieee_eui64) {
 void bm_zigbee_init(void) {
   zb_ret_t zb_err_code;
   zb_ieee_addr_t ieee_addr;
-  //  uint64_t ext_pan_id_64 = DEFAULT_PAN_ID_EXT;
-  //  zb_ext_pan_id_t ext_pan_id;
-  //  memcpy(ext_pan_id, &ext_pan_id_64, sizeof(ext_pan_id_64));
+  uint64_t ext_pan_id_64 = DEFAULT_PAN_ID_EXT;
+  zb_ext_pan_id_t ext_pan_id;
+  memcpy(ext_pan_id, &ext_pan_id_64, sizeof(ext_pan_id_64));
 
   /* Initialize timers, loging system and GPIOs. */
   timers_init();
@@ -514,8 +521,9 @@ void bm_zigbee_init(void) {
   zb_set_long_address(ieee_addr);
 
   /* Set short and extended pan id to the default value. */
-  //  zb_set_pan_id((zb_uint16_t)DEFAULT_PAN_ID_SHORT);
-  //  zb_set_extended_pan_id(ext_pan_id);
+  zb_set_pan_id((zb_uint16_t)DEFAULT_PAN_ID_SHORT);
+  zb_set_extended_pan_id(ext_pan_id);
+  zb_secur_setup_nwk_key((zb_uint8_t *)g_key_nwk, 0);
 
   zb_set_network_router_role(IEEE_CHANNEL_MASK);
   zb_set_max_children(MAX_CHILDREN);
@@ -537,9 +545,7 @@ void bm_zigbee_init(void) {
 /** Start Zigbee Stack. */
 void bm_zigbee_enable(void) {
   zb_ret_t zb_err_code;
-  zb_uint16_t stack_enable_max_delay_ms = STACK_STARTUP_MAX_DELAY;
-  zb_uint16_t network_formation_delay = NETWORK_FORMATION_DELAY;
-  zb_uint16_t stack_enable_delay_ms = ZB_RANDOM_VALUE(stack_enable_max_delay_ms) + network_formation_delay;
+  zb_uint16_t stack_enable_delay_ms = (bm_rand_32 % stack_enable_max_delay_ms) + network_formation_delay;
 
   /* Stack Enable Timeout to prevent crash at stack startup in order of too many simultaneous commissioning requests. */
   bm_cli_log("Zigbee Stack starts in: %d milliseconds\n", stack_enable_delay_ms);

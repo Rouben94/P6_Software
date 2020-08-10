@@ -39,6 +39,7 @@ along with Zigbee-Benchmark. If not, see <http://www.gnu.org/licenses/>.
 #include "bm_cli.h"
 #include "bm_config.h"
 #include "bm_log.h"
+#include "bm_rand.h"
 #include "bm_simple_buttons_and_leds.h"
 #include "bm_timesync.h"
 #include "bm_zigbee.h"
@@ -118,7 +119,12 @@ zb_uint8_t seq_num = 0;
 zb_uint16_t msg_receive_cnt = 0;
 zb_uint16_t msg_receive_cnt1 = 0;
 
-bm_tid_overflow_handler_t bm_tid_overflow_handler[max_number_of_nodes]; /* Excpect not more than max_number_of_nodes Different Adresses */
+zb_uint32_t stack_enable_max_delay_ms = STACK_STARTUP_MAX_DELAY;
+zb_uint32_t network_formation_delay = NETWORK_FORMATION_DELAY;
+
+static const zb_uint8_t g_key_nwk[16] = {0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89, 0, 0, 0, 0, 0, 0, 0, 0};
+
+//bm_tid_overflow_handler_t bm_tid_overflow_handler[max_number_of_nodes]; /* Excpect not more than max_number_of_nodes Different Adresses */
 
 static void buttons_handler(bsp_event_t evt);
 void bm_receive_message(zb_bufid_t bufid);
@@ -278,68 +284,68 @@ static void buttons_handler(bsp_event_t evt) {
 
 /************************************ Zigbee LQI request ***********************************************/
 
-void bm_get_lqi_cb(zb_bufid_t bufid) {
-  zb_uint8_t *zdp_cmd = zb_buf_begin(bufid);
-  zb_zdo_mgmt_lqi_resp_t *resp = (zb_zdo_mgmt_lqi_resp_t *)(zdp_cmd);
-  zb_zdo_neighbor_table_record_t *record = (zb_zdo_neighbor_table_record_t *)(resp + 1);
-  zb_uint_t i;
+//void bm_get_lqi_cb(zb_bufid_t bufid) {
+//  zb_uint8_t *zdp_cmd = zb_buf_begin(bufid);
+//  zb_zdo_mgmt_lqi_resp_t *resp = (zb_zdo_mgmt_lqi_resp_t *)(zdp_cmd);
+//  zb_zdo_neighbor_table_record_t *record = (zb_zdo_neighbor_table_record_t *)(resp + 1);
+//  zb_uint_t i;
+//
+//  bm_cli_log("bm_get_lqi_cb status %hd, neighbor_table_entries %hd, start_index %hd, neighbor_table_list_count %d\n",
+//      resp->status, resp->neighbor_table_entries, resp->start_index, resp->neighbor_table_list_count);
+//
+//  for (i = 0; i < resp->neighbor_table_list_count; i++) {
+//    bm_cli_log("Neighbor Table Record: #%hd: network_addr 0x%x, lqi %hd\n", i, record->network_addr, record->lqi);
+//    record++;
+//  }
+//}
 
-  bm_cli_log("bm_get_lqi_cb status %hd, neighbor_table_entries %hd, start_index %hd, neighbor_table_list_count %d\n",
-      resp->status, resp->neighbor_table_entries, resp->start_index, resp->neighbor_table_list_count);
-
-  for (i = 0; i < resp->neighbor_table_list_count; i++) {
-    bm_cli_log("Neighbor Table Record: #%hd: network_addr 0x%x, lqi %hd\n", i, record->network_addr, record->lqi);
-    record++;
-  }
-}
-
-zb_void_t bm_get_lqi(zb_bufid_t bufid, uint16_t start_index) {
-  zb_ieee_addr_t ieee_node_addr;
-  zb_uint8_t tsn;
-  zb_zdo_mgmt_lqi_param_t *req_param;
-
-  req_param = ZB_BUF_GET_PARAM(bufid, zb_zdo_mgmt_lqi_param_t);
-
-  req_param->start_index = start_index;
-  zb_get_long_address(ieee_node_addr);
-  req_param->dst_addr = zb_address_short_by_ieee(ieee_node_addr);
-  tsn = zb_zdo_mgmt_lqi_req(bufid, bm_get_lqi_cb);
-}
-
-zb_void_t bm_schedule_lqi(zb_uint8_t param) {
-  zb_ret_t zb_err_code;
-  zb_err_code = zb_buf_get_out_delayed_ext(bm_get_lqi, 0, 0);
-  ZB_ERROR_CHECK(zb_err_code);
-  zb_err_code = zb_buf_get_out_delayed_ext(bm_get_lqi, 2, 0);
-  ZB_ERROR_CHECK(zb_err_code);
-  zb_err_code = zb_buf_get_out_delayed_ext(bm_get_lqi, 4, 0);
-  ZB_ERROR_CHECK(zb_err_code);
-}
+//zb_void_t bm_get_lqi(zb_bufid_t bufid, uint16_t start_index) {
+//  zb_ieee_addr_t ieee_node_addr;
+//  zb_uint8_t tsn;
+//  zb_zdo_mgmt_lqi_param_t *req_param;
+//
+//  req_param = ZB_BUF_GET_PARAM(bufid, zb_zdo_mgmt_lqi_param_t);
+//
+//  req_param->start_index = start_index;
+//  zb_get_long_address(ieee_node_addr);
+//  req_param->dst_addr = zb_address_short_by_ieee(ieee_node_addr);
+//  tsn = zb_zdo_mgmt_lqi_req(bufid, bm_get_lqi_cb);
+//}
+//
+//zb_void_t bm_schedule_lqi(zb_uint8_t param) {
+//  zb_ret_t zb_err_code;
+//  zb_err_code = zb_buf_get_out_delayed_ext(bm_get_lqi, 0, 0);
+//  ZB_ERROR_CHECK(zb_err_code);
+//  zb_err_code = zb_buf_get_out_delayed_ext(bm_get_lqi, 2, 0);
+//  ZB_ERROR_CHECK(zb_err_code);
+//  zb_err_code = zb_buf_get_out_delayed_ext(bm_get_lqi, 4, 0);
+//  ZB_ERROR_CHECK(zb_err_code);
+//}
 
 /************************************ Benchmark Functions ***********************************************/
 
 /* Insert the tid and src address to get the merged tid with the tid overflow cnt -> resulting in a uint16_t */
-uint16_t bm_get_overflow_tid_from_overflow_handler(uint8_t tid, uint16_t src_addr) {
-  // Get the TID in array
-  for (int i = 0; i < max_number_of_nodes; i++) {
-    if (bm_tid_overflow_handler[i].src_addr == src_addr) {
-      // Check if Overflow happend
-      if ((bm_tid_overflow_handler[i].last_TID_seen - tid) > 250) {
-        bm_tid_overflow_handler[i].TID_OverflowCnt++;
-      }
-      // Add the last seen TID
-      bm_tid_overflow_handler[i].last_TID_seen = tid;
-      return (uint16_t)(bm_tid_overflow_handler[i].TID_OverflowCnt << 8) | (tid & 0xff);
-    } else if (bm_tid_overflow_handler[i].src_addr == 0) {
-      // Add the Src Adress
-      bm_tid_overflow_handler[i].src_addr = src_addr;
-      bm_tid_overflow_handler[i].last_TID_seen = tid;
-      bm_tid_overflow_handler[i].TID_OverflowCnt = 0;
-      return (uint16_t)(bm_tid_overflow_handler[i].TID_OverflowCnt << 8) | (tid & 0xff);
-    }
-  }
-  return 0;
-}
+//uint16_t bm_get_overflow_tid_from_overflow_handler(uint8_t tid, uint16_t src_addr) {
+//  // Get the TID in array
+//  for (int i = 0; i < max_number_of_nodes; i++) {
+//    if (bm_tid_overflow_handler[i].src_addr == src_addr) {
+//      // Check if Overflow happend
+//      if ((bm_tid_overflow_handler[i].last_TID_seen - tid) > 250) {
+//        bm_tid_overflow_handler[i].TID_OverflowCnt++;
+//      }
+//      // Add the last seen TID
+//      bm_tid_overflow_handler[i].last_TID_seen = tid;
+//      return (uint16_t)(bm_tid_overflow_handler[i].TID_OverflowCnt << 8) | (tid & 0xff);
+//    } else if (bm_tid_overflow_handler[i].src_addr == 0) {
+//      // Add the Src Adress
+//      bm_tid_overflow_handler[i].src_addr = src_addr;
+//      bm_tid_overflow_handler[i].last_TID_seen = tid;
+//      bm_tid_overflow_handler[i].TID_OverflowCnt = 0;
+//      return (uint16_t)(bm_tid_overflow_handler[i].TID_OverflowCnt << 8) | (tid & 0xff);
+//    }
+//  }
+//  return 0;
+//}
 
 /**@brief Function for sending add group request to the local node.
  *
@@ -387,6 +393,8 @@ void bm_receive_message(zb_bufid_t bufid) {
   message.dst_addr = zb_address_short_by_ieee(ieee_dst_addr);
   message.group_addr = bm_params.GroupAddress + GROUP_ID;
 
+  /* Manufacturer specific field in ZCL Header is used to transmit Message ID.
+  First check ZCL header if manufacturer specific field is available. */
   if (zcl_info->is_manuf_specific) {
     message.message_id = zcl_info->manuf_specific;
   } else {
@@ -400,8 +408,6 @@ void bm_receive_message(zb_bufid_t bufid) {
 
   bm_log_append_ram(message);
   bm_on_off_set_value((zb_bool_t)message.message_id % 2);
-
-  return;
 }
 
 /************************************ Zigbee event handler ***********************************************/
@@ -439,29 +445,29 @@ zb_uint8_t bm_ep_handler(zb_bufid_t bufid) {
  *
  * @param[in]   bufid   Reference to Zigbee stack buffer used to pass received data.
  */
-static zb_void_t zcl_device_cb(zb_bufid_t bufid) {
-  zb_uint8_t cluster_id;
-  zb_uint8_t attr_id;
-  zb_zcl_device_callback_param_t *p_device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
-
-  msg_receive_cnt++;
-  bm_cli_log("Message received in zcl_device_cb: %d\n", msg_receive_cnt);
-
-  /* Set default response value. */
-  p_device_cb_param->status = RET_OK;
-
-  switch (p_device_cb_param->device_cb_id) {
-  case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
-
-    bm_receive_message(bufid);
-
-    break;
-
-  default:
-    p_device_cb_param->status = RET_ERROR;
-    break;
-  }
-}
+//static zb_void_t zcl_device_cb(zb_bufid_t bufid) {
+//  zb_uint8_t cluster_id;
+//  zb_uint8_t attr_id;
+//  zb_zcl_device_callback_param_t *p_device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
+//
+//  msg_receive_cnt++;
+//  bm_cli_log("Message received in zcl_device_cb: %d\n", msg_receive_cnt);
+//
+//  /* Set default response value. */
+//  p_device_cb_param->status = RET_OK;
+//
+//  switch (p_device_cb_param->device_cb_id) {
+//  case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
+//
+//    bm_receive_message(bufid);
+//
+//    break;
+//
+//  default:
+//    p_device_cb_param->status = RET_ERROR;
+//    break;
+//  }
+//}
 
 /**@brief Zigbee stack event handler.
  *
@@ -534,9 +540,9 @@ void bm_get_ieee_eui64(zb_ieee_addr_t ieee_eui64) {
 void bm_zigbee_init(void) {
   zb_ieee_addr_t ieee_addr;
   uint64_t long_address;
-  //  uint64_t ext_pan_id_64 = DEFAULT_PAN_ID_EXT;
-  //  zb_ext_pan_id_t ext_pan_id;
-  //  memcpy(ext_pan_id, &ext_pan_id_64, sizeof(ext_pan_id_64));
+  uint64_t ext_pan_id_64 = DEFAULT_PAN_ID_EXT;
+  zb_ext_pan_id_t ext_pan_id;
+  memcpy(ext_pan_id, &ext_pan_id_64, sizeof(ext_pan_id_64));
 
   /* Initialize timer, logging system and GPIOs. */
   timer_init();
@@ -554,8 +560,9 @@ void bm_zigbee_init(void) {
   zb_set_long_address(ieee_addr);
 
   /* Set short and extended pan id to the default value. */
-  //  zb_set_pan_id((zb_uint16_t)DEFAULT_PAN_ID_SHORT);
-  //  zb_set_extended_pan_id(ext_pan_id);
+  zb_set_pan_id((zb_uint16_t)DEFAULT_PAN_ID_SHORT);
+  zb_set_extended_pan_id(ext_pan_id);
+  zb_secur_setup_nwk_key((zb_uint8_t *)g_key_nwk, 0);
 
   /* Set static long IEEE address. */
   zb_set_network_router_role(IEEE_CHANNEL_MASK);
@@ -571,7 +578,7 @@ void bm_zigbee_init(void) {
 
   /* Register callback for handling ZCL commands. */
   ZB_AF_SET_ENDPOINT_HANDLER(BENCHMARK_SERVER_ENDPOINT, bm_ep_handler);
-  ZB_ZCL_REGISTER_DEVICE_CB(zcl_device_cb);
+  //  ZB_ZCL_REGISTER_DEVICE_CB(zcl_device_cb);
 
   bm_server_clusters_attr_init();
 }
@@ -579,9 +586,7 @@ void bm_zigbee_init(void) {
 /** Start Zigbee Stack. */
 void bm_zigbee_enable(void) {
   zb_ret_t zb_err_code;
-  zb_uint16_t stack_enable_max_delay_ms = STACK_STARTUP_MAX_DELAY;
-  zb_uint16_t network_formation_delay = NETWORK_FORMATION_DELAY; 
-  zb_uint16_t stack_enable_delay_ms = ZB_RANDOM_VALUE(stack_enable_max_delay_ms) + network_formation_delay;
+  zb_uint16_t stack_enable_delay_ms = (bm_rand_32 % stack_enable_max_delay_ms) + network_formation_delay;
 
   /* Stack Enable Timeout to prevent crash at stack startup in order of too many simultaneous commissioning requests. */
   bm_cli_log("Zigbee Stack starts in: %d milliseconds\n", stack_enable_delay_ms);
