@@ -37,8 +37,8 @@ for ind in df.index:
         break
     print("Set node settings for Node " + str(df['Dev ID'][ind]))
     #time.sleep(3)
-    print("setNodeSettings " + str(int(str(df['Dev ID'][ind]), 16)) + " " + str(df['Group ID'][ind]) + " " + str(df['Node Id'][ind]) + " " + str(df['Ack'][ind]) + " " + str(df['Add Payload Len'][ind]) + " " + str(int(str(df['DST_MAC_1'][ind]), 16)) + " " + str(int(str(df['DST_MAC_2'][ind]), 16)) + " " + str(int(str(df['DST_MAC_3'][ind]), 16)))
-    serialcmd = "setNodeSettings " + str(int(str(df['Dev ID'][ind]), 16)) + " " + str(df['Group ID'][ind]) + " " + str(df['Node Id'][ind]) + " " + str(df['Ack'][ind]) + " " + str(df['Add Payload Len'][ind]) + " " + str(int(str(df['DST_MAC_1'][ind]), 16)) + " " + str(int(str(df['DST_MAC_2'][ind]), 16)) + " " + str(int(str(df['DST_MAC_3'][ind]), 16)) + "\r"
+    print("setNodeSettings " + str(int(str(df['Dev ID'][ind]), 16)) + " " + str(df['Group ID'][ind]) + " " + str(df['Node Id'][ind]) + " " + str(df['Ack'][ind])+ " " + str(df['Add Payload Len'][ind]) + " " + str(df['Traffic Gen Mode'][ind]) + " " + str(int(str(df['DST_MAC_1'][ind]), 16)) + " " + str(int(str(df['DST_MAC_2'][ind]), 16)) + " " + str(int(str(df['DST_MAC_3'][ind]), 16)))
+    serialcmd = "setNodeSettings " + str(int(str(df['Dev ID'][ind]), 16)) + " " + str(df['Group ID'][ind]) + " " + str(df['Node Id'][ind]) + " " + str(df['Ack'][ind]) + " " + str(df['Add Payload Len'][ind]) + " " + str(df['Traffic Gen Mode'][ind]) + " " + str(int(str(df['DST_MAC_1'][ind]), 16)) + " " + str(int(str(df['DST_MAC_2'][ind]), 16)) + " " + str(int(str(df['DST_MAC_3'][ind]), 16)) + "\r"
     ser.write(serialcmd.encode("ascii"))
     ser.flushInput()
     while True:        

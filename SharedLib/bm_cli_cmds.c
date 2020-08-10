@@ -58,7 +58,7 @@ static int cmd_getNodeReport(const struct shell *shell, size_t argc, char **argv
 SHELL_CMD_REGISTER(getNodeReport, NULL, "Get the Node Report", cmd_getNodeReport);
 
 static int cmd_setNodeSettings(const struct shell *shell, size_t argc, char **argv) { // Todo: Add error check for validating the Params are valid
-  if (argc == 9) {
+  if (argc == 10) {
     bm_cli_cmd_setNodeSettings.MAC = atoi(argv[1]);          // MAC Adress in integer value format
     bm_cli_cmd_setNodeSettings.GroupAddress = atoi(argv[2]); // Group Address Number (0-25)
     bm_cli_cmd_setNodeSettings.NodeId = atoi(argv[3]); // NodeId Number (0-50)
@@ -103,7 +103,7 @@ static void cmd_getNodeReport(nrf_cli_t const *p_cli, size_t argc, char **argv) 
 NRF_CLI_CMD_REGISTER(getNodeReport, NULL, "Get the Node Report", cmd_getNodeReport);
 
 static void cmd_setNodeSettings(nrf_cli_t const *p_cli, size_t argc, char **argv) { // Todo: Add error check for validating the Params are valid
-  if (argc == 9) {
+  if (argc == 10) {
     bm_cli_cmd_setNodeSettings.MAC = strtoul(argv[1], NULL, NULL); // MAC Adress in integer value format
     bm_cli_cmd_setNodeSettings.GroupAddress = atoi(argv[2]);       // Group Address Number (0-25)
     bm_cli_cmd_setNodeSettings.NodeId = atoi(argv[3]); // NodeId Number (0-50)

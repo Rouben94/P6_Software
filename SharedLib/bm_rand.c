@@ -155,12 +155,12 @@ void bm_rand_init_message_ts()
     uint64_t benchtime_us = bm_params.benchmark_time_s * 1e6;
     uint64_t time_max_nodes_for_one_packet_us = benchtime_us / bm_params.benchmark_packet_cnt;
     uint64_t time_for_one_packet_us = time_max_nodes_for_one_packet_us / max_nodes_cnt;
-    int i = 0;
+    if (bm_params.Node_Id < 1){ bm_params.Node_Id = 1;} // Save Node Id Smaller than 0
     for (int i = 0; i < bm_params.benchmark_packet_cnt; i++)
     {
-      (bm_params.Node_Id - 1) * time_for_one_packet_us + i * max_nodes_cnt * time_for_one_packet_us    
-    }
-    
+      bm_rand_msg_ts[i] = (uint64_t)(bm_params.Node_Id - 1) * time_for_one_packet_us + i * time_max_nodes_for_one_packet_us; // Set the Packet TIme according to the Settings  
+      bm_cli_log("Value is %u us\n", (uint32_t)bm_rand_msg_ts[i]);
+    }    
   }
 
 }
