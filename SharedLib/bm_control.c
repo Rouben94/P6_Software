@@ -49,7 +49,7 @@ along with Benchmark-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 #define sub_time_on_ch_ms (pub_time_on_ch_ms * CommonCHCnt)               // Subscribe Time on one Channel (~15ms)
 #define pub_sub_time_ms (pub_time_on_ch_ms * CommonCHCnt * CommonCHCnt)   // Publishing or Subscribing Time ms (~45ms)
 #define backoff_time_max_ms (1000)                                        // Calculate with probability of collisions
-#define depth_valid_time_ms (2 * (backoff_time_max_ms + pub_sub_time_ms)) // Maximum Time the Depth field is valid to not relay messages with a higher depth
+#define depth_valid_time_ms (10 * (backoff_time_max_ms + pub_sub_time_ms)) // Maximum Time the Depth field is valid to not relay messages with a higher depth
 
 static RADIO_PACKET Radio_Packet_TX, Radio_Packet_RX;
 
@@ -92,7 +92,7 @@ bool bm_control_msg_subscribe(bm_control_msg_t *bm_control_msg) {
         *bm_control_msg = *(bm_control_msg_t *)Radio_Packet_RX.PDU; // Bring the sheep to a dry place
         bm_cli_log("Control Message received depth: %u last received depth: %u\n", (*bm_control_msg).depth, last_depth_received);
         /* Chek if Relay Message */
-        if ((last_depth_received > (*bm_control_msg).depth) || (synctimer_getSyncTime() >= last_depth_received_valid_till_ts_us)) {
+        if ((last_depth_received >= (*bm_control_msg).depth) || (synctimer_getSyncTime() >= last_depth_received_valid_till_ts_us)) {
           /* Relay Message */
           last_depth_received = (*bm_control_msg).depth; // Set last received depth
           bm_cli_log("set last depth: %u\n", (*bm_control_msg).depth);

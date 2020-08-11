@@ -92,9 +92,9 @@ static struct bt_mesh_cfg_srv cfg_srv = {
 	.relay_retransmit = BT_MESH_TRANSMIT(2, 20),
 	*/
 
-	/* 0 retransmissions with 20ms interval */
-	.net_transmit = BT_MESH_TRANSMIT(0, 20),
-	.relay_retransmit = BT_MESH_TRANSMIT(0, 20),
+	/* 0 retransmissions with 0ms interval */
+	.net_transmit = BT_MESH_TRANSMIT(0, 0),
+	.relay_retransmit = BT_MESH_TRANSMIT(0, 0),
 	
 
 };
