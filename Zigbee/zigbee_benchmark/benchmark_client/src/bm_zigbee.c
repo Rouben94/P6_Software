@@ -408,7 +408,6 @@ void bm_read_message_info(zb_uint16_t dst_addr_short, zb_uint16_t tsn) {
   } else {
     message.dst_addr = dst_addr_short;
   }
-  //  message.message_id = bm_get_overflow_tid_from_overflow_handler(tsn, message.src_addr);
   message.message_id = tsn;
   message.net_time = synctimer_getSyncTime();
 
@@ -514,7 +513,7 @@ void bm_zigbee_init(void) {
   ZB_SET_TRAF_DUMP_OFF();
 
   /* Initialize Zigbee stack. */
-  ZB_INIT("light_switch");
+  ZB_INIT("Benchmark Client");
 
   /* Set device address to the value read from FICR registers. */
   bm_get_ieee_eui64(ieee_addr);

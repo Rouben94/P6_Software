@@ -99,6 +99,8 @@ void zboss_signal_handler(zb_bufid_t bufid) {
   zb_bool_t comm_status;
   zb_time_t timeout_bi;
 
+  bm_cli_log("ZDO Signal: %d\n", sig);
+
   switch (sig) {
   case ZB_BDB_SIGNAL_DEVICE_REBOOT:
     ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
@@ -128,36 +130,14 @@ void zboss_signal_handler(zb_bufid_t bufid) {
       /* Schedule an alarm to notify about the end of steering period */
       bm_cli_log("Network steering started\n");
       zb_err_code = ZB_SCHEDULE_APP_ALARM(steering_finished, 0, ZB_TIME_ONE_SECOND * ZB_ZGP_DEFAULT_COMMISSIONING_WINDOW);
+      bm_cli_log("Active channel %d\n", nrf_802154_channel_get());
       ZB_ERROR_CHECK(zb_err_code);
     }
     zb_enable_auto_pan_id_conflict_resolution(ZB_FALSE);
     break;
 
   case ZB_ZDO_SIGNAL_DEVICE_AUTHORIZED:
-    /* This signal notifies the Zigbee Trust center application (usually implemented on the coordinator node)
-             * about authorization of a new device in the network.
-             *
-             * For Zigbee 3.0 (and newer) devices this signal is generated if:
-             *  - TCKL exchange procedure was successful
-             *  - TCKL exchange procedure timed out
-             *
-             * If the coordinator allows for legacy devices to join the network (enabled by zb_bdb_set_legacy_device_support(1) API call),
-             * this signal is generated:
-             *  - If the parent router generates Update Device command and the joining device does not perform TCLK exchange within timeout.
-             *  - If the TCLK exchange is successful.
-             */
-    {
-      zb_zdo_signal_device_authorized_params_t *p_authorize_params = ZB_ZDO_SIGNAL_GET_PARAMS(p_sg_p, zb_zdo_signal_device_authorized_params_t);
-      char ieee_addr_buf[17] = {0};
-      int addr_len;
-
-      addr_len = ieee_addr_to_str(ieee_addr_buf, sizeof(ieee_addr_buf), p_authorize_params->long_addr);
-      if (addr_len < 0) {
-        strcpy(ieee_addr_buf, "unknown");
-      }
-      bm_cli_log("Device authorization event received (short: 0x%04hx, long: %s, authorization type: %d, authorization status: %d)\n",
-          p_authorize_params->short_addr, ieee_addr_buf, p_authorize_params->authorization_type, p_authorize_params->authorization_status);
-    }
+    ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
     bm_dev_joined_cnt++;
     bm_cli_log("New Zigbee Device joined the network. Device count: %d\n", bm_dev_joined_cnt);
 
@@ -207,7 +187,7 @@ void bm_zigbee_init(void) {
   ZB_SET_TRAF_DUMP_OFF();
 
   /* Initialize Zigbee stack. */
-  ZB_INIT("zc");
+  ZB_INIT("Benchmark Master");
 
   /* Set device address to the value read from FICR registers. */
   bm_get_ieee_eui64(ieee_addr);
