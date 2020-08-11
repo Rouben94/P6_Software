@@ -43,6 +43,8 @@ along with Zigbee-Benchmark. If not, see <http://www.gnu.org/licenses/>.
 
 zb_uint8_t bm_dev_joined_cnt = 0;
 
+static const zb_uint8_t g_key_nwk[16] = {0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89, 0, 0, 0, 0, 0, 0, 0, 0};
+
 /************************************ General Init Functions ***********************************************/
 
 /**@brief Callback used in order to visualise network steering period.
@@ -53,6 +55,13 @@ static zb_void_t steering_finished(zb_uint8_t param) {
   UNUSED_PARAMETER(param);
   bm_cli_log("Network steering finished\n");
   bm_led2_set(true);
+}
+
+/* Get device address of the local device.*/
+void bm_get_ieee_eui64(zb_ieee_addr_t ieee_eui64) {
+  uint64_t factoryAddress;
+  factoryAddress = NRF_FICR->DEVICEADDR[0];
+  memcpy(ieee_eui64, &factoryAddress, sizeof(factoryAddress));
 }
 
 /************************************ Button Handler Functions ***********************************************/
@@ -162,15 +171,6 @@ void zboss_signal_handler(zb_bufid_t bufid) {
     zb_buf_free(bufid);
   }
 }
-
-/* Get device address of the local device.*/
-void bm_get_ieee_eui64(zb_ieee_addr_t ieee_eui64) {
-  uint64_t factoryAddress;
-  factoryAddress = NRF_FICR->DEVICEADDR[0];
-  memcpy(ieee_eui64, &factoryAddress, sizeof(factoryAddress));
-}
-
-static const zb_uint8_t g_key_nwk[16] = {0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89, 0, 0, 0, 0, 0, 0, 0, 0};
 
 /**************************************** Zigbee Stack Init and Enable ***********************************************/
 
