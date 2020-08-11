@@ -540,9 +540,9 @@ void bm_get_ieee_eui64(zb_ieee_addr_t ieee_eui64) {
 void bm_zigbee_init(void) {
   zb_ieee_addr_t ieee_addr;
   uint64_t long_address;
-  uint64_t ext_pan_id_64 = DEFAULT_PAN_ID_EXT;
-  zb_ext_pan_id_t ext_pan_id;
-  memcpy(ext_pan_id, &ext_pan_id_64, sizeof(ext_pan_id_64));
+    uint64_t ext_pan_id_64 = DEFAULT_PAN_ID_EXT;
+    zb_ext_pan_id_t ext_pan_id;
+    memcpy(ext_pan_id, &ext_pan_id_64, sizeof(ext_pan_id_64));
 
   /* Initialize timer, logging system and GPIOs. */
   timer_init();

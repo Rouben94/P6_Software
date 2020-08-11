@@ -46,19 +46,19 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 #define ZBOSS_MAIN_LOOP_ITERATION_TIME_MARGIN_MS 1000 /* Time Margin needed because zboss can block timecheck. note this time will be added to the Stack Init Time */
 #define MAX_CHILDREN 10                               /* The maximum amount of connected devices. Setting this value to 0 disables association to this device.  */
 
-//#define IEEE_CHANNEL_MASK (1l << ZIGBEE_CHANNEL) /**< Scan only one, predefined channel to find the coordinator. */
-#define IEEE_CHANNEL_MASK 0x07fff800U
+#define ERASE_PERSISTENT_CONFIG ZB_FALSE         /**< Do not erase NVRAM to save the network parameters after device reboot or power-off. NOTE: If this option is set to ZB_TRUE then do full device erase for all network devices before running other samples. */
+#define IEEE_CHANNEL_MASK (1l << ZIGBEE_CHANNEL) /**< Scan only one, predefined channel to find the coordinator. */
+//#define IEEE_CHANNEL_MASK 0x07fff800U
 #define DEFAULT_PAN_ID_EXT 0x11223344
 #define DEFAULT_PAN_ID_SHORT 0x0D13
-#define STACK_STARTUP_MAX_DELAY 40000
-#define NETWORK_FORMATION_DELAY 15000
+#define STACK_STARTUP_MAX_DELAY 30000
+#define NETWORK_FORMATION_DELAY 5000
 
 #define DUMMY_PAYLOAD 0xFE
 
 #define MATCH_DESC_REQ_START_DELAY (2 * ZB_TIME_ONE_SECOND)  /**< Delay between the light switch startup and light bulb finding procedure. */
 #define MATCH_DESC_REQ_TIMEOUT (5 * ZB_TIME_ONE_SECOND)      /**< Timeout for finding procedure. */
 #define MATCH_DESC_REQ_ROLE ZB_NWK_BROADCAST_RX_ON_WHEN_IDLE /**< Find only non-sleepy device. */
-#define ERASE_PERSISTENT_CONFIG ZB_TRUE                      /**< Do not erase NVRAM to save the network parameters after device reboot or power-off. NOTE: If this option is set to ZB_TRUE then do full device erase for all network devices before running other samples. */
 
 #define BENCHMARK_INIT_BASIC_APP_VERSION 01                                   /* Version of the application software (1 byte). */
 #define BENCHMARK_INIT_BASIC_STACK_VERSION 10                                 /* Version of the implementation of the Zigbee stack (1 byte). */
@@ -76,21 +76,10 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 #define LIGHT_SWITCH_BUTTON_SHORT_POLL_TMO ZB_MILLISECONDS_TO_BEACON_INTERVAL(50) /**< Delay between button state checks used in order to detect button long press. */
 #define LIGHT_SWITCH_BUTTON_LONG_POLL_TMO ZB_MILLISECONDS_TO_BEACON_INTERVAL(300) /**< Time after which the button state is checked again to detect button hold - the dimm command is sent again. */
 
-//#ifdef BOARD_PCA10059                            /**< If it is Dongle */
 #define ZIGBEE_NETWORK_STATE_LED BSP_BOARD_LED_0 /**< LED indicating that light switch successfully joind Zigbee network. */
 #define BULB_LED BSP_BOARD_LED_3                 /**< LED immitaing dimmable light bulb. */
 #define DONGLE_BUTTON BSP_EVENT_KEY_0            /**< Button event used trigger button actions on the dongle hardware */
 #define DONGLE_BUTTON_ON BSP_BOARD_BUTTON_0      /**< Button ID used to switch on the Dongle button */
-//#else
-//#define IDENTIFY_MODE_BSP_EVT BSP_EVENT_KEY_3    /**< Button event used to enter the Bulb into the Identify mode. */
-//#define ZIGBEE_NETWORK_STATE_LED BSP_BOARD_LED_2 /**< LED indicating that light switch successfully joind Zigbee network. */
-//
-//#define ZIGBEE_NETWORK_STATE_LED BSP_BOARD_LED_2   /**< LED indicating that light switch successfully joind Zigbee network. */
-//#define LIGHT_SWITCH_BUTTON_ON BSP_BOARD_BUTTON_0  /**< Button ID used to switch on the light bulb. */
-//#define LIGHT_SWITCH_BUTTON_OFF BSP_BOARD_BUTTON_1 /**< Button ID used to switch off the light bulb. */
-//#define BENCHMARK_BUTTON BSP_BOARD_BUTTON_2        /**< Button ID used to switch off the light bulb. */
-//#define TEST_BUTTON BSP_BOARD_BUTTON_3             /**< Button ID used to switch off the light bulb. */
-//#endif
 
 /* Benchmark specific Definitions*/
 #define BENCHMARK_CLIENT_ENDPOINT 1  /* ZCL Endpoint of the Benchmark Client */
