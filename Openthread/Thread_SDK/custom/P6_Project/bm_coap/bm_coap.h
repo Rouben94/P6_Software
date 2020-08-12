@@ -45,15 +45,7 @@
 #include <openthread/coap.h>
 
 #include "thread_utils.h"
-#include "bm_ot_statemachine.h"
-
-/**@brief Benchmark configuration structure. */
-typedef struct
-{
-  bool bm_status;                               /**<  Indicates if the benchmark should start or stop*/
-  otIp6Address bm_master_ip6_address;   /**<  Tells the slave node which Ip6 address the master node has*/
-  uint32_t bm_time;                             /**<  Tells the slave node how long the benchmark does take*/
-} bm_master_message;
+#include "bm_statemachine.h"
 
 /**@brief Thread CoAP utils configuration structure. */
 typedef struct
@@ -83,48 +75,13 @@ void thread_coap_utils_deinit(void);
  * @section CoAP client function proptypes.
  **************************************************************************************************/
 
-/**@brief Function for sending the benchmark start request message to the multicast IPv6 address.
- *
- * @param[in] message  message struct with benchmark start / Ip6 address from master node / benchmark time.
- * @param[in] scope    IPv6 multicast address scope.
- *
- */
-void bm_coap_multicast_start_send(bm_master_message message);
+
 
 /**@brief Function for sending the benchmark test message to the peered unicast IPv6 address.
  *
  * @param[in] message  message state
  *
  */
-void bm_coap_probe_message_send(uint8_t state);
-
-/**@brief Function for sending the benchmark test message to the peered unicast IPv6 address.
- *
- * @param[in] message  message state
- *
- */
-void bm_coap_results_send(bm_message_info message_info);
-
-/**@brief Function for sending the benchmark test message to the peered unicast IPv6 address.
- *
- * @param[in] message  message state
- *
- */
-void bm_coap_result_request_send(otIp6Address address);
-
-/**@brief Function for sending the benchmark test message to the peered unicast IPv6 address.
- *
- * @param[in] message  message state
- *
- */
-void bm_increment_group_address(void);
-
-/**@brief Function for sending the benchmark test message to the peered unicast IPv6 address.
- *
- * @param[in] message  message state
- *
- */
-void bm_decrement_group_address(void);
-
+void bm_coap_probe_message_send(uint16_t size);
 
 #endif /* THREAD_COAP_UTILS_H__ */

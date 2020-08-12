@@ -41,6 +41,8 @@ along with Benchmark-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 #include "bm_zigbee.h"
 #elif defined NRF_SDK_THREAD
 #include "bm_simple_buttons_and_leds.h"
+#include "bm_ot.h"
+#include "thread_utils.h"
 #endif
 
 #include "bm_statemachine.h"
@@ -160,7 +162,6 @@ void ST_INIT_fn(void) {
   // Init MAC Address
   LSB_MAC_Address = NRF_FICR->DEVICEADDR[0];
   bm_cli_log("Preprogrammed Randomly Static MAC-Address (LSB): 0x%x, %u \n", LSB_MAC_Address, LSB_MAC_Address);
-
   bm_init_leds();
   bm_radio_init();
   synctimer_init();
@@ -169,7 +170,7 @@ void ST_INIT_fn(void) {
   bm_log_init();
   bm_op_time_counter_init();
 
-#ifdef NRF_SDK_ZIGBEE
+#if defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
   bm_cli_init();
 #endif
 
@@ -356,10 +357,21 @@ void ST_INIT_BENCHMARK_fn(void) {
   bm_zigbee_init();
   /** Start Zigbee Stack. */
   bm_zigbee_enable();
-  /* Zigbee or Zboss has its own RTOS Scheduler. He owns all the CPU so we let him work while we wait. 
+  /* Zigbee or Zboss has its own Scheduler. He owns all the CPU so we let him work while we wait. 
   Note that the check for time left slows down the Zboss stack a bit. Since we are still init the stack this shouldnt be a big deal. */
   while ((synctimer_getSyncTime() - start_time_ts_us) < ST_INIT_BENCHMARK_TIME_MS * 1000) {
     zboss_main_loop_iteration();
+#ifdef BENCHMARK_MASTER
+    bm_cli_process();
+    UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
+#endif
+#elif defined NRF_SDK_THREAD
+  /* Initialize and Start Openthread stack. */
+  bm_ot_init();
+  /* Openthread has its own Scheduler. He owns all the CPU so we let him work while we wait. 
+  Note that the check for time left slows down the Openthread stack a bit. Since we are still init the stack this shouldnt be a big deal. */
+  while ((synctimer_getSyncTime() - start_time_ts_us) < ST_INIT_BENCHMARK_TIME_MS * 1000) {
+    thread_process();
 #ifdef BENCHMARK_MASTER
     bm_cli_process();
     UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
@@ -397,6 +409,17 @@ void ST_BENCHMARK_fn(void) {
 #endif
   }
   bm_cli_log("Abort Zigbee Stack\n");
+#elif defined NRF_SDK_THREAD
+  /* Openthread has its own Scheduler. He owns all the CPU so we let him work while we wait. 
+  Note that the check for time left slows down the Openthread stack a bit. Since we are still init the stack this shouldnt be a big deal. */
+  while (currentState == ST_BENCHMARK) {
+    thread_process();
+#ifdef BENCHMARK_MASTER
+    bm_cli_process();
+    UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
+#endif
+  }
+  bm_cli_log("Abort Openthread Stack\n");
 #endif
   return;
 }

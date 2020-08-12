@@ -101,10 +101,10 @@ void bm_log_clear_storage_flash() {
 #endif
 
 void bm_log_save_to_flash() {
-#ifdef NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
+#if defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
   uint16_t bm_message_cnt_flash = 0;
   while (bm_message_cnt_flash < bm_message_cnt) {
-    flash_write(*((Measurement *)&message_info[bm_message_cnt_flash]));
+    flash_write(*((bm_message_info *)&message_info[bm_message_cnt_flash]));
     //    bm_cli_log("Message write to Flash Message Number: %d\n", bm_message_cnt_flash);
     bm_message_cnt_flash++;
   }
@@ -130,9 +130,9 @@ void bm_log_save_to_flash() {
 #endif
 }
 
-#ifdef NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
+#if defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
 /* Callback function to read Benchmark Message Info data from Flash. */
-void bm_log_load_from_flash_cb(Measurement *data) {
+void bm_log_load_from_flash_cb(bm_message_info *data) {
   message_info[bm_message_cnt] = *((bm_message_info *)data);
   bm_message_cnt++;
 }
@@ -140,7 +140,7 @@ void bm_log_load_from_flash_cb(Measurement *data) {
 
 uint32_t bm_log_load_from_flash() {
   bm_message_cnt = 0;
-#ifdef NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
+#if defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
   flash_read();
 #elif defined ZEPHYR_BLE_MESH
   uint32_t i, offset;
@@ -162,7 +162,7 @@ uint32_t bm_log_load_from_flash() {
 }
 
 void bm_log_init() {
-#ifdef NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
+#if defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
   flash_save_init(bm_log_load_from_flash_cb);
 #elif defined ZEPHYR_BLE_MESH
   flash_dev = device_get_binding(DT_CHOSEN_ZEPHYR_FLASH_CONTROLLER_LABEL);

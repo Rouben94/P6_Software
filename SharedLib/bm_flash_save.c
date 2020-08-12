@@ -78,7 +78,7 @@ void flash_read(void) {
   fds_record_desc_t record_desc;
   fds_flash_record_t flash_record;
   fds_find_token_t ftok;
-  Measurement *measure;
+  bm_message_info *measure;
 
   memset(&ftok, 0x00, sizeof(fds_find_token_t));
 
@@ -91,7 +91,7 @@ void flash_read(void) {
       }
     }
 
-    measure = (Measurement *)flash_record.p_data;
+    measure = (bm_message_info *)flash_record.p_data;
     cb(measure);
 
     rc = fds_record_close(&record_desc);
@@ -104,7 +104,7 @@ void flash_read(void) {
   }
 }
 
-void flash_write(Measurement measure) {
+void flash_write(bm_message_info measure) {
   fds_record_desc_t record_desc;
   fds_record_t record;
   ret_code_t rc;
@@ -127,7 +127,7 @@ void flash_delete(void) {
   fds_record_desc_t record_desc;
   fds_flash_record_t flash_record;
   fds_find_token_t ftok;
-  Measurement *measure;
+  bm_message_info *measure;
 
   memset(&ftok, 0x00, sizeof(fds_find_token_t));
 

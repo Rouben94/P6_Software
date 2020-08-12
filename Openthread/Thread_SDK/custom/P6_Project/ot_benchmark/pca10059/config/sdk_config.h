@@ -73,6 +73,13 @@
 #endif
 
 
+// <q> NRFX_NVMC_ENABLED  - nrfx_nvmc - Non-volatile Memory Controller (NVMC) driver
+ 
+
+#ifndef NRFX_NVMC_ENABLED
+#define NRFX_NVMC_ENABLED 1
+#endif
+
 
 
 /*************************************** SEGGER RTT ***************************************************/
@@ -234,7 +241,7 @@
 // <i> Functions that modify USBD state are functions for sleep, wakeup, start, stop, enable, and disable.
 //==========================================================
 #ifndef APP_USBD_CONFIG_EVENT_QUEUE_ENABLE
-#define APP_USBD_CONFIG_EVENT_QUEUE_ENABLE 0
+#define APP_USBD_CONFIG_EVENT_QUEUE_ENABLE 1
 #endif
 // <o> APP_USBD_CONFIG_EVENT_QUEUE_SIZE - The size of the event queue.  <16-64>
 
@@ -514,7 +521,7 @@
 // <q> NRF_CLI_CDC_ACM_ENABLED  - Enable/disable the CLI CDC ACM module.
 
 #ifndef NRF_CLI_CDC_ACM_ENABLED
-#define NRF_CLI_CDC_ACM_ENABLED 1
+#define NRF_CLI_CDC_ACM_ENABLED 0
 #endif
 
 // <o> NRF_CLI_CDC_ACM_COMM_INTERFACE - COMM interface number.
@@ -683,7 +690,7 @@
 // <i> The total amount of flash memory that is used by FDS amounts to @ref FDS_VIRTUAL_PAGES * @ref FDS_VIRTUAL_PAGE_SIZE * 4 bytes.
 
 #ifndef FDS_VIRTUAL_PAGES
-#define FDS_VIRTUAL_PAGES 90
+#define FDS_VIRTUAL_PAGES 20
 #endif
 
 // <o> FDS_VIRTUAL_PAGE_SIZE  - The size of a virtual flash page.
@@ -1975,7 +1982,7 @@
 // <e> RNG_ENABLED - nrf_drv_rng - RNG peripheral driver - legacy layer
 //==========================================================
 #ifndef RNG_ENABLED
-#define RNG_ENABLED 1
+#define RNG_ENABLED 0
 #endif
 // <q> RNG_CONFIG_ERROR_CORRECTION  - Error correction
 
@@ -2085,7 +2092,7 @@
 // <q> TIMER2_ENABLED  - Enable TIMER2 instance
 
 #ifndef TIMER2_ENABLED
-#define TIMER2_ENABLED 1
+#define TIMER2_ENABLED 0
 #endif
 
 // <q> TIMER3_ENABLED  - Enable TIMER3 instance
