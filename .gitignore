@@ -275,7 +275,7 @@ doc/doc.warnings
 .*project
 .settings
 .envrc
-.vscode
+# .vscode
 hide-defaults-note
 
 # Tag files
