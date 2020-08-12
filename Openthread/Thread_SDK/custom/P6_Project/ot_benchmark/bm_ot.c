@@ -237,7 +237,6 @@ static void bm_probe_message_handler(void                 * p_context,
         }
         
         bm_led3_set(message.message_id % 2);
-        //bsp_board_led_invert(BSP_BOARD_LED_3);
 
     } while (false);
 }
@@ -318,6 +317,7 @@ void bm_coap_probe_message_send(uint16_t payload_len)
         bm_cli_log("Failed to send Coap request: %d", error);
         otMessageFree(p_request);
     }
+    bm_led2_set(message.message_id % 2);
 }
 
 void bm_send_message(){
