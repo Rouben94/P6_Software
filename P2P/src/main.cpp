@@ -28,7 +28,7 @@ along with P2P-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 #include "Timer_sync.h"
 
 /* ------------- Definitions --------------*/
-#define isMaster 0									// Node is the Master (1) or Slave (0)
+#define isMaster 1									// Node is the Master (1) or Slave (0)
 #define CommonMode NRF_RADIO_MODE_BLE_LR125KBIT		// Common Mode
 #define CommonStartCH 37							// Common Start Channel
 #define CommonEndCH 39								// Common End Channel
@@ -72,7 +72,7 @@ along with P2P-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 // Margin for State Transition (Let the State Terminate)
 #define ST_TIME_MARGIN_MS 5
 // Addresses used by State. Random Generated for good diversity.
-#define DiscoveryAddress 0x9CE74F9A
+#define DiscoveryAddress 0x9CE7A98D
 #define MockupAddress 0x57855CC7
 #define ParamAddress 0x32C731E9
 #define PacketsAddress 0xF492A652
@@ -249,8 +249,6 @@ static u8_t GetNodeidx(u32_t MAC)
 	}
 	return 0xFF; //Node not found
 }
-
-#define RUN_STATUS_LED                  DT_ALIAS(led0)
 
 class Stopwatch
 {
