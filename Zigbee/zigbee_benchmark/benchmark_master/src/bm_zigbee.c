@@ -177,9 +177,9 @@ void zboss_signal_handler(zb_bufid_t bufid) {
 void bm_zigbee_init(void) {
   zb_ret_t zb_err_code;
   zb_ieee_addr_t ieee_addr;
-  uint64_t ext_pan_id_64 = DEFAULT_PAN_ID_EXT;
-  zb_ext_pan_id_t ext_pan_id;
-  memcpy(ext_pan_id, &ext_pan_id_64, sizeof(ext_pan_id_64));
+  //  uint64_t ext_pan_id_64 = DEFAULT_PAN_ID_EXT;
+  //  zb_ext_pan_id_t ext_pan_id;
+  //  memcpy(ext_pan_id, &ext_pan_id_64, sizeof(ext_pan_id_64));
 
   /* Set Zigbee stack logging level and traffic dump subsystem. */
   ZB_SET_TRACE_LEVEL(ZIGBEE_TRACE_LEVEL);
@@ -194,9 +194,9 @@ void bm_zigbee_init(void) {
   zb_set_long_address(ieee_addr);
 
   /* Set short and extended pan id to the default value. */
-  zb_set_pan_id((zb_uint16_t)DEFAULT_PAN_ID_SHORT);
-  zb_set_extended_pan_id(ext_pan_id);
-  zb_secur_setup_nwk_key((zb_uint8_t *)g_key_nwk, 0);
+//  zb_set_pan_id((zb_uint16_t)DEFAULT_PAN_ID_SHORT);
+//  zb_set_extended_pan_id(ext_pan_id);
+//  zb_secur_setup_nwk_key((zb_uint8_t *)g_key_nwk, 0);
 
   /* Set channels on which the coordinator will try to create a new network. */
   zb_set_network_coordinator_role(IEEE_CHANNEL_MASK);

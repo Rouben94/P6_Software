@@ -424,9 +424,9 @@ void zboss_signal_handler(zb_bufid_t bufid) {
 void bm_zigbee_init(void) {
   zb_ret_t zb_err_code;
   zb_ieee_addr_t ieee_addr;
-  uint64_t ext_pan_id_64 = DEFAULT_PAN_ID_EXT;
-  zb_ext_pan_id_t ext_pan_id;
-  memcpy(ext_pan_id, &ext_pan_id_64, sizeof(ext_pan_id_64));
+  //  uint64_t ext_pan_id_64 = DEFAULT_PAN_ID_EXT;
+  //  zb_ext_pan_id_t ext_pan_id;
+  //  memcpy(ext_pan_id, &ext_pan_id_64, sizeof(ext_pan_id_64));
 
   /* Initialize timers. */
   timers_init();
@@ -444,13 +444,14 @@ void bm_zigbee_init(void) {
   zb_set_long_address(ieee_addr);
 
   /* Set short and extended pan id to the default value. */
-  zb_set_pan_id((zb_uint16_t)DEFAULT_PAN_ID_SHORT);
-  zb_set_extended_pan_id(ext_pan_id);
-  zb_secur_setup_nwk_key((zb_uint8_t *)g_key_nwk, 0);
+//  zb_set_pan_id((zb_uint16_t)DEFAULT_PAN_ID_SHORT);
+//  zb_set_extended_pan_id(ext_pan_id);
+//  zb_secur_setup_nwk_key((zb_uint8_t *)g_key_nwk, 0);
 
   zb_set_network_router_role(IEEE_CHANNEL_MASK);
   zb_set_max_children(MAX_CHILDREN);
-  zigbee_erase_persistent_storage(ERASE_PERSISTENT_CONFIG);
+  //  zigbee_erase_persistent_storage(ERASE_PERSISTENT_CONFIG);
+  zigbee_erase_persistent_storage(bm_params.Ack);
 
   /* Initialize application context structure. */
   UNUSED_RETURN_VALUE(ZB_MEMSET(&m_device_ctx, 0, sizeof(light_switch_ctx_t)));
