@@ -450,7 +450,9 @@ void ST_MOCKUP_fn(void)
 		{
 			if ((!GotReportReq) || (!GotParam))
 			{
-				k_sleep(K_MSEC(rand_32 % ((k_timer_remaining_get(&state_timer) / CHidx) - 10))); // Sleep Random Mockup Delay minus 10ms send Margin
+				if (((k_timer_remaining_get(&state_timer) / CHidx)) >= 10){
+					k_sleep(K_MSEC(rand_32 % ((k_timer_remaining_get(&state_timer) / CHidx)))); // Sleep Random Mockup Delay minus 10ms send Margin
+				}
 				simple_nrf_radio.Send(radio_pkt_Tx, 0);
 			}
 			else
