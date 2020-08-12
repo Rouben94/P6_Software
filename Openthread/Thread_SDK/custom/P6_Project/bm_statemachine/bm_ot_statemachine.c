@@ -1,4 +1,5 @@
-#include "bm_statemachine.h"
+#include "bm_ot_statemachine.h"
+#include "bm_log.h"
 
 #include "app_timer.h"
 #include "boards.h"
@@ -29,51 +30,48 @@ APP_TIMER_DEF(m_msg_8_timer);
 APP_TIMER_DEF(m_msg_9_timer);
 APP_TIMER_DEF(m_msg_10_timer);
 
-bm_message_info message_info[NUMBER_OF_NETWORK_TIME_ELEMENTS] = {0};
+//bm_message_info message_info[NUMBER_OF_NETWORK_TIME_ELEMENTS] = {0};
 bm_message_info result[NUMBER_OF_NODES][NUMBER_OF_NETWORK_TIME_ELEMENTS] = {0};
 
 uint16_t bm_message_info_nr = 0;
+uint16_t bm_result_nr = 0;
 uint16_t bm_slave_nr = 0;
 
 otIp6Address bm_slave_address[NUMBER_OF_NODES] = {};
 uint32_t  bm_time = 0;
-uint64_t  last_net_time_seen = 0xffffffffffffff;
 uint8_t   bm_new_state = 0;
 uint8_t   bm_actual_state = 0;
 uint8_t   data_size = 1;
+uint8_t   s_timer = 0;
 
+uint16_t   last_message_id = 0xffff;
+uint8_t   msg_rec_cnt = 0;
 bool      bm_stop = true;
 
 /***************************************************************************************************
  * @section State machine - Functions
  **************************************************************************************************/
-void bm_reset_slave_address(void)
-{
-    bm_slave_nr = 0;
-    memset(bm_slave_address, 0, sizeof(bm_slave_address));
-}
-
 void bm_save_message_info(bm_message_info message)
 {
     message_info[bm_message_info_nr] = message;
     bm_message_info_nr++;
 }
 
-void bm_save_result(bm_message_info message[], uint16_t size)
+void bm_save_result(bm_message_info message)
 {
-    if(last_net_time_seen != message[0].net_time)
+    if(last_message_id != message.message_id)
     {
-        for(int i=0; i<size; i++)
-        {
-            if(message[i].net_time != 0)
-            {
-                bm_cli_write_result(message[i]);
-            }
-        }
+        bm_cli_write_result(message);
+        msg_rec_cnt++;
+    }
 
-        app_timer_stop(m_result_timer);
+    if(msg_rec_cnt == 10 && !bm_stop)
+    {
         bm_sm_new_state_set(BM_STATE_2_MASTER);
-    }  
+        app_timer_stop(m_result_timer);
+    }
+    
+    last_message_id = message.message_id;    
 }
 
 void bm_save_slave_address(otIp6Address slave_address)
@@ -110,7 +108,7 @@ static void start_timer(void)
 
     for (int i=0; i<10; i++)
     {
-        ticks_array[i] = otRandomNonCryptoGetUint16InRange(4000, bm_time);
+        ticks_array[i] = otRandomNonCryptoGetUint16InRange(1000, bm_time-1000);
     }
     
     error = app_timer_start(m_msg_1_timer, APP_TIMER_TICKS(ticks_array[0]), NULL);
@@ -149,61 +147,61 @@ static void start_timer(void)
  **************************************************************************************************/
 static void m_msg_1_handler(void * p_context)
 {
-    bsp_board_led_invert(BSP_BOARD_LED_3);
+    bsp_board_led_invert(BSP_BOARD_LED_2);
     bm_coap_probe_message_send(data_size);
 }
 
 static void m_msg_2_handler(void * p_context)
 {
-    bsp_board_led_invert(BSP_BOARD_LED_3);
+    bsp_board_led_invert(BSP_BOARD_LED_2);
     bm_coap_probe_message_send(data_size);
 }
 
 static void m_msg_3_handler(void * p_context)
 {
-    bsp_board_led_invert(BSP_BOARD_LED_3);
+    bsp_board_led_invert(BSP_BOARD_LED_2);
     bm_coap_probe_message_send(data_size);
 }
 
 static void m_msg_4_handler(void * p_context)
 {
-    bsp_board_led_invert(BSP_BOARD_LED_3);
+    bsp_board_led_invert(BSP_BOARD_LED_2);
     bm_coap_probe_message_send(data_size);
 }
 
 static void m_msg_5_handler(void * p_context)
 {
-    bsp_board_led_invert(BSP_BOARD_LED_3);
+    bsp_board_led_invert(BSP_BOARD_LED_2);
     bm_coap_probe_message_send(data_size);
 }
 
 static void m_msg_6_handler(void * p_context)
 {
-    bsp_board_led_invert(BSP_BOARD_LED_3);
+    bsp_board_led_invert(BSP_BOARD_LED_2);
     bm_coap_probe_message_send(data_size);
 }
 
 static void m_msg_7_handler(void * p_context)
 {
-    bsp_board_led_invert(BSP_BOARD_LED_3);
+    bsp_board_led_invert(BSP_BOARD_LED_2);
     bm_coap_probe_message_send(data_size);
 }
 
 static void m_msg_8_handler(void * p_context)
 {
-    bsp_board_led_invert(BSP_BOARD_LED_3);
+    bsp_board_led_invert(BSP_BOARD_LED_2);
     bm_coap_probe_message_send(data_size);
 }
 
 static void m_msg_9_handler(void * p_context)
 {
-    bsp_board_led_invert(BSP_BOARD_LED_3);
+    bsp_board_led_invert(BSP_BOARD_LED_2);
     bm_coap_probe_message_send(data_size);
 }
 
 static void m_msg_10_handler(void * p_context)
 {
-    bsp_board_led_invert(BSP_BOARD_LED_3);
+    bsp_board_led_invert(BSP_BOARD_LED_2);
     bm_coap_probe_message_send(data_size);
 }
 
@@ -222,65 +220,49 @@ static void m_result_handler(void * p_context)
  **************************************************************************************************/
 static void state_1_slave(void)
 {
-    start_timer();
+    start_timer();       
     bm_new_state = BM_EMPTY_STATE;
 }
 
 static void state_2_slave(void)
 {
     uint32_t error;
-    if(bm_message_info_nr==0)
+    if(bm_message_info_nr == 0)
     {
-        bm_message_info bm_result_struct[1];
-        memset(bm_result_struct, 0, sizeof(bm_result_struct));
-        bm_coap_results_send(bm_result_struct, sizeof(bm_result_struct));
+        bsp_board_led_off(BSP_BOARD_LED_2);
+        bm_message_info_nr = 0;
+        memset(message_info, 0, sizeof(message_info));
+
+        bm_new_state = BM_EMPTY_STATE;
     } else
     {
-        bm_message_info bm_result_struct[bm_message_info_nr];
-    
-        for(int i=0; i<bm_message_info_nr; i++)
-        {
-            bm_result_struct[i] = message_info[i];
-        }
-        bm_coap_results_send(bm_result_struct, sizeof(bm_result_struct));
+        bm_message_info_nr--;
+        //message_info[bm_message_info_nr].index = bm_message_info_nr;
+        bm_coap_results_send(message_info[bm_message_info_nr]);
+        bm_new_state = BM_EMPTY_STATE;
     }
-
-    bm_new_state = BM_EMPTY_STATE;
-}
-
-static void state_3_slave(void)
-{
-    bsp_board_led_off(BSP_BOARD_LED_2);
-    bsp_board_led_off(BSP_BOARD_LED_3);
-    bm_message_info_nr = 0;
-    memset(message_info, 0, sizeof(message_info));
-
-    bm_new_state = BM_EMPTY_STATE;
 }
 
 static void state_1_master(void)
 {    
     uint32_t error;
-    error = app_timer_start(m_benchmark_timer, APP_TIMER_TICKS(bm_time+5000), NULL);
+    error = app_timer_start(m_benchmark_timer, APP_TIMER_TICKS(bm_time+10000), NULL);
     ASSERT(error == NRF_SUCCESS);
-
     bm_new_state = BM_EMPTY_STATE;
 }
 
 static void state_2_master(void)
 {   
     uint32_t error;
-
     if (bm_slave_nr == 0)
     {
         otCliOutput("<REPORT_END> \r\n", sizeof("<REPORT_END> \r\n"));
     }
-
-    if (bm_slave_nr > 0)
+    if (bm_slave_nr != 0)
     {
         bm_slave_nr--;
         bm_coap_result_request_send(bm_slave_address[bm_slave_nr]);
-        error = app_timer_start(m_result_timer, APP_TIMER_TICKS(3000), NULL);
+        error = app_timer_start(m_result_timer, APP_TIMER_TICKS(1000), NULL);
         ASSERT(error == NRF_SUCCESS);
     }
     
@@ -299,10 +281,6 @@ void bm_sm_process(void)
 
         case BM_STATE_2_SLAVE:
             state_2_slave();
-            break;
-
-        case BM_STATE_3_SLAVE:
-            state_3_slave();
             break;
 
         case BM_STATE_1_MASTER:

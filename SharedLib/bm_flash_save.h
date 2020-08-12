@@ -19,29 +19,11 @@ along with Benchamrk-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 /* AUTHOR	   :   Cyrill Horath        */
 
 #include "bm_config.h"
-#ifdef NRF_SDK_ZIGBEE
+#include "bm_log.h"
+#if defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
 
 #include "fds.h"
-#include "zboss_api.h"
 
-
-/**@brief   Struct of Measurement
- *
- * This struct repesents all measured values of the network test
- *
- * @note 
- */
-typedef struct {
-  zb_uint16_t message_id;
-  zb_uint64_t net_time;
-  zb_uint64_t ack_net_time;
-  zb_uint8_t number_of_hops;
-  zb_uint8_t rssi;
-  zb_uint16_t src_addr;
-  zb_uint16_t dst_addr;
-  zb_uint16_t group_addr;
-  zb_uint16_t data_size;
-} Measurement;
 
 /**@brief   Callback pointer for the read function. 
  *
@@ -50,7 +32,7 @@ typedef struct {
  *
  * @note 
  */
-typedef void (*flash_cb_t)(Measurement *data);
+typedef void (*flash_cb_t)(bm_message_info *data);
 
 /**@brief   Write to flash function
  *
@@ -58,7 +40,7 @@ typedef void (*flash_cb_t)(Measurement *data);
  *
  * @note 
  */
-void flash_write(Measurement measure);
+void flash_write(bm_message_info measure);
 
 /**@brief   Read from flash
  *
