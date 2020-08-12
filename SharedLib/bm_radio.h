@@ -31,7 +31,7 @@ extern "C" {
 
 #ifdef ZEPHYR_BLE_MESH
 #include <zephyr.h>
-#elif defined NRF_SDK_Zigbee
+#elif defined NRF_SDK_Zigbee || defined NRF_SDK_THREAD
 #endif
 
 typedef struct

@@ -18,8 +18,6 @@ along with Benchamrk-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 /* AUTHOR 	   :    Cyrill Horath       */
 /* Co-AUTHOR 	 :    Raffael Anklin       */
 
-
-
 #include "bm_cli.h"
 #include "bm_config.h"
 
@@ -27,13 +25,15 @@ along with Benchamrk-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 #include <shell/shell.h>
 #include <stdlib.h>
 #include <zephyr.h>
-#elif defined (NRF_SDK_ZIGBEE) || defined (NRF_SDK_Thread)
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
 #include "boards.h"
 #include "nrf_log_default_backends.h"
 
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
+
+
 
 #ifdef BENCHMARK_MASTER
 
@@ -67,16 +67,15 @@ along with Benchamrk-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 #endif
 
 /* Init the Parameters */
-bm_params_t bm_params = {BENCHMARK_DEFAULT_TIME_S, BENCHMARK_DEFAULT_PACKETS_CNT,0,0};
-bm_params_t bm_params_buf = {BENCHMARK_DEFAULT_TIME_S, BENCHMARK_DEFAULT_PACKETS_CNT,0,0};
+bm_params_t bm_params = {BENCHMARK_DEFAULT_TIME_S, BENCHMARK_DEFAULT_PACKETS_CNT,0,0,0,0,0,0,0};
+bm_params_t bm_params_buf = {BENCHMARK_DEFAULT_TIME_S, BENCHMARK_DEFAULT_PACKETS_CNT,0,0,0,0,0,0,0};
 
 #ifdef ZEPHYR_BLE_MESH
 void bm_cli_log(const char *fmt, ...) {
   // Zephyr way to Log info
   printk(fmt);
 }
-#elif defined (NRF_SDK_ZIGBEE) || defined (NRF_SDK_Thread)
-
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
 #ifdef BENCHMARK_MASTER
 
 #if NRF_LOG_BACKEND_CRASHLOG_ENABLED
@@ -120,7 +119,6 @@ static void cli_init(void) {
   libuarte_config.hwfc = NRF_UARTE_HWFC_DISABLED;
   ret = nrf_cli_init(&m_cli_libuarte, &libuarte_config, true, true, NRF_LOG_SEVERITY_INFO);
   APP_ERROR_CHECK(ret);
-
 }
 #endif
 void bm_cli_process(void) {
@@ -137,14 +135,14 @@ void bm_cli_init(void) {
   APP_ERROR_CHECK(ret);
   nrf_drv_clock_lfclk_request(NULL);
 
-//  ret = app_timer_init();
-//  APP_ERROR_CHECK(ret);
-//
-//  ret = app_timer_create(&m_timer_0, APP_TIMER_MODE_REPEATED, timer_handle);
-//  APP_ERROR_CHECK(ret);
-//
-//  ret = app_timer_start(m_timer_0, APP_TIMER_TICKS(1000), NULL);
-//  APP_ERROR_CHECK(ret);
+  //  ret = app_timer_init();
+  //  APP_ERROR_CHECK(ret);
+  //
+  //  ret = app_timer_create(&m_timer_0, APP_TIMER_MODE_REPEATED, timer_handle);
+  //  APP_ERROR_CHECK(ret);
+  //
+  //  ret = app_timer_start(m_timer_0, APP_TIMER_TICKS(1000), NULL);
+  //  APP_ERROR_CHECK(ret);
 
   cli_init();
   cli_start();
@@ -154,11 +152,11 @@ void bm_cli_init(void) {
 }
 
 void bm_cli_log_init(void) {
-//#ifdef BENCHMARK_MASTER
-//  APP_ERROR_CHECK(NRF_LOG_INIT(app_timer_cnt_get));
-//#else
+  //#ifdef BENCHMARK_MASTER
+  //  APP_ERROR_CHECK(NRF_LOG_INIT(app_timer_cnt_get));
+  //#else
   APP_ERROR_CHECK(NRF_LOG_INIT(NULL));
-//#endif
+  //#endif
   NRF_LOG_DEFAULT_BACKENDS_INIT();
 }
 #endif

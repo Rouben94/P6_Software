@@ -1,18 +1,18 @@
 /*
-This file is part of Benchamrk-Shared-Library.
+This file is part of Benchmark-Shared-Library.
 
-Benchamrk-Shared-Library is free software: you can redistribute it and/or modify
+Benchmark-Shared-Library is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-Benchamrk-Shared-Library is distributed in the hope that it will be useful,
+Benchmark-Shared-Library is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Benchamrk-Shared-Library.  If not, see <http://www.gnu.org/licenses/>.
+along with Benchmark-Shared-Library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /* AUTHOR ZEPHYR_BLE_MESH  :   Raffael Anklin        */
@@ -24,7 +24,7 @@ along with Benchamrk-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 
 struct device *dev_led0, *dev_led1, *dev_led2, *dev_led3, *dev_button0;
 bool led0_is_on, led1_is_on, led2_is_on, led3_is_on = true;
-bool button0_toggel_state = false;
+bool button0_toggel_state = true;
 int ret;
 
 static struct gpio_callback button_cb_data;
@@ -121,7 +121,7 @@ void bm_init_leds() {
   }
 }
 
-#elif defined (NRF_SDK_ZIGBEE) || defined (NRF_SDK_Thread)
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
 
 /* Init the Leds */
 void bm_init_leds() {
@@ -138,12 +138,12 @@ void bm_init_leds() {
 
 #endif
 
-/* Set LED0 */
+/* Set LED0. pca10059 -> Green LED */
 void bm_led0_set(bool state) {
 #ifdef ZEPHYR_BLE_MESH
   gpio_pin_set(dev_led0, PIN_LED0, (int)state);
   led0_is_on = state;
-#elif defined (NRF_SDK_ZIGBEE) || defined (NRF_SDK_Thread)
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
   if (state) {
     bsp_board_led_on(BSP_BOARD_LED_0);
   } else {
@@ -156,17 +156,17 @@ void bm_led0_set(bool state) {
 bool bm_led0_get() {
 #ifdef ZEPHYR_BLE_MESH
   return led0_is_on;
-#elif defined (NRF_SDK_ZIGBEE) || defined (NRF_SDK_Thread)
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
   return bsp_board_led_state_get(BSP_BOARD_LED_0);
 #endif
 }
 
-/* Set LED1 */
+/* Set LED1. pca10059 -> Red LED (RGB) */
 void bm_led1_set(bool state) {
 #ifdef ZEPHYR_BLE_MESH
   gpio_pin_set(dev_led1, PIN_LED1, (int)state);
   led1_is_on = state;
-#elif defined (NRF_SDK_ZIGBEE) || defined (NRF_SDK_Thread)
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
   if (state) {
     bsp_board_led_on(BSP_BOARD_LED_1);
   } else {
@@ -179,17 +179,17 @@ void bm_led1_set(bool state) {
 bool bm_led1_get() {
 #ifdef ZEPHYR_BLE_MESH
   return led1_is_on;
-#elif defined (NRF_SDK_ZIGBEE) || defined (NRF_SDK_Thread)
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
   return bsp_board_led_state_get(BSP_BOARD_LED_1);
 #endif
 }
 
-/* Set LED2 */
+/* Set LED2. pca10059 -> Green LED (RGB) */
 void bm_led2_set(bool state) {
 #ifdef ZEPHYR_BLE_MESH
   gpio_pin_set(dev_led2, PIN_LED2, (int)state);
   led2_is_on = state;
-#elif defined (NRF_SDK_ZIGBEE) || defined (NRF_SDK_Thread)
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
   if (state) {
     bsp_board_led_on(BSP_BOARD_LED_2);
   } else {
@@ -202,17 +202,17 @@ void bm_led2_set(bool state) {
 bool bm_led2_get() {
 #ifdef ZEPHYR_BLE_MESH
   return led2_is_on;
-#elif defined (NRF_SDK_ZIGBEE) || defined (NRF_SDK_Thread)
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
   return bsp_board_led_state_get(BSP_BOARD_LED_2);
 #endif
 }
 
-/* Set LED3 */
+/* Set LED3. pca10059 -> Blue LED (RGB)  */
 void bm_led3_set(bool state) {
 #ifdef ZEPHYR_BLE_MESH
   gpio_pin_set(dev_led3, PIN_LED3, (int)state);
   led3_is_on = state;
-#elif defined (NRF_SDK_ZIGBEE) || defined (NRF_SDK_Thread)
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
   if (state) {
     bsp_board_led_on(BSP_BOARD_LED_3);
   } else {
@@ -225,7 +225,7 @@ void bm_led3_set(bool state) {
 bool bm_led3_get() {
 #ifdef ZEPHYR_BLE_MESH
   return led3_is_on;
-#elif defined (NRF_SDK_ZIGBEE) || defined (NRF_SDK_Thread)
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
   return bsp_board_led_state_get(BSP_BOARD_LED_3);
 #endif
 }

@@ -1,18 +1,18 @@
 /*
-This file is part of Benchamrk-Shared-Library.
+This file is part of Benchmark-Shared-Library.
 
-Benchamrk-Shared-Library is free software: you can redistribute it and/or modify
+Benchmark-Shared-Library is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-Benchamrk-Shared-Library is distributed in the hope that it will be useful,
+Benchmark-Shared-Library is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Benchamrk-Shared-Library.  If not, see <http://www.gnu.org/licenses/>.
+along with Benchmark-Shared-Library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /* AUTHOR 	   :    Raffael Anklin       */
@@ -90,7 +90,7 @@ ISR_DIRECT_DECLARE(bm_timer_handler) {
   return 1;
 }
 
-#elif defined NRF_SDK_ZIGBEE
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
 
 //NRF SDK WAY
 void TIMER4_IRQHandler(void) {
@@ -117,8 +117,7 @@ void TIMER4_IRQHandler(void) {
 #endif
 
 /* Timer init */
-extern void synctimer_init() {
-
+extern void synctimer_init() {  
   // Takes 4294s / 71min to expire
   nrf_timer_bit_width_set(synctimer, NRF_TIMER_BIT_WIDTH_32);
   nrf_timer_frequency_set(synctimer, NRF_TIMER_FREQ_1MHz);
@@ -127,9 +126,9 @@ extern void synctimer_init() {
   wakeup_thread_tid = k_current_get();
   IRQ_DIRECT_CONNECT(TIMER4_IRQn, 6, bm_timer_handler, 0); // Connect Timer ISR Zephyr WAY
   irq_enable(TIMER4_IRQn);                                 // Enable Timer ISR Zephyr WAY
-#elif defined NRF_SDK_ZIGBEE
-
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
   NVIC_EnableIRQ(TIMER4_IRQn); // Enable Timer ISR NRF SDK WAY
+  NVIC_SetPriority(TIMER4_IRQn, 4);
 #endif
   nrf_timer_task_trigger(synctimer, NRF_TIMER_TASK_CLEAR);
   synctimer->CC[1] = 0;
@@ -207,7 +206,7 @@ extern void synctimer_stop() {
 
 /* Get previous Tx sync timestamp */
 extern uint64_t synctimer_getTxTimeStamp() {
-  return ((uint64_t)OverflowCNT << 32 | synctimer->CC[1]) + Timestamp_Diff;
+  return ((uint64_t)OverflowCNT << 32 | synctimer->CC[1]);
 }
 
 /* Get previous Tx sync timestamp with respect to Timediff to Master */
@@ -314,7 +313,7 @@ void bm_sleep(uint32_t timeout_ms) {
   while (!(bm_synctimer_timeout_compare_int)) {
 #ifdef ZEPHYR_BLE_MESH
     k_sleep(K_FOREVER); // Zephyr Way
-#elif defined NRF_SDK_ZIGBEE
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
     __SEV();
     __WFE();
     __WFE(); // Wait for Timer Interrupt nRF5SDK Way

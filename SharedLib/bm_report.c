@@ -1,18 +1,18 @@
 /*
-This file is part of Benchamrk-Shared-Library.
+This file is part of Benchmark-Shared-Library.
 
-Benchamrk-Shared-Library is free software: you can redistribute it and/or modify
+Benchmark-Shared-Library is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-Benchamrk-Shared-Library is distributed in the hope that it will be useful,
+Benchmark-Shared-Library is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Benchamrk-Shared-Library.  If not, see <http://www.gnu.org/licenses/>.
+along with Benchmark-Shared-Library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /* AUTHOR   :   Raffael Anklin        */
@@ -77,14 +77,14 @@ bool bm_report_msg_subscribe(bm_message_info *message_info) {
   for (int i = 0; i < (CommonCHCnt * NUMBER_OF_BENCHMARK_REPORT_MESSAGES); i++) // There is only one trie to transmitt the Report for a Channel
   {
     bm_radio_setCH(CommonStartCH + i % (CommonCHCnt)); // Set the Channel alternating from StartCH till StopCH
-//    bm_cli_log("Sent report req %u\n", (uint32_t)synctimer_getSyncTime());
-    bm_radio_send(Radio_Packet_TX);     // Send out Report Requests
-//    bm_cli_log("Wait for report %u\n", (uint32_t)synctimer_getSyncTime());
+                                                       //    bm_cli_log("Sent report req %u\n", (uint32_t)synctimer_getSyncTime());
+    bm_radio_send(Radio_Packet_TX);                    // Send out Report Requests
+                                                       //    bm_cli_log("Wait for report %u\n", (uint32_t)synctimer_getSyncTime());
     if (bm_radio_receive(&Radio_Packet_RX, 2 * msg_time_ms)) {
       // Save Report Entry
       message_info[bm_message_info_entry_ind] = *(bm_message_info *)Radio_Packet_RX.PDU; // Bring the sheep to a dry place
       if (message_info[bm_message_info_entry_ind].net_time == 0) {
-        bm_cli_log("%u Reports received\n",bm_message_info_entry_ind);
+        bm_cli_log("%u Reports received\n", bm_message_info_entry_ind);
         // Publish the reports
         for (int i = 0; i < bm_message_info_entry_ind; i++) {
           char buf[11][50] = {"\0"};
@@ -105,7 +105,7 @@ bool bm_report_msg_subscribe(bm_message_info *message_info) {
             strcat(str_output, buf[a]);
           }
           bm_cli_log("%s", str_output);
-#ifdef NRF_SDK_ZIGBEE
+#if defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
           NRF_LOG_FLUSH();
           bm_cli_process();
 #endif
@@ -119,7 +119,7 @@ bool bm_report_msg_subscribe(bm_message_info *message_info) {
       // Decrease channel index to keep chanel the same
       i--;
     } else {
-      Errcnt++;      
+      Errcnt++;
     }
     if (Errcnt > 450) { // Should be a timeout of 5 seconds
       bm_cli_log("Timeout Receiving Reports... Is Master close enough?\n");
@@ -142,8 +142,8 @@ bool bm_report_msg_publish(bm_message_info *message_info) {
   Radio_Packet_RX.length = sizeof(bm_report_req_msg);
   for (int i = 0; i < (CommonCHCnt * NUMBER_OF_BENCHMARK_REPORT_MESSAGES); i++) // There is only one trie to transmitt the Report for a Channel
   {
-    bm_radio_setCH(CommonStartCH + i % (CommonCHCnt));                 // Set the Channel alternating from StartCH till StopCH
-                                                                           //    bm_cli_log("Wait for report Req %u\n", (uint32_t)synctimer_getSyncTime());
+    bm_radio_setCH(CommonStartCH + i % (CommonCHCnt));                       // Set the Channel alternating from StartCH till StopCH
+                                                                             //    bm_cli_log("Wait for report Req %u\n", (uint32_t)synctimer_getSyncTime());
     if (bm_radio_receive(&Radio_Packet_RX, (msg_time_ms * 3) * CommonCHCnt)) // Wait for the master to finish a request on all Channels
     {
       // Save Report Entry
@@ -151,16 +151,16 @@ bool bm_report_msg_publish(bm_message_info *message_info) {
       Radio_Packet_TX.PDU = (uint8_t *)&(message_info[bm_message_info_entry_ind]);           // Prepare Sending
                                                                                              //      bm_cli_log("Message Index received: %u\n", bm_message_info_entry_ind);
                                                                                              //      bm_cli_log("Time before sending report %u\n", (uint32_t)synctimer_getSyncTime());
-      bm_radio_send(Radio_Packet_TX);                   // Send out Report
+      bm_radio_send(Radio_Packet_TX);                                                        // Send out Report
       // Decrease channel index to keep channel the same
       i--;
       // Check if it was the last report
       if (message_info[bm_message_info_entry_ind].net_time == 0) {
-        bm_cli_log("%u Reports send\n",bm_message_info_entry_ind);
+        bm_cli_log("%u Reports send\n", bm_message_info_entry_ind);
         return true;
       }
     } else {
-      Errcnt++;      
+      Errcnt++;
     }
     if (Errcnt > 170) { // Should be a timeout of 5 seconds
       bm_cli_log("Timeout Sending Reports... Is Master close enough?\n");

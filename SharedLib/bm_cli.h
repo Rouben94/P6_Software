@@ -32,7 +32,7 @@ extern "C" {
 #include <zephyr.h>
 // Global Printing Function for Printing Log Info
 void bm_cli_log(const char *fmt, ...);
-#elif defined (NRF_SDK_ZIGBEE) || defined (NRF_SDK_Thread)
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 #define bm_cli_log(...) NRF_LOG_RAW_INFO(__VA_ARGS__)
@@ -53,6 +53,12 @@ typedef struct {
   uint32_t MAC;
   uint8_t GroupAddress;
   uint8_t NodeId;
+  bool Ack;
+  bool benchmark_Traffic_Generation_Mode; // 0 = Random, 1 = Sequentialy
+  uint16_t AdditionalPayloadSize;
+  uint32_t DestMAC_1; // Zigbee Directed Destination 1
+  uint32_t DestMAC_2; // Zigbee Directed Destination 2
+  uint32_t DestMAC_3; // Zigbee Directed Destination 3
 } bm_cli_cmd_setNodeSettings_t;
 
 extern bm_cli_cmd_setNodeSettings_t bm_cli_cmd_setNodeSettings;
@@ -67,7 +73,7 @@ extern bm_cli_cmd_startBM_t bm_cli_cmd_startBM;
 
 #ifdef ZEPHYR_BLE_MESH
 
-#elif defined (NRF_SDK_ZIGBEE) || defined (NRF_SDK_Thread)
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
 
 void bm_cli_start(void);
 
@@ -77,7 +83,7 @@ void bm_cli_process(void);
 
 #endif
 #endif
-#if defined (NRF_SDK_ZIGBEE) || defined (NRF_SDK_Thread)
+#if defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
 
 void bm_cli_init(void);
 

@@ -1,22 +1,22 @@
 /*
-This file is part of Benchamrk-Shared-Library.
+This file is part of Benchmark-Shared-Library.
 
-Benchamrk-Shared-Library is free software: you can redistribute it and/or modify
+Benchmark-Shared-Library is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-Benchamrk-Shared-Library is distributed in the hope that it will be useful,
+Benchmark-Shared-Library is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Benchamrk-Shared-Library.  If not, see <http://www.gnu.org/licenses/>.
+along with Benchmark-Shared-Library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /* AUTHOR	   :   Robin Bobst        */
-/* AUTHOR	   :   Cyrill Horath        */
+/* AUTHOR	   :   Cyrill Horath      */
 
 /** @file
  *
@@ -31,7 +31,7 @@ along with Benchamrk-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 #include "bm_flash_save.h"
 #include "bm_cli.h"
 #include "bm_config.h"
-#ifdef NRF_SDK_ZIGBEE
+#if defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
 #include "fds.h"
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"

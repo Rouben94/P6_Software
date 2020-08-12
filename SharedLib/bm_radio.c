@@ -1,18 +1,18 @@
 /*
-This file is part of Benchamrk-Shared-Library.
+This file is part of Benchmark-Shared-Library.
 
-Benchamrk-Shared-Library is free software: you can redistribute it and/or modify
+Benchmark-Shared-Library is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-Benchamrk-Shared-Library is distributed in the hope that it will be useful,
+Benchmark-Shared-Library is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Benchamrk-Shared-Library.  If not, see <http://www.gnu.org/licenses/>.
+along with Benchmark-Shared-Library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /* AUTHOR   :   Raffael Anklin        */
@@ -286,6 +286,7 @@ bool bm_radio_receive(RADIO_PACKET *rx_pkt, uint32_t timeout_ms) {
     //__SEV();__WFE();__WFE(); // Wait for Timer Interrupt nRF5SDK Way
     __NOP(); // Since the LLL Driver owns the Interrupt we have to Poll
     if (nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_CRCOK) && nrf_radio_state_get(NRF_RADIO) == NRF_RADIO_STATE_DISABLED && ((PACKET_PDU_ALIGNED *)rx_buf_ptr)->length == rx_pkt->length) {
+      bm_radio_disable();
       rx_pkt->PDU = ((PACKET_PDU_ALIGNED *)rx_buf_ptr)->PDU;
       rx_pkt->length = ((PACKET_PDU_ALIGNED *)rx_buf_ptr)->length;
       bm_radio_disable();
@@ -301,7 +302,7 @@ bool bm_radio_receive(RADIO_PACKET *rx_pkt, uint32_t timeout_ms) {
   return false;
 }
 
-#elif defined (NRF_SDK_ZIGBEE) || defined (NRF_SDK_Thread)
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
 
 /* ---------------------- RADIO AREA NRF5SDK_Zigbee ------------------------ */
 
