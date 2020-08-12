@@ -31,7 +31,7 @@ along with Benchmark-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 #include "bm_flash_save.h"
 #include "bm_cli.h"
 #include "bm_config.h"
-#ifdef NRF_SDK_ZIGBEE
+#if defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
 #include "fds.h"
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
@@ -75,7 +75,7 @@ void flash_read(void) {
   fds_record_desc_t record_desc;
   fds_flash_record_t flash_record;
   fds_find_token_t ftok;
-  Measurement *measure;
+  bm_message_info *msg;
 
   memset(&ftok, 0x00, sizeof(fds_find_token_t));
 
@@ -88,8 +88,8 @@ void flash_read(void) {
       }
     }
 
-    measure = (Measurement *)flash_record.p_data;
-    cb(measure);
+    msg = (bm_message_info *)flash_record.p_data;
+    cb(msg);
 
     rc = fds_record_close(&record_desc);
     if (rc != NRF_SUCCESS) {
@@ -101,16 +101,16 @@ void flash_read(void) {
   }
 }
 
-void flash_write(Measurement measure) {
+void flash_write(bm_message_info msg) {
   fds_record_desc_t record_desc;
   fds_record_t record;
   ret_code_t rc;
 
   record.file_id = FILE_ID;
   record.key = RECORD_KEY;
-  record.data.p_data = &measure;
+  record.data.p_data = &msg;
+  record.data.length_words = (sizeof(bm_message_info)) / sizeof(uint32_t);
 
-  record.data.length_words = (sizeof(measure) + 3) / sizeof(uint32_t);
   rc = fds_record_write(&record_desc, &record);
   if (rc != NRF_SUCCESS) {
     bm_cli_log("FDS write error: 0x%x\n", rc);
@@ -124,7 +124,7 @@ void flash_delete(void) {
   fds_record_desc_t record_desc;
   fds_flash_record_t flash_record;
   fds_find_token_t ftok;
-  Measurement *measure;
+  bm_message_info *msg;
 
   memset(&ftok, 0x00, sizeof(fds_find_token_t));
 

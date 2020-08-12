@@ -4,6 +4,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <openthread/ip6.h>
+#include "bm_log.h"
+
+
 
 /* Typdef for benchmark state */
 typedef enum
@@ -23,7 +26,9 @@ typedef enum
     BM_1024Bytes
 } bm_data_size;
 
+
 /* Struct for benchmark message information */
+/*
 typedef struct
 {
     uint64_t net_time;
@@ -36,6 +41,8 @@ typedef struct
     uint8_t  number_of_hops;
     int8_t   RSSI;
 } __attribute__((packed)) bm_message_info;
+
+*/
 
 /**@brief Function for processing the benchmark pending tasks.
  *

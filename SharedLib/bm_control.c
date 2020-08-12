@@ -30,7 +30,7 @@ along with Benchmark-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 
 #ifdef ZEPHYR_BLE_MESH
 #include <zephyr.h>
-#elif defined NRF_SDK_ZIGBEE
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
 #endif
 
 #define ControlAddress 0xA3F79C12

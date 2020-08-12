@@ -302,7 +302,7 @@ bool bm_radio_receive(RADIO_PACKET *rx_pkt, uint32_t timeout_ms) {
   return false;
 }
 
-#elif defined NRF_SDK_ZIGBEE
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
 
 /* ---------------------- RADIO AREA NRF5SDK_Zigbee ------------------------ */
 

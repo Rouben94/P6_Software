@@ -32,6 +32,8 @@ along with Benchmark-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 #elif defined NRF_SDK_ZIGBEE
 #include "nrf52840.h"
 #include "zboss_api_core.h"
+#elif defined NRF_SDK_THREAD
+#include "nrf52840.h"
 #endif
 
 uint32_t bm_rand_32 = 0;       // Randomly generated 4 bytes

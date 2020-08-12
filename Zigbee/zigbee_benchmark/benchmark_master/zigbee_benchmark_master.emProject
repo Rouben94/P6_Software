@@ -99,9 +99,9 @@
       <file file_name="$(SDK)/components/libraries/cli/uart/nrf_cli_uart.c" />
       <file file_name="$(SDK)/components/libraries/cli/rtt/nrf_cli_rtt.c" />
       <file file_name="$(SDK)/components/libraries/usbd/app_usbd_serial_num.c" />
-      <file file_name="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/components/libraries/cli/libuarte/nrf_cli_libuarte.c" />
-      <file file_name="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/components/libraries/libuarte/nrf_libuarte_async.c" />
-      <file file_name="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/components/libraries/libuarte/nrf_libuarte_drv.c" />
+      <file file_name="$(SDK)/components/libraries/cli/libuarte/nrf_cli_libuarte.c" />
+      <file file_name="$(SDK)/components/libraries/libuarte/nrf_libuarte_async.c" />
+      <file file_name="$(SDK)/components/libraries/libuarte/nrf_libuarte_drv.c" />
     </folder>
     <folder Name="nRF_Drivers">
       <file file_name="$(SDK)/integration/nrfx/legacy/nrf_drv_clock.c" />
@@ -123,9 +123,9 @@
       <file file_name="$(SDK)/modules/nrfx/drivers/src/nrfx_usbd.c" />
       <file file_name="$(SDK)/modules/nrfx/drivers/src/nrfx_power.c" />
       <file file_name="$(SDK)/integration/nrfx/legacy/nrf_drv_power.c" />
-      <file file_name="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/modules/nrfx/drivers/src/nrfx_rtc.c" />
-      <file file_name="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/modules/nrfx/drivers/src/nrfx_ppi.c" />
-      <file file_name="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/external/nRF-IEEE-802.15.4-radio-driver/src/nrf_802154.c" />
+      <file file_name="$(SDK)/modules/nrfx/drivers/src/nrfx_rtc.c" />
+      <file file_name="$(SDK)/modules/nrfx/drivers/src/nrfx_ppi.c" />
+      <file file_name="$(SDK)/external/nRF-IEEE-802.15.4-radio-driver/src/nrf_802154.c" />
     </folder>
     <folder Name="Board Support">
       <file file_name="$(SDK)/components/libraries/bsp/bsp.c" />
