@@ -63,30 +63,6 @@ ZB_ZCL_DECLARE_BASIC_ATTRIB_LIST_EXT(
 /* Declare attribute list for Identify cluster. */
 ZB_ZCL_DECLARE_IDENTIFY_ATTRIB_LIST(identify_attr_list, &dev_ctx.identify_attr.identify_time);
 
-/* Declare attribute list for Scenes cluster. */
-//ZB_ZCL_DECLARE_SCENES_ATTRIB_LIST(
-//    scenes_attr_list,
-//    &dev_ctx.scenes_attr.scene_count,
-//    &dev_ctx.scenes_attr.current_scene,
-//    &dev_ctx.scenes_attr.current_group,
-//    &dev_ctx.scenes_attr.scene_valid,
-//    &dev_ctx.scenes_attr.name_support);
-
-/* Declare attribute list for Groups cluster. */
-//ZB_ZCL_DECLARE_GROUPS_ATTRIB_LIST(
-//    groups_attr_list,
-//    &dev_ctx.groups_attr.name_support);
-
-/* On/Off cluster attributes additions data */
-//ZB_ZCL_DECLARE_ON_OFF_ATTRIB_LIST(
-//    on_off_attr_list,
-//    &dev_ctx.on_off_attr.on_off);
-
-//ZB_ZCL_DECLARE_LEVEL_CONTROL_ATTRIB_LIST(
-//    level_control_attr_list,
-//    &dev_ctx.level_control_attr.current_level,
-//    &dev_ctx.level_control_attr.remaining_time);
-
 /* Declare cluster list for Dimmer Switch device (Identify, Basic, Scenes, Groups, On Off, Level Control). */
 /* Only clusters Identify and Basic have attributes. */
 ZB_HA_DECLARE_DIMMER_SWITCH_CLUSTER_LIST(dimmer_switch_clusters,
@@ -104,10 +80,8 @@ ZBOSS_DECLARE_DEVICE_CTX_1_EP(bm_client_ctx, dimmer_switch_ep);
 /************************************ Forward Declarations ***********************************************/
 
 void buttons_handler(bsp_event_t evt);
-static void light_switch_send_on_off(zb_bufid_t bufid, zb_uint16_t on_off);
 void bm_send_message(void);
 void bm_read_message_info(zb_uint16_t dst_addr_short, zb_uint16_t tsn);
-void bm_report_data(zb_uint8_t param);
 
 zb_uint16_t seq_num = 0;
 zb_uint16_t msg_sent_cnt = 0;
@@ -123,8 +97,6 @@ zb_uint32_t network_formation_delay = NETWORK_FORMATION_DELAY;
 
 static const zb_uint8_t g_key_nwk[16] = {0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89, 0, 0, 0, 0, 0, 0, 0, 0};
 
-//bm_tid_overflow_handler_t bm_tid_overflow_handler[max_number_of_nodes]; /* Expect not more than max_number_of_nodes Different Adresses */
-
 /************************************ Benchmark Client Cluster Attribute Init ***********************************************/
 
 /**@brief Function for initializing all clusters attributes.
@@ -136,12 +108,6 @@ static void bm_client_clusters_attr_init(void) {
   dev_ctx.basic_attr.stack_version = BENCHMARK_INIT_BASIC_STACK_VERSION;
   dev_ctx.basic_attr.hw_version = BENCHMARK_INIT_BASIC_HW_VERSION;
 
-  /* Use ZB_ZCL_SET_STRING_VAL to set strings, because the first byte
-	 * should contain string length without trailing zero.
-	 *
-	 * For example "test" string wil be encoded as:
-	 *   [(0x4), 't', 'e', 's', 't']
-	 */
   ZB_ZCL_SET_STRING_VAL(
       dev_ctx.basic_attr.mf_name,
       BENCHMARK_INIT_BASIC_MANUF_NAME,
@@ -191,6 +157,13 @@ static void timers_init(void) {
   // Initialize timer module.
   err_code = app_timer_init();
   APP_ERROR_CHECK(err_code);
+}
+
+/* Get device address of the local device.*/
+void bm_get_ieee_eui64(zb_ieee_addr_t ieee_eui64) {
+  uint64_t factoryAddress;
+  factoryAddress = NRF_FICR->DEVICEADDR[0];
+  memcpy(ieee_eui64, &factoryAddress, sizeof(factoryAddress));
 }
 
 /************************************ Button Handler Functions ***********************************************/
@@ -259,29 +232,6 @@ void buttons_handler(bsp_event_t evt) {
 
 /************************************ Benchmark Functions ***********************************************/
 
-/* Insert the tid and src address to get the merged tid with the tid overlfow cnt -> resulting in a uint16_t */
-//uint16_t bm_get_overflow_tid_from_overflow_handler(uint8_t tid, uint16_t src_addr) {
-//  // Get the TID in array
-//  for (int i = 0; i < max_number_of_nodes; i++) {
-//    if (bm_tid_overflow_handler[i].src_addr == src_addr) {
-//      // Check if Overflow happend
-//      if ((bm_tid_overflow_handler[i].last_TID_seen - tid) > 250) {
-//        bm_tid_overflow_handler[i].TID_OverflowCnt++;
-//      }
-//      // Add the last seen TID
-//      bm_tid_overflow_handler[i].last_TID_seen = tid;
-//      return (uint16_t)(bm_tid_overflow_handler[i].TID_OverflowCnt << 8) | (tid & 0xff);
-//    } else if (bm_tid_overflow_handler[i].src_addr == 0) {
-//      // Add the Src Adress
-//      bm_tid_overflow_handler[i].src_addr = src_addr;
-//      bm_tid_overflow_handler[i].last_TID_seen = tid;
-//      bm_tid_overflow_handler[i].TID_OverflowCnt = 0;
-//      return (uint16_t)(bm_tid_overflow_handler[i].TID_OverflowCnt << 8) | (tid & 0xff);
-//    }
-//  }
-//  return 0;
-//}
-
 /* Callback function for Benchmark send message status. Free's the used buffer. */
 void bm_send_message_status_cb(zb_bufid_t bufid) {
   zb_zcl_command_send_status_t *send_cmd_status = ZB_BUF_GET_PARAM(bufid, zb_zcl_command_send_status_t);
@@ -294,28 +244,19 @@ void bm_send_message_status_cb(zb_bufid_t bufid) {
   }
 }
 
-/* Function to send Benchmark Message */
+/* Function to send Benchmark Message to group destination. */
 void bm_send_group_message_cb(zb_bufid_t bufid, zb_uint16_t seq_num) {
   zb_uint16_t groupID = bm_params.GroupAddress + GROUP_ID;
   bm_cli_log("Benchmark send message cb group: 0x%x, Seq Num: %d\n", groupID, seq_num);
 
-  /* Send Move to level request. Level value is uint8. */
-  //  ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
-  //      groupID,
-  //      ZB_APS_ADDR_MODE_16_GROUP_ENDP_NOT_PRESENT,
-  //      BENCHMARK_SERVER_ENDPOINT,
-  //      BENCHMARK_CLIENT_ENDPOINT,
-  //      ZB_AF_HA_PROFILE_ID,
-  //      ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
-  //      bm_send_message_status_cb,
-  //      seq_num,
-  //      BENCHMARK_LEVEL_SEND_TRANSACTION_TIME);
-
+  /* Send Move to level request. Added manufacturer specific field in ZCL Header to transmit 16 Bit Benchmark sequence number. */
   zb_uint8_t *cmd_ptr = ZB_ZCL_START_PACKET(bufid);
   ZB_ZCL_CONSTRUCT_GENERAL_COMMAND_REQ_FRAME_CONTROL_A(cmd_ptr, (ZB_ZCL_FRAME_DIRECTION_TO_SRV), (ZB_ZCL_MANUFACTURER_SPECIFIC), ZB_ZCL_DISABLE_DEFAULT_RESPONSE);
   ZB_ZCL_CONSTRUCT_COMMAND_HEADER_EXT(cmd_ptr, ZB_ZCL_GET_SEQ_NUM(), (ZB_TRUE), seq_num, (bm_params.AdditionalPayloadSize));
+  /* Minimal Payload size defined as 2 Bytes. */
   ZB_ZCL_PACKET_PUT_DATA8(cmd_ptr, (DUMMY_PAYLOAD));
   ZB_ZCL_PACKET_PUT_DATA8(cmd_ptr, (DUMMY_PAYLOAD));
+  /* Additional Payload added as 8 Bit Dummy Payload Packets. */
   for (zb_uint8_t i = 0; i < bm_params.AdditionalPayloadSize; i++) {
     ZB_ZCL_PACKET_PUT_DATA8(cmd_ptr, (DUMMY_PAYLOAD));
   }
@@ -323,27 +264,18 @@ void bm_send_group_message_cb(zb_bufid_t bufid, zb_uint16_t seq_num) {
   ZB_ZCL_SEND_COMMAND_SHORT(bufid, groupID, ZB_APS_ADDR_MODE_16_GROUP_ENDP_NOT_PRESENT, BENCHMARK_SERVER_ENDPOINT, BENCHMARK_CLIENT_ENDPOINT, ZB_AF_HA_PROFILE_ID, ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL, bm_send_message_status_cb);
 }
 
-/* Callback function to send Benchmark Message */
+/* Callback function to send direct Benchmark Message.*/
 void bm_send_dir_message_cb(zb_bufid_t bufid, zb_uint16_t dst_addr_short, zb_uint16_t seq_num) {
   bm_cli_log("Benchmark send message cb dst: 0x%x, Bufid: %d, Seq Num: %d\n", dst_addr_short, bufid, seq_num);
 
-  /* Send Move to level request. Level value is uint8 and is used as benchmark sequence number to identify the benchmark packet.*/
-  // ZB_ZCL_LEVEL_CONTROL_SEND_MOVE_TO_LEVEL_REQ(bufid,
-  //      dst_addr_short,
-  //      ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
-  //      BENCHMARK_SERVER_ENDPOINT,
-  //      BENCHMARK_CLIENT_ENDPOINT,
-  //      ZB_AF_HA_PROFILE_ID,
-  //      ZB_ZCL_DISABLE_DEFAULT_RESPONSE,
-  //      bm_send_message_status_cb,
-  //      seq_num,
-  //      BENCHMARK_LEVEL_SEND_TRANSACTION_TIME);
-
+  /* Send Move to level request. Added manufacturer specific field in ZCL Header to transmit 16 Bit Benchmark sequence number. */
   zb_uint8_t *cmd_ptr = ZB_ZCL_START_PACKET(bufid);
   ZB_ZCL_CONSTRUCT_GENERAL_COMMAND_REQ_FRAME_CONTROL_A(cmd_ptr, (ZB_ZCL_FRAME_DIRECTION_TO_SRV), (ZB_ZCL_MANUFACTURER_SPECIFIC), ZB_ZCL_DISABLE_DEFAULT_RESPONSE);
   ZB_ZCL_CONSTRUCT_COMMAND_HEADER_EXT(cmd_ptr, ZB_ZCL_GET_SEQ_NUM(), (ZB_TRUE), seq_num, (ZB_ZCL_CMD_LEVEL_CONTROL_MOVE_TO_LEVEL));
+  /* Minimal Payload size defined as 2 Bytes. */
   ZB_ZCL_PACKET_PUT_DATA8(cmd_ptr, (DUMMY_PAYLOAD));
   ZB_ZCL_PACKET_PUT_DATA8(cmd_ptr, (DUMMY_PAYLOAD));
+  /* Additional Payload added as 8 Bit Dummy Payload Packets. */
   for (zb_uint8_t i = 0; i < bm_params.AdditionalPayloadSize; i++) {
     ZB_ZCL_PACKET_PUT_DATA8(cmd_ptr, (DUMMY_PAYLOAD));
   }
@@ -361,7 +293,6 @@ void bm_send_message(void) {
   char ieee_addr_buf[17] = {0};
   int addr_len;
   seq_num++;
-  bm_cli_log("Destinations: %d, %d, %d, Group: 0x%x \n", dst_addr_conf[0], dst_addr_conf[1], dst_addr_conf[2], bm_params.GroupAddress + GROUP_ID);
 
   if ((dst_addr_conf[0] == 0) && (dst_addr_conf[1] == 0) && (dst_addr_conf[2] == 0)) {
     bm_cli_log("Benchmark send message to group address: 0x%x\n", bm_params.GroupAddress + GROUP_ID);
@@ -376,7 +307,7 @@ void bm_send_message(void) {
         dst_addr_short = zb_address_short_by_ieee(dst_ieee_addr);
         if (dst_addr_short != 0xFFFF) {
           addr_len = ieee_addr_to_str(ieee_addr_buf, sizeof(ieee_addr_buf), dst_ieee_addr);
-          bm_cli_log("Benchmark send message to address: 0x%x, Index: %d\n", dst_addr_short, i);
+          bm_cli_log("Benchmark send direct message to address: 0x%x, Index: %d\n", dst_addr_short, i);
           bm_read_message_info(dst_addr_short, seq_num);
           bufid = zb_buf_get_out();
           bm_send_dir_message_cb(bufid, dst_addr_short, seq_num);
@@ -487,13 +418,6 @@ void zboss_signal_handler(zb_bufid_t bufid) {
   }
 }
 
-/* Get device address of the local device.*/
-void bm_get_ieee_eui64(zb_ieee_addr_t ieee_eui64) {
-  uint64_t factoryAddress;
-  factoryAddress = NRF_FICR->DEVICEADDR[0];
-  memcpy(ieee_eui64, &factoryAddress, sizeof(factoryAddress));
-}
-
 /**************************************** Zigbee Stack Init and Enable ***********************************************/
 
 /** Init Zigbee Stack. */
@@ -504,7 +428,7 @@ void bm_zigbee_init(void) {
   zb_ext_pan_id_t ext_pan_id;
   memcpy(ext_pan_id, &ext_pan_id_64, sizeof(ext_pan_id_64));
 
-  /* Initialize timers, loging system and GPIOs. */
+  /* Initialize timers. */
   timers_init();
 
   /* Set Zigbee stack logging level and traffic dump subsystem. */
