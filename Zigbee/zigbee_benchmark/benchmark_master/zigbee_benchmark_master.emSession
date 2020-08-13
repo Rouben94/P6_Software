@@ -62,7 +62,7 @@
   <Watches active="0" update="Never"/>
  </Watch4>
  <Files>
-  <SessionOpenFile windowGroup="DockEditLeft" x="22" y="26" useTextEdit="1" useBinaryEdit="0" left="0" path="src/bm_zigbee.c" selected="1" top="9" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="26" useTextEdit="1" useBinaryEdit="0" left="0" path="src/bm_zigbee.c" selected="1" top="9" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="366" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../SharedLib/bm_statemachine.c" selected="0" top="357" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="417" useTextEdit="1" useBinaryEdit="0" left="0" path="C:/Tools/NRF/nRF5_SDK_for_Thread_and_Zigbee_v4.1.0_32ce5f8/external/zboss/include/zboss_api_internal.h" selected="0" top="406" codecName="Default"/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" useBinaryEdit="0" left="0" path="../../../SharedLib/bm_flash_save.c" selected="0" top="117" codecName="Default"/>
