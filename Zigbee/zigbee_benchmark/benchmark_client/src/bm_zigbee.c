@@ -79,14 +79,12 @@ ZBOSS_DECLARE_DEVICE_CTX_1_EP(bm_client_ctx, dimmer_switch_ep);
 
 /************************************ Forward Declarations ***********************************************/
 
-void buttons_handler(bsp_event_t evt);
 void bm_send_message(void);
 void bm_read_message_info(zb_uint16_t dst_addr_short, zb_uint16_t tsn);
 
 zb_uint16_t seq_num = 0;
 zb_uint16_t msg_sent_cnt = 0;
 zb_uint16_t rem_dev_id;
-zb_uint8_t def_payload_size = 2;
 
 zb_ieee_addr_t local_node_ieee_addr;
 zb_uint16_t local_node_short_addr;
@@ -95,8 +93,7 @@ int local_node_addr_len;
 
 zb_uint32_t stack_enable_max_delay_ms = STACK_STARTUP_MAX_DELAY;
 zb_uint32_t network_formation_delay = NETWORK_FORMATION_DELAY;
-
-static const zb_uint8_t g_key_nwk[16] = {0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89, 0, 0, 0, 0, 0, 0, 0, 0};
+zb_uint16_t def_payload_size = DEFAULT_PAYLOAD;
 
 /************************************ Benchmark Client Cluster Attribute Init ***********************************************/
 
@@ -167,76 +164,11 @@ void bm_get_ieee_eui64(zb_ieee_addr_t ieee_eui64) {
   memcpy(ieee_eui64, &factoryAddress, sizeof(factoryAddress));
 }
 
-/************************************ Button Handler Functions ***********************************************/
-
-/**@brief Callback for detecting button press duration.
- *
- * @param[in]   button   BSP Button that was pressed.
- */
-zb_void_t bm_button_handler(zb_uint8_t button) {
-  zb_time_t current_time;
-  zb_bool_t short_expired;
-  zb_bool_t on_off;
-  zb_ret_t zb_err_code;
-  zb_uint8_t random_level_value;
-
-  bm_cli_log("Button pressed: %d\n", button);
-
-  current_time = ZB_TIMER_GET();
-
-  switch (button) {
-
-  case DONGLE_BUTTON:
-
-    break;
-
-  default:
-    bm_cli_log("Unhandled BSP Event received: %d\n", button);
-    return;
-  }
-
-  m_device_ctx.button.in_progress = ZB_FALSE;
-}
-
-/**@brief Callback for button events.
- *
- * @param[in]   evt      Incoming event from the BSP subsystem.
- */
-void buttons_handler(bsp_event_t evt) {
-  zb_ret_t zb_err_code;
-  zb_uint32_t button;
-
-  switch (evt) {
-  case BSP_EVENT_KEY_0:
-    button = DONGLE_BUTTON_ON;
-
-    break;
-
-  default:
-    bm_cli_log("Unhandled BSP Event received: %d\n", evt);
-    return;
-  }
-
-  if (!m_device_ctx.button.in_progress) {
-    m_device_ctx.button.in_progress = ZB_TRUE;
-    m_device_ctx.button.timestamp = ZB_TIMER_GET();
-
-    zb_err_code = ZB_SCHEDULE_APP_ALARM(bm_button_handler, button, LIGHT_SWITCH_BUTTON_SHORT_POLL_TMO);
-    if (zb_err_code == RET_OVERFLOW) {
-      NRF_LOG_WARNING("Can not schedule another alarm, queue is full.");
-      m_device_ctx.button.in_progress = ZB_FALSE;
-    } else {
-      ZB_ERROR_CHECK(zb_err_code);
-    }
-  }
-}
-
 /************************************ Benchmark Functions ***********************************************/
 
 /* Callback function for Benchmark send message status. Free's the used buffer. */
 void bm_send_message_status_cb(zb_bufid_t bufid) {
   zb_zcl_command_send_status_t *send_cmd_status = ZB_BUF_GET_PARAM(bufid, zb_zcl_command_send_status_t);
-
   msg_sent_cnt++;
   bm_cli_log("Message successfully sent: %d, Status Code: %d\n", msg_sent_cnt, send_cmd_status->status);
 
@@ -295,6 +227,8 @@ void bm_send_message(void) {
   int addr_len;
   seq_num++;
 
+  /* Check directional mac address fields in config message whether there is any address defined.
+  If not, call bm_send_group_message_cb for group addressing. */
   if ((dst_addr_conf[0] == 0) && (dst_addr_conf[1] == 0) && (dst_addr_conf[2] == 0)) {
     bm_cli_log("Benchmark send message to group address: 0x%x\n", bm_params.GroupAddress + GROUP_ID);
     bm_read_message_info(dst_addr_short, seq_num);
@@ -425,9 +359,6 @@ void zboss_signal_handler(zb_bufid_t bufid) {
 void bm_zigbee_init(void) {
   zb_ret_t zb_err_code;
   zb_ieee_addr_t ieee_addr;
-  //  uint64_t ext_pan_id_64 = DEFAULT_PAN_ID_EXT;
-  //  zb_ext_pan_id_t ext_pan_id;
-  //  memcpy(ext_pan_id, &ext_pan_id_64, sizeof(ext_pan_id_64));
 
   /* Initialize timers. */
   timers_init();
@@ -444,14 +375,10 @@ void bm_zigbee_init(void) {
   bm_get_ieee_eui64(ieee_addr);
   zb_set_long_address(ieee_addr);
 
-  /* Set short and extended pan id to the default value. */
-  //  zb_set_pan_id((zb_uint16_t)DEFAULT_PAN_ID_SHORT);
-  //  zb_set_extended_pan_id(ext_pan_id);
-  //  zb_secur_setup_nwk_key((zb_uint8_t *)g_key_nwk, 0);
-
   zb_set_network_router_role(IEEE_CHANNEL_MASK);
   zb_set_max_children(MAX_CHILDREN);
-  //  zigbee_erase_persistent_storage(ERASE_PERSISTENT_CONFIG);
+
+  /* Erase persistent config of the device if ACK Param in config message is set true. Else delete persistent storage at startup. */
   zigbee_erase_persistent_storage(bm_params.Ack);
 
   /* Initialize application context structure. */
