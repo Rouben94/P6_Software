@@ -51,7 +51,6 @@ if __name__ == "__main__":
 
     bm_parameters = input("Please insert Parameters <Benchmark time in s> <Number of messages> <Payload in Byte> <mode> <Number of Clients>").split()
     bm_start(bm_parameters[0], bm_parameters[1], bm_parameters[2], bm_parameters[3], bm_parameters[4])
-    sleep(int(bm_parameters[0])+70)
     while(True):
         if input("Did you got all results?") == 'y':
             stop_threads = True
