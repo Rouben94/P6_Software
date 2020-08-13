@@ -39,6 +39,10 @@ along with Benchmark-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 #elif defined NRF_SDK_ZIGBEE
 #include "bm_simple_buttons_and_leds.h"
 #include "bm_zigbee.h"
+#elif defined NRF_SDK_THREAD
+#include "bm_ot.h"
+#include "bm_simple_buttons_and_leds.h"
+#include "thread_utils.h"
 #endif
 
 #include "bm_statemachine.h"
@@ -69,11 +73,14 @@ IV.    if yess -> change to next state*/
 #define ST_INIT_BENCHMARK_TIME_MS 60000 // Time required to init the Zigbee Mesh Stack
 #elif defined ZEPHYR_BLE_MESH
 #define ST_INIT_BENCHMARK_TIME_MS 10000 // Time required to init the BLE Mesh Stack
+#elif defined NRF_SDK_THREAD
+#define ST_INIT_BENCHMARK_TIME_MS 30000            // Time required to init the OpenThread Stack
+#define OT_MAIN_LOOP_ITERATION_TIME_MARGIN_MS 1000 // Time Required for ot main loop cut of
 #endif
 // The Benchmark time is obtained by the arameters from Timesync
-#define ST_BENCHMARK_MIN_GAP_TIME_US 1000         // Minimal Gap Time to not exit the interrupt context while waiting for another package.
+#define ST_BENCHMARK_MIN_GAP_TIME_US 1000          // Minimal Gap Time to not exit the interrupt context while waiting for another package.
 #define ST_BENCHMARK_ADDITIONAL_WAIT_TIME_MS 15000 // Additional Waittime for finishing the Benchmark State (if all transitions are at the end)
-#define ST_SAVE_FLASH_TIME_MS 1000                // Time required to Save Log to Flash
+#define ST_SAVE_FLASH_TIME_MS 1000                 // Time required to Save Log to Flash
 
 #define ST_MARGIN_TIME_MS 5      // Margin for State Transition (Let the State Terminate)
 #define BM_LED_BLINK_TIME_MS 500 /* Blink Time for LED's */
@@ -119,8 +126,8 @@ static void ST_transition_cb(void) {
 #endif
   } else if (currentState == ST_INIT_BENCHMARK) {
     bm_op_time_counter_disable(); // Disable Operation Time Counter
-    bm_op_time_counter_stop(); // Stop The Timer
-    bm_op_time_counter_clear(); // Clear The Timer
+    bm_op_time_counter_stop();    // Stop The Timer
+    bm_op_time_counter_clear();   // Clear The Timer
     //bm_cli_log("Radio Activity Time: %u%u\n", (uint32_t)(bm_op_time_counter_getOPTime() >> 32), (uint32_t)bm_op_time_counter_getOPTime()); // For Debug
     bm_op_time_counter_enable(); // Disable Operation Time Counter
     currentState = ST_BENCHMARK;
@@ -134,10 +141,10 @@ static void ST_transition_cb(void) {
 #endif
     uint64_t act_time_us = bm_op_time_counter_getOPTime() - ST_BENCHMARK_ADDITIONAL_WAIT_TIME_MS * 1e3;
     bm_cli_log("Radio Activity Time: %u%u\n", (uint32_t)(act_time_us >> 32), (uint32_t)act_time_us); // For Debug
-    #ifndef BENCHMARK_MASTER
-      bm_message_info msg = {UINT16_MAX, act_time_us};
-      bm_log_append_ram(msg);
-    #endif
+#ifndef BENCHMARK_MASTER
+    bm_message_info msg = {UINT16_MAX, act_time_us};
+    bm_log_append_ram(msg);
+#endif
     currentState = ST_SAVE_FLASH;
   }
   if (!wait_for_transition) {
@@ -155,7 +162,6 @@ void ST_INIT_fn(void) {
   // Init MAC Address
   LSB_MAC_Address = NRF_FICR->DEVICEADDR[0];
   bm_cli_log("Preprogrammed Randomly Static MAC-Address (LSB): 0x%x, %u \n", LSB_MAC_Address, LSB_MAC_Address);
-
   bm_init_leds();
   bm_radio_init();
   synctimer_init();
@@ -164,7 +170,7 @@ void ST_INIT_fn(void) {
   bm_log_init();
   bm_op_time_counter_init();
 
-#ifdef NRF_SDK_ZIGBEE
+#if defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
   bm_cli_init();
 #endif
 
@@ -244,7 +250,7 @@ void ST_CONTROL_fn(void) {
       bm_cli_log("Benchmark Start initialized\n");
       break;
     }
-#ifdef NRF_SDK_ZIGBEE
+#if defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
     bm_cli_process();
     UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
 #endif
@@ -328,6 +334,8 @@ void ST_INIT_BENCHMARK_fn(void) {
   next_state_ts_us = (synctimer_getSyncTime() + ST_INIT_BENCHMARK_TIME_MS * 1000 + ST_MARGIN_TIME_MS * 1000);
 #elif defined NRF_SDK_ZIGBEE
   uint64_t next_state_ts_us = (synctimer_getSyncTime() + ST_INIT_BENCHMARK_TIME_MS * 1000 + ST_MARGIN_TIME_MS * 1000 + ZBOSS_MAIN_LOOP_ITERATION_TIME_MARGIN_MS * 1000);
+#elif defined NRF_SDK_THREAD
+  uint64_t next_state_ts_us = (synctimer_getSyncTime() + ST_INIT_BENCHMARK_TIME_MS * 1000 + ST_MARGIN_TIME_MS * 1000 + OT_MAIN_LOOP_ITERATION_TIME_MARGIN_MS * 1000);
 #endif
 #ifndef BENCHMARK_MASTER
   memset(message_info, 0, sizeof(message_info)); // Erase old Log Buffer Content
@@ -341,7 +349,6 @@ void ST_INIT_BENCHMARK_fn(void) {
   bm_log_clear_ram();
   bm_log_clear_flash();
 
- 
 #ifdef ZEPHYR_BLE_MESH
   bm_blemesh_enable(); // Will return faster than the Stack is realy ready... keep on waiting in the transition.
 #elif defined NRF_SDK_ZIGBEE
@@ -349,10 +356,22 @@ void ST_INIT_BENCHMARK_fn(void) {
   bm_zigbee_init();
   /** Start Zigbee Stack. */
   bm_zigbee_enable();
-  /* Zigbee or Zboss has its own RTOS Scheduler. He owns all the CPU so we let him work while we wait. 
+  /* Zigbee or Zboss has its own Scheduler. He owns all the CPU so we let him work while we wait. 
   Note that the check for time left slows down the Zboss stack a bit. Since we are still init the stack this shouldnt be a big deal. */
   while ((synctimer_getSyncTime() - start_time_ts_us) < ST_INIT_BENCHMARK_TIME_MS * 1000) {
     zboss_main_loop_iteration();
+#ifdef BENCHMARK_MASTER
+    bm_cli_process();
+    UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
+#endif
+  }
+#elif defined NRF_SDK_THREAD
+  /* Initialize and Start Openthread stack. */
+  bm_ot_init();
+  /* Openthread has its own Scheduler. He owns all the CPU so we let him work while we wait. 
+  Note that the check for time left slows down the Openthread stack a bit. Since we are still init the stack this shouldnt be a big deal. */
+  while ((synctimer_getSyncTime() - start_time_ts_us) < ST_INIT_BENCHMARK_TIME_MS * 1000) {
+    thread_process();
 #ifdef BENCHMARK_MASTER
     bm_cli_process();
     UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
@@ -376,7 +395,7 @@ void ST_BENCHMARK_fn(void) {
   synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb); // Shedule the Timestamp event
   benchmark_messageing_done = true;
 #endif
-  
+
 #ifdef ZEPHYR_BLE_MESH
 // The Benchmark is Timer Interrupt Driven. do Nothing here and wait for transition
 #elif defined NRF_SDK_ZIGBEE
@@ -390,6 +409,17 @@ void ST_BENCHMARK_fn(void) {
 #endif
   }
   bm_cli_log("Abort Zigbee Stack\n");
+#elif defined NRF_SDK_THREAD
+  /* Openthread has its own Scheduler. He owns all the CPU so we let him work while we wait. 
+  Note that the check for time left slows down the Openthread stack a bit. Since we are still init the stack this shouldnt be a big deal. */
+  while (currentState == ST_BENCHMARK) {
+    thread_process();
+#ifdef BENCHMARK_MASTER
+    bm_cli_process();
+    UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
+#endif
+  }
+  bm_cli_log("Abort Openthread Stack\n");
 #endif
   return;
 }
@@ -438,7 +468,7 @@ void ST_WAIT_FOR_TRANSITION_fn() {
   while (!(transition)) {
 #ifdef ZEPHYR_BLE_MESH
     k_sleep(K_FOREVER); // Zephyr Way
-#elif defined NRF_SDK_ZIGBEE
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
     __SEV();
     __WFE();
     __WFE(); // Wait for Timer Interrupt nRF5SDK Way

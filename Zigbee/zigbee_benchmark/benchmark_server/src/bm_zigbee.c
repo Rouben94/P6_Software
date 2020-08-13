@@ -117,14 +117,11 @@ zb_uint16_t local_node_short_addr;
 
 zb_uint8_t seq_num = 0;
 zb_uint16_t msg_receive_cnt = 0;
-zb_uint16_t msg_receive_cnt1 = 0;
 
 zb_uint32_t stack_enable_max_delay_ms = STACK_STARTUP_MAX_DELAY;
 zb_uint32_t network_formation_delay = NETWORK_FORMATION_DELAY;
 
 static const zb_uint8_t g_key_nwk[16] = {0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89, 0, 0, 0, 0, 0, 0, 0, 0};
-
-//bm_tid_overflow_handler_t bm_tid_overflow_handler[max_number_of_nodes]; /* Excpect not more than max_number_of_nodes Different Adresses */
 
 static void buttons_handler(bsp_event_t evt);
 void bm_receive_message(zb_bufid_t bufid);
@@ -140,12 +137,6 @@ static void bm_server_clusters_attr_init(void) {
   m_dev_ctx.basic_attr.stack_version = BULB_INIT_BASIC_STACK_VERSION;
   m_dev_ctx.basic_attr.hw_version = BULB_INIT_BASIC_HW_VERSION;
 
-  /* Use ZB_ZCL_SET_STRING_VAL to set strings, because the first byte should
-     * contain string length without trailing zero.
-     *
-     * For example "test" string wil be encoded as:
-     *   [(0x4), 't', 'e', 's', 't']
-     */
   ZB_ZCL_SET_STRING_VAL(m_dev_ctx.basic_attr.mf_name,
       BULB_INIT_BASIC_MANUF_NAME,
       ZB_ZCL_STRING_CONST_SIZE(BULB_INIT_BASIC_MANUF_NAME));
@@ -197,6 +188,13 @@ static void bm_server_clusters_attr_init(void) {
 static void timer_init(void) {
   uint32_t error_code = app_timer_init();
   APP_ERROR_CHECK(error_code);
+}
+
+/* Get device address of the local device.*/
+void bm_get_ieee_eui64(zb_ieee_addr_t ieee_eui64) {
+  uint64_t factoryAddress;
+  factoryAddress = NRF_FICR->DEVICEADDR[0];
+  memcpy(ieee_eui64, &factoryAddress, sizeof(factoryAddress));
 }
 
 /**@brief Function for turning ON/OFF the light bulb.
@@ -282,70 +280,7 @@ static void buttons_handler(bsp_event_t evt) {
   }
 }
 
-/************************************ Zigbee LQI request ***********************************************/
-
-//void bm_get_lqi_cb(zb_bufid_t bufid) {
-//  zb_uint8_t *zdp_cmd = zb_buf_begin(bufid);
-//  zb_zdo_mgmt_lqi_resp_t *resp = (zb_zdo_mgmt_lqi_resp_t *)(zdp_cmd);
-//  zb_zdo_neighbor_table_record_t *record = (zb_zdo_neighbor_table_record_t *)(resp + 1);
-//  zb_uint_t i;
-//
-//  bm_cli_log("bm_get_lqi_cb status %hd, neighbor_table_entries %hd, start_index %hd, neighbor_table_list_count %d\n",
-//      resp->status, resp->neighbor_table_entries, resp->start_index, resp->neighbor_table_list_count);
-//
-//  for (i = 0; i < resp->neighbor_table_list_count; i++) {
-//    bm_cli_log("Neighbor Table Record: #%hd: network_addr 0x%x, lqi %hd\n", i, record->network_addr, record->lqi);
-//    record++;
-//  }
-//}
-
-//zb_void_t bm_get_lqi(zb_bufid_t bufid, uint16_t start_index) {
-//  zb_ieee_addr_t ieee_node_addr;
-//  zb_uint8_t tsn;
-//  zb_zdo_mgmt_lqi_param_t *req_param;
-//
-//  req_param = ZB_BUF_GET_PARAM(bufid, zb_zdo_mgmt_lqi_param_t);
-//
-//  req_param->start_index = start_index;
-//  zb_get_long_address(ieee_node_addr);
-//  req_param->dst_addr = zb_address_short_by_ieee(ieee_node_addr);
-//  tsn = zb_zdo_mgmt_lqi_req(bufid, bm_get_lqi_cb);
-//}
-//
-//zb_void_t bm_schedule_lqi(zb_uint8_t param) {
-//  zb_ret_t zb_err_code;
-//  zb_err_code = zb_buf_get_out_delayed_ext(bm_get_lqi, 0, 0);
-//  ZB_ERROR_CHECK(zb_err_code);
-//  zb_err_code = zb_buf_get_out_delayed_ext(bm_get_lqi, 2, 0);
-//  ZB_ERROR_CHECK(zb_err_code);
-//  zb_err_code = zb_buf_get_out_delayed_ext(bm_get_lqi, 4, 0);
-//  ZB_ERROR_CHECK(zb_err_code);
-//}
-
 /************************************ Benchmark Functions ***********************************************/
-
-/* Insert the tid and src address to get the merged tid with the tid overflow cnt -> resulting in a uint16_t */
-//uint16_t bm_get_overflow_tid_from_overflow_handler(uint8_t tid, uint16_t src_addr) {
-//  // Get the TID in array
-//  for (int i = 0; i < max_number_of_nodes; i++) {
-//    if (bm_tid_overflow_handler[i].src_addr == src_addr) {
-//      // Check if Overflow happend
-//      if ((bm_tid_overflow_handler[i].last_TID_seen - tid) > 250) {
-//        bm_tid_overflow_handler[i].TID_OverflowCnt++;
-//      }
-//      // Add the last seen TID
-//      bm_tid_overflow_handler[i].last_TID_seen = tid;
-//      return (uint16_t)(bm_tid_overflow_handler[i].TID_OverflowCnt << 8) | (tid & 0xff);
-//    } else if (bm_tid_overflow_handler[i].src_addr == 0) {
-//      // Add the Src Adress
-//      bm_tid_overflow_handler[i].src_addr = src_addr;
-//      bm_tid_overflow_handler[i].last_TID_seen = tid;
-//      bm_tid_overflow_handler[i].TID_OverflowCnt = 0;
-//      return (uint16_t)(bm_tid_overflow_handler[i].TID_OverflowCnt << 8) | (tid & 0xff);
-//    }
-//  }
-//  return 0;
-//}
 
 /**@brief Function for sending add group request to the local node.
  *
@@ -412,13 +347,17 @@ void bm_receive_message(zb_bufid_t bufid) {
 
 /************************************ Zigbee event handler ***********************************************/
 
+/**@brief Callback function for handling ZCL commands.
+ *
+ * @param[in]   bufid   Reference to Zigbee stack buffer used to pass received data.
+ */
 zb_uint8_t bm_ep_handler(zb_bufid_t bufid) {
   zb_zcl_parsed_hdr_t *zcl_info = ZB_BUF_GET_PARAM(bufid, zb_zcl_parsed_hdr_t);
   zb_uint16_t src_addr;
-  msg_receive_cnt1++;
+  msg_receive_cnt++;
   src_addr = zcl_info->addr_data.common_data.source.u.short_addr;
 
-  bm_cli_log("Message received in bm_ep_handler from source: 0x%x, cnt: %d, cmd_id: %d\n", src_addr, msg_receive_cnt1, zcl_info->cmd_id);
+  bm_cli_log("Message received in bm_ep_handler from source: 0x%x, cnt: %d, cmd_id: %d\n", src_addr, msg_receive_cnt, zcl_info->cmd_id);
 
   switch (zcl_info->cluster_id) {
   case ZB_ZCL_CLUSTER_ID_GROUPS:
@@ -428,7 +367,7 @@ zb_uint8_t bm_ep_handler(zb_bufid_t bufid) {
 
   case ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL:
 
-    bm_receive_message(bufid);
+    bm_receive_message(bufid); /* Receive message and read benchmark values. */
 
     if (bufid) {
       zb_buf_free(bufid);
@@ -440,34 +379,6 @@ zb_uint8_t bm_ep_handler(zb_bufid_t bufid) {
     break;
   }
 }
-
-/**@brief Callback function for handling ZCL commands.
- *
- * @param[in]   bufid   Reference to Zigbee stack buffer used to pass received data.
- */
-//static zb_void_t zcl_device_cb(zb_bufid_t bufid) {
-//  zb_uint8_t cluster_id;
-//  zb_uint8_t attr_id;
-//  zb_zcl_device_callback_param_t *p_device_cb_param = ZB_BUF_GET_PARAM(bufid, zb_zcl_device_callback_param_t);
-//
-//  msg_receive_cnt++;
-//  bm_cli_log("Message received in zcl_device_cb: %d\n", msg_receive_cnt);
-//
-//  /* Set default response value. */
-//  p_device_cb_param->status = RET_OK;
-//
-//  switch (p_device_cb_param->device_cb_id) {
-//  case ZB_ZCL_LEVEL_CONTROL_SET_VALUE_CB_ID:
-//
-//    bm_receive_message(bufid);
-//
-//    break;
-//
-//  default:
-//    p_device_cb_param->status = RET_ERROR;
-//    break;
-//  }
-//}
 
 /**@brief Zigbee stack event handler.
  *
@@ -527,22 +438,15 @@ void zboss_signal_handler(zb_bufid_t bufid) {
   }
 }
 
-/* Get device address of the local device.*/
-void bm_get_ieee_eui64(zb_ieee_addr_t ieee_eui64) {
-  uint64_t factoryAddress;
-  factoryAddress = NRF_FICR->DEVICEADDR[0];
-  memcpy(ieee_eui64, &factoryAddress, sizeof(factoryAddress));
-}
-
 /**************************************** Zigbee Stack Init and Enable ***********************************************/
 
 /** Init Zigbee Stack. */
 void bm_zigbee_init(void) {
   zb_ieee_addr_t ieee_addr;
   uint64_t long_address;
-    uint64_t ext_pan_id_64 = DEFAULT_PAN_ID_EXT;
-    zb_ext_pan_id_t ext_pan_id;
-    memcpy(ext_pan_id, &ext_pan_id_64, sizeof(ext_pan_id_64));
+  //  uint64_t ext_pan_id_64 = DEFAULT_PAN_ID_EXT;
+  //  zb_ext_pan_id_t ext_pan_id;
+  //  memcpy(ext_pan_id, &ext_pan_id_64, sizeof(ext_pan_id_64));
 
   /* Initialize timer, logging system and GPIOs. */
   timer_init();
@@ -560,14 +464,15 @@ void bm_zigbee_init(void) {
   zb_set_long_address(ieee_addr);
 
   /* Set short and extended pan id to the default value. */
-  zb_set_pan_id((zb_uint16_t)DEFAULT_PAN_ID_SHORT);
-  zb_set_extended_pan_id(ext_pan_id);
-  zb_secur_setup_nwk_key((zb_uint8_t *)g_key_nwk, 0);
+//  zb_set_pan_id((zb_uint16_t)DEFAULT_PAN_ID_SHORT);
+//  zb_set_extended_pan_id(ext_pan_id);
+//  zb_secur_setup_nwk_key((zb_uint8_t *)g_key_nwk, 0);
 
   /* Set static long IEEE address. */
   zb_set_network_router_role(IEEE_CHANNEL_MASK);
   zb_set_max_children(MAX_CHILDREN);
-  zigbee_erase_persistent_storage(ERASE_PERSISTENT_CONFIG);
+  //  zigbee_erase_persistent_storage(ERASE_PERSISTENT_CONFIG);
+  zigbee_erase_persistent_storage(bm_params.Ack);
   zb_set_keepalive_timeout(ZB_MILLISECONDS_TO_BEACON_INTERVAL(3000));
 
   /* Initialize application context structure. */

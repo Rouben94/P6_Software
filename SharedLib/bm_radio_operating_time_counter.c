@@ -65,7 +65,7 @@ ISR_DIRECT_DECLARE(bm_op_timer_handler) {
   return 1;
 }
 
-#elif defined NRF_SDK_ZIGBEE
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
 
 //NRF SDK WAY
 void TIMER2_IRQHandler(void) {
@@ -88,7 +88,7 @@ void bm_op_time_counter_init() {
   wakeup_thread_tid = k_current_get();
   IRQ_DIRECT_CONNECT(TIMER2_IRQn, 6, bm_op_timer_handler, 0); // Connect Timer ISR Zephyr WAY
   irq_enable(TIMER2_IRQn);                                 // Enable Timer ISR Zephyr WAY
-#elif defined NRF_SDK_ZIGBEE
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
   NVIC_EnableIRQ(TIMER2_IRQn); // Enable Timer ISR NRF SDK WAY
 #endif
   nrf_timer_task_trigger(op_time_counter, NRF_TIMER_TASK_CLEAR);

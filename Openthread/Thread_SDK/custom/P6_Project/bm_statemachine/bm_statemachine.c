@@ -13,7 +13,7 @@
 #include <openthread/random_noncrypto.h>
 #include <openthread/cli.h>
 
-#define NUMBER_OF_NETWORK_TIME_ELEMENTS 1000
+#define NUMBER_OF_NETWORK_TIME_ELEMENTS 3000
 #define NUMBER_OF_NODES 60
 
 APP_TIMER_DEF(m_benchmark_timer);

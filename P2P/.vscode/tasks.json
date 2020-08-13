@@ -1,0 +1,29 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Flash with west --erase",
+        "type": "shell",
+        //"command": "${workspaceRoot}\\build.cmd",
+        "command": "west flash --erase",
+        "group": "test",
+        "presentation": {
+          "reveal": "always",
+          "panel": "new"
+        }
+      },
+      {
+        "label": "Flash with USB Dongle with nrfutil",
+        "type": "shell",
+        "command": "${workspaceRoot}\\Dongle_USB_flash.cmd",
+        //"command": "west flash",
+        "group": "test",
+        "presentation": {
+          "reveal": "always",
+          "panel": "new"
+        }
+      }
+    ]
+  }
