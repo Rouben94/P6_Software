@@ -91,7 +91,6 @@ static thread_coap_utils_configuration_t          m_config;
 static void bm_start_handler(void *, otMessage *, const otMessageInfo *);
 static void bm_probe_message_handler(void *, otMessage *, const otMessageInfo *);
 static void bm_result_handler(void *, otMessage *, const otMessageInfo *);
-//static void bm_result_request_handler(void *, otMessage *, const otMessageInfo *);
 
 /**@brief Definition of CoAP resources for benchmark start. */
 static otCoapResource m_bm_start_resource =
@@ -119,15 +118,6 @@ static otCoapResource m_bm_result_resource =
     .mContext = NULL,
     .mNext    = NULL
 };
-
-///**@brief Definition of CoAP resources for benchmark test message. */
-//static otCoapResource m_bm_result_request_resource =
-//{
-//    .mUriPath = "test",
-//    .mHandler = bm_result_request_handler,
-//    .mContext = NULL,
-//    .mNext    = NULL
-//};
 
 // Insert the tid and src address to get the merged tid with the tid overlfow cnt -> resulting in a uint16_t
 uint16_t bm_get_overflow_tid_from_overflow_handler(uint8_t tid, uint16_t src_addr){
@@ -251,66 +241,6 @@ static void coap_default_handler(void                * p_context,
 /***************************************************************************************************
  * @section Benchmark Coap Unicast result response to master
  **************************************************************************************************/
-static void bm_coap_result_response_handler(void                * p_context,
-                                            otMessage           * p_message,
-                                            const otMessageInfo * p_message_info,
-                                            otError               result)
-{
-    if (result == OT_ERROR_NONE)
-    {
-      if (otCoapMessageGetType(p_message) == OT_COAP_TYPE_ACKNOWLEDGMENT)
-      {
-          NRF_LOG_INFO("Slave: Result succesfull transmitted");
-          bm_set_ack_received(1);
-      }      
-    }
-    else 
-    {
-      if (result == OT_ERROR_RESPONSE_TIMEOUT)  // Coap response or acknowledgment or DNS response not received
-      {
-          NRF_LOG_INFO("Slave: Result response not received");
-          bm_set_ack_received(2);
-      }    
-    }
-}
-
-static void bm_coap_result_response_send(otMessage           * p_request_message,
-                                        const otMessageInfo * p_message_info)
-{
-    otError      error = OT_ERROR_NO_BUFS;
-    otMessage  * p_response;
-    otInstance * p_instance = thread_ot_instance_get();
-
-    NRF_LOG_INFO("Master: result response send")
-
-    do
-    {
-        p_response = otCoapNewMessage(p_instance, NULL);
-        if (p_response == NULL)
-        {
-            break;
-        }
-
-        error = otCoapMessageInitResponse(p_response,
-                                          p_request_message,
-                                          OT_COAP_TYPE_ACKNOWLEDGMENT,
-                                          OT_COAP_CODE_CHANGED);
-
-        if (error != OT_ERROR_NONE)
-        {
-            break;
-        }
-
-        error = otCoapSendResponse(p_instance, p_response, p_message_info);
-
-    } while (false);
-
-    if ((error != OT_ERROR_NONE) && (p_response != NULL))
-    {
-        otMessageFree(p_response);
-    }
-}
-
 static void bm_result_handler(void                 * p_context,
                                    otMessage            * p_message,
                                    const otMessageInfo  * p_message_info)
@@ -335,7 +265,7 @@ static void bm_result_handler(void                 * p_context,
 
         if (otCoapMessageGetType(p_message) == OT_COAP_TYPE_CONFIRMABLE)
         {
-            bm_coap_result_response_send(p_message, p_message_info);
+//            bm_coap_result_response_send(p_message, p_message_info);
         }
     } while(false);
 }
@@ -362,7 +292,7 @@ void bm_coap_results_send(bm_message_info *message_info)
             break;
         }
 
-        otCoapMessageInit(p_request, OT_COAP_TYPE_CONFIRMABLE, OT_COAP_CODE_PUT);
+        otCoapMessageInit(p_request, OT_COAP_TYPE_NON_CONFIRMABLE, OT_COAP_CODE_PUT);
         otCoapMessageGenerateToken(p_request, 2);
         
         error = otCoapMessageAppendUriPathOptions(p_request, "bm_result");
@@ -371,7 +301,7 @@ void bm_coap_results_send(bm_message_info *message_info)
         error = otCoapMessageSetPayloadMarker(p_request);
         ASSERT(error == OT_ERROR_NONE);
 
-        otCoapMessageInit(p_request, OT_COAP_TYPE_CONFIRMABLE, OT_COAP_CODE_PUT);
+        otCoapMessageInit(p_request, OT_COAP_TYPE_NON_CONFIRMABLE, OT_COAP_CODE_PUT);
         otCoapMessageGenerateToken(p_request, 2);
         UNUSED_VARIABLE(otCoapMessageAppendUriPathOptions(p_request, "bm_result"));
         UNUSED_VARIABLE(otCoapMessageSetPayloadMarker(p_request));
@@ -388,7 +318,7 @@ void bm_coap_results_send(bm_message_info *message_info)
         messafe_info.mHopLimit = HOP_LIMIT_DEFAULT;
         messafe_info.mPeerAddr = bm_master_address;
         
-        error = otCoapSendRequest(p_instance, p_request, &messafe_info, bm_coap_result_response_handler, p_instance);
+        error = otCoapSendRequest(p_instance, p_request, &messafe_info, NULL, p_instance);
     } while (false);
 
     if (error != OT_ERROR_NONE && p_request != NULL)
@@ -438,6 +368,7 @@ static void bm_start_handler(void                 * p_context,
         {
             bm_sm_new_state_set(BM_STATE_1_SERVER);
         }
+        bm_start_sm();
     } while(false);
 }
 
@@ -502,6 +433,7 @@ static void bm_probe_message_handler(void                 * p_context,
 {
     otInstance      * p_instance = thread_ot_instance_get();
     bm_message_info message;
+    uint64_t tmp=0;
 
     do
     {
@@ -521,7 +453,8 @@ static void bm_probe_message_handler(void                 * p_context,
         message.message_id = bm_get_overflow_tid_from_overflow_handler(bm_probe[0], ((bm_probe[1] & 0xff) | (bm_probe[2] << 8)));
         bsp_board_led_invert(BSP_BOARD_LED_3);
 
-        otNetworkTimeGet(p_instance, &message.net_time);
+        otNetworkTimeGet(p_instance, &tmp);
+        message.net_time = tmp;
         message.RSSI = otMessageGetRss(p_message);
         message.number_of_hops = (HOP_LIMIT_DEFAULT - p_message_info->mHopLimit);
         message.source_address = ((bm_probe[1] & 0xff) | (bm_probe[2] << 8));
@@ -545,6 +478,7 @@ void bm_coap_probe_message_send(uint16_t size)
     otMessageInfo     messafe_info;
     otInstance      * p_instance = thread_ot_instance_get();
     bm_message_info   message;
+    uint64_t tmp=0;
 
     bm_message_ID++;
 
@@ -556,7 +490,8 @@ void bm_coap_probe_message_send(uint16_t size)
     message.net_time_ack = 0;
     message.message_id = bm_get_overflow_tid_from_overflow_handler(bm_message_ID, message.source_address);
     message.node_id = bm_get_node_id();
-    otNetworkTimeGet(p_instance, &message.net_time);
+    otNetworkTimeGet(p_instance, &tmp);
+    message.net_time = tmp;
 
     do
     {
@@ -587,7 +522,7 @@ void bm_coap_probe_message_send(uint16_t size)
         UNUSED_VARIABLE(otCoapMessageAppendUriPathOptions(p_request, "bm_test"));
         UNUSED_VARIABLE(otCoapMessageSetPayloadMarker(p_request));
 
-        otRandomNonCryptoFillBuffer(bm_probe, size);
+        otRandomNonCryptoFillBuffer(bm_probe, 2);
         bm_probe[0] = bm_message_ID;
         bm_probe[1] = message.source_address & 0xff;
         bm_probe[2] = message.source_address >> 8;
@@ -649,10 +584,6 @@ void thread_coap_utils_init(const thread_coap_utils_configuration_t * p_config)
         m_bm_start_resource.mContext    = p_instance;
         error = otCoapAddResource(p_instance, &m_bm_start_resource);
         ASSERT(error == OT_ERROR_NONE);
-
-//        m_bm_result_request_resource.mContext    = p_instance;
-//        error = otCoapAddResource(p_instance, &m_bm_result_request_resource);
-//        ASSERT(error == OT_ERROR_NONE);
     }
 
     if (!m_config.coap_client_enabled || !m_config.coap_server_enabled)
@@ -685,9 +616,6 @@ void thread_coap_utils_deinit(void)
     {
         m_bm_start_resource.mContext    = NULL;
         otCoapRemoveResource(p_instance, &m_bm_start_resource);
-
-//        m_bm_result_request_resource.mContext    = NULL;
-//        otCoapRemoveResource(p_instance, &m_bm_result_request_resource);
     }
     
     if (!m_config.coap_client_enabled || !m_config.coap_server_enabled)

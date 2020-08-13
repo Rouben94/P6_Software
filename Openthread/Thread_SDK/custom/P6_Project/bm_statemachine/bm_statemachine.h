@@ -13,8 +13,12 @@ typedef enum
     BM_EMPTY_STATE,
     BM_STATE_1_CLIENT,
     BM_STATE_2_CLIENT,
+    BM_STATE_3_CLIENT,
+    BM_STATE_4_CLIENT,
     BM_STATE_1_SERVER,
     BM_STATE_2_SERVER,
+    BM_STATE_3_SERVER,
+    BM_STATE_4_SERVER,
     BM_STATE_3_SLAVE,
     BM_STATE_4_SLAVE,
     BM_STATE_1_MASTER,
@@ -53,6 +57,8 @@ typedef struct
   uint16_t bm_time;                             /**<  Tells the slave node how long the benchmark does take*/
   uint16_t bm_nbr_of_msg;
   uint16_t bm_msg_size;
+  uint8_t  mode;
+  uint8_t  clients;
 } __attribute__((packed)) bm_master_message;
 
 /**@brief Function for processing the benchmark pending tasks.
@@ -101,13 +107,13 @@ void bm_set_additional_payload(bool state);
  *
  * @details 
  */
-void bm_set_ack_received(uint8_t received);
+uint8_t bm_get_node_id(void);
 
 /**@brief 
  *
  * @details 
  */
-uint8_t bm_get_node_id(void);
+void bm_start_sm(void);
 
 
 #endif // BM_STATEMACHINE_H_

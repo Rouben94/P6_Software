@@ -3,11 +3,10 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-#include "app_timer.h"
 #include "bm_coap.h"
 #include "boards.h"
 
-#include "nrf_delay.h"
+#include "app_timer.h"
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
@@ -16,14 +15,16 @@
 #include <openthread/network_time.h>
 #include <openthread/random_noncrypto.h>
 
+#define STATE_MACHINE_TASK_STACK_SIZE    (( 1024 * 8 ) / sizeof(StackType_t))   /**< FreeRTOS task stack size is determined in multiples of StackType_t. */
+#define STATE_MACHINE_TASK_PRIORITY      1
+TaskHandle_t state_machine_task;
+
+#define STATE_MACHINE_TASK_PRIORITY      1
+
 #define NUMBER_OF_NETWORK_TIME_ELEMENTS 3000
 #define NUMBER_OF_NODES 60
 #define BM_START_DELAY 10000000
 #define BM_END_DELAY 1000
-
-APP_TIMER_DEF(m_request_timer);
-APP_TIMER_DEF(m_probe_timer);
-APP_TIMER_DEF(m_result_timer);
 
 bm_message_info message_info[NUMBER_OF_NETWORK_TIME_ELEMENTS] = {0};
 uint32_t bm_time_delays[NUMBER_OF_NETWORK_TIME_ELEMENTS];
@@ -34,15 +35,15 @@ otInstance * p_instance;
 
 char bm_result_cli[100] = {"\0"};
 
-static uint32_t LSB_MAC_Address_TEST[5] = {0xE22399C0, 0x7A2C3E11, 0xF0F892B4, 0x3C939F93, 0x4AD03925};
-
-static uint32_t LSB_MAC_Address[52] = {0x7928FDBD, 0xE1A6E5BF, 0xA7A6C5A8, 0x9A6E0972, 0x8E323CE7,
-    0xE2F74711, 0x7C92D6F4, 0x4BDDEB69, 0xDC94CD5B, 0x228D1458, 0xB6D10C96, 0xA4F21E13, 0xE5B83E8E,
-    0x52993E8A, 0x6776E907, 0xC6D6D775, 0xD9D77E84, 0x601D5B66, 0xFAFE496D, 0xDE9629D5, 0xEFF7BF27,
-    0x8C9887C1, 0xDA9B7CC4, 0x2BA3A564, 0x11047935, 0x94AD4551, 0x147FFADA, 0x6C84AD40, 0x6299C37B,
-    0xBCBAD38A, 0x9D0ECC89, 0xBA07263F, 0x62688236, 0xD64BDCA0, 0x769E3C69, 0xDE1B14CB, 0xE2E0BBA6,
-    0xB3FAF1BB, 0xCC710FAF, 0x8452CCB8, 0x701A30B7, 0xB18D9ED9, 0x29F650C1, 0x4D07D85A, 0x16D87965,
-    0xEA97A00B, 0x70AAAF03, 0x5BEB2713, 0xA2068169, 0xA0469D49, 0x13D67795, 0xF5EA067B};
+static uint32_t LSB_MAC_Address[4] = {0xF0F892B4, 0x4AD03925, 0x3C939F93, 0xE22399C0};
+//
+//static uint32_t LSB_MAC_Address[52] = {0x7928FDBD, 0xE1A6E5BF, 0xA7A6C5A8, 0x9A6E0972, 0x8E323CE7,
+//    0xE2F74711, 0x7C92D6F4, 0x4BDDEB69, 0xDC94CD5B, 0x228D1458, 0xB6D10C96, 0xA4F21E13, 0xE5B83E8E,
+//    0x52993E8A, 0x6776E907, 0xC6D6D775, 0xD9D77E84, 0x601D5B66, 0xFAFE496D, 0xDE9629D5, 0xEFF7BF27,
+//    0x8C9887C1, 0xDA9B7CC4, 0x2BA3A564, 0x11047935, 0x94AD4551, 0x147FFADA, 0x6C84AD40, 0x6299C37B,
+//    0xBCBAD38A, 0x9D0ECC89, 0xBA07263F, 0x62688236, 0xD64BDCA0, 0x769E3C69, 0xDE1B14CB, 0xE2E0BBA6,
+//    0xB3FAF1BB, 0xCC710FAF, 0x8452CCB8, 0x701A30B7, 0xB18D9ED9, 0x29F650C1, 0x4D07D85A, 0x16D87965,
+//    0xEA97A00B, 0x70AAAF03, 0x5BEB2713, 0xA2068169, 0xA0469D49, 0x13D67795, 0xF5EA067B};
 
 /** Defines for Random Transaction Events in Benchmark
      * Gerated by Random.org. Uses a lot of RAM (be aware) **/
@@ -85,7 +86,6 @@ uint16_t payload = 0;
 uint8_t BM_NODE_ID = 0;
 uint8_t bm_new_state = 0;
 uint8_t bm_actual_state = 0;
-uint8_t ack_received = 1;
 bool additional_payload = false;
 
 /***************************************************************************************************
@@ -126,18 +126,22 @@ void bm_set_additional_payload(bool state)
     (state) ? bsp_board_led_on(BSP_BOARD_LED_1) : bsp_board_led_off(BSP_BOARD_LED_1);
 }
 
-void bm_set_ack_received(uint8_t received) { ack_received = received; }
-
 uint8_t bm_get_node_id(void) { return BM_NODE_ID; }
+
+void bm_start_sm(void)
+{
+    if(eTaskGetState(state_machine_task)==eSuspended)
+    {
+        vTaskResume(state_machine_task);
+    }
+}
 
 /***************************************************************************************************
  * @section State machine - Internal Functions
  **************************************************************************************************/
 static int compare(const void * a, const void * b) { return (*(int *)a - *(int *)b); }
 
-static void m_request_handler(void * p_context) { bm_coap_multicast_start_send(bm_start_params); }
-
-static void m_probe_handler(void * p_context)
+static void probe_message_send(void)
 {
     if (bm_start_params->bm_msg_size <= 3)
     {
@@ -164,15 +168,13 @@ static void m_probe_handler(void * p_context)
     bsp_board_led_invert(BSP_BOARD_LED_3);
 }
 
-static void m_result_handler(void * p_context) { bm_coap_results_send(&result); }
-
 /***************************************************************************************************
  * @section State machine Slave
  **************************************************************************************************/
 static void state_1_server(void)
 {
     otNetworkTimeGet(p_instance, &actual_net_time);
-    nrf_delay_ms((bm_start_params->bm_master_time_stamp + BM_START_DELAY - actual_net_time) / 1000);
+    vTaskDelay(APP_TIMER_TICKS((bm_start_params->bm_master_time_stamp + BM_START_DELAY - actual_net_time) / 1000)); // vTaskDelay ended in hartfault from NRF. 
     bm_new_state = BM_STATE_2_SERVER;
 }
 
@@ -180,22 +182,40 @@ static void state_2_server(void)
 {
     NRF_LOG_INFO("Slave: Start Benchmark");
     bsp_board_led_on(BSP_BOARD_LED_2);
-    nrf_delay_ms(bm_start_params->bm_time * 1000 + BM_END_DELAY);
+    vTaskDelay(APP_TIMER_TICKS(bm_start_params->bm_time * 1000 + BM_END_DELAY));
     bm_new_state = BM_STATE_3_SLAVE;
 }
 
 static void state_1_client(void)
 {
     memset(bm_time_delays, 0, NUMBER_OF_NETWORK_TIME_ELEMENTS * sizeof(*bm_time_delays));
-    for (int i = 0; i < bm_start_params->bm_nbr_of_msg; i++)
+    uint32_t time_max_nodes_for_one_packet_ms = bm_start_params->bm_time*1000 / bm_start_params->bm_nbr_of_msg;
+    uint32_t time_for_one_packet_ms = time_max_nodes_for_one_packet_ms / bm_start_params->clients;
+    if(bm_start_params->mode==1)
     {
-//        bm_time_delays[i] =
-//            otRandomNonCryptoGetUint32InRange(20, (bm_start_params->bm_time * 1000) - 20);
+        for (int i = 0; i < bm_start_params->bm_nbr_of_msg; i++)
+        {
+            bm_time_delays[i] =
+            otRandomNonCryptoGetUint32InRange(20, (bm_start_params->bm_time * 1000) - 20);
+        }
+        qsort(bm_time_delays, bm_start_params->bm_nbr_of_msg, sizeof(uint32_t), compare);
+    } else if(bm_start_params->mode==2)
+    {
+        for (int i = 0; i < bm_start_params->bm_nbr_of_msg; i++)
+        {
           bm_time_delays[i] = (uint32_t)(((uint64_t)rand16_26_1000[bm_get_node_id()][i]*(uint64_t)bm_start_params->bm_time*1000)/65536);
+        }
+        qsort(bm_time_delays, bm_start_params->bm_nbr_of_msg, sizeof(uint32_t), compare);
+    } else if(bm_start_params->mode==3)
+    {
+        for (int i = 0; i < bm_start_params->bm_nbr_of_msg; i++)
+        {
+          bm_time_delays[i] = (uint32_t)(bm_get_node_id() - 1) * time_for_one_packet_ms + i * time_max_nodes_for_one_packet_ms; // Set the Packet TIme according to the Settings  
+        } 
     }
-    qsort(bm_time_delays, bm_start_params->bm_nbr_of_msg, sizeof(uint32_t), compare);
+    
     otNetworkTimeGet(p_instance, &actual_net_time);
-    nrf_delay_ms((bm_start_params->bm_master_time_stamp + BM_START_DELAY - actual_net_time) / 1000);
+    vTaskDelay(APP_TIMER_TICKS((bm_start_params->bm_master_time_stamp + BM_START_DELAY - actual_net_time) / 1000));
     bm_new_state = BM_STATE_2_CLIENT;
 }
 
@@ -203,18 +223,17 @@ static void state_2_client(void)
 {
     NRF_LOG_INFO("Slave: Start Benchmark");
     bsp_board_led_on(BSP_BOARD_LED_2);
-    uint32_t error;
     uint32_t delay = 0;
+    uint32_t error;
 
     for (int i = 0; i < bm_start_params->bm_nbr_of_msg; i++)
     {
-        (i == 0) ? nrf_delay_ms(bm_time_delays[i])
-                 : nrf_delay_ms(bm_time_delays[i] - bm_time_delays[i - 1]);
+        (i == 0) ? vTaskDelay(APP_TIMER_TICKS(bm_time_delays[i]))
+                 : vTaskDelay(APP_TIMER_TICKS(bm_time_delays[i] - bm_time_delays[i - 1]));
         delay = bm_time_delays[i];
-        error = app_timer_start(m_probe_timer, 5, NULL);
-        ASSERT(error == NRF_SUCCESS);
+        probe_message_send();
     }
-    nrf_delay_ms(bm_start_params->bm_time * 1000 - delay + BM_END_DELAY);
+    vTaskDelay(APP_TIMER_TICKS(bm_start_params->bm_time * 1000 - delay + BM_END_DELAY));
     bm_new_state = BM_STATE_3_SLAVE;
 }
 
@@ -223,7 +242,7 @@ static void state_3_slave(void)
     NRF_LOG_INFO("Slave: End Benchmark");
     bsp_board_led_off(BSP_BOARD_LED_2);
     bsp_board_led_off(BSP_BOARD_LED_3);
-    nrf_delay_ms(10000*bm_get_node_id());
+    vTaskDelay(APP_TIMER_TICKS(10000*bm_get_node_id()));
     bm_new_state = BM_STATE_4_SLAVE;
 }
 
@@ -231,32 +250,22 @@ static void state_4_slave(void)
 {
     NRF_LOG_INFO("Slave: Send Results");
     bsp_board_led_on(BSP_BOARD_LED_3);
-    uint32_t error;
-    ack_received = 1;
 
-    do
+    while(true)
     {
-        if (bm_message_info_nr == 0 && ack_received == 1)
+        if(bm_message_info_nr!=0)
+        {
+            bm_message_info_nr--;
+        }
+        result = message_info[bm_message_info_nr];
+        bm_coap_results_send(&result);
+
+        if(bm_message_info_nr==0)
         {
             break;
         }
-        if (ack_received == 1)
-        {
-            bm_message_info_nr--;
-            result = message_info[bm_message_info_nr];
-            error = app_timer_start(m_result_timer, 5, NULL);
-            ASSERT(error == NRF_SUCCESS);
-            ack_received = 0;
-        }
-        else if (ack_received == 2)
-        {
-            result = message_info[bm_message_info_nr];
-            error = app_timer_start(m_result_timer, 5, NULL);
-            ASSERT(error == NRF_SUCCESS);
-            ack_received = 0;
-        }
-    } while (true);
-
+        vTaskDelay(APP_TIMER_TICKS(10));
+    }
     bm_message_info_nr = 0;
     memset(message_info, 0, sizeof(message_info));
     bsp_board_led_off(BSP_BOARD_LED_3);
@@ -269,23 +278,20 @@ static void state_4_slave(void)
  **************************************************************************************************/
 static void state_1_master(void)
 {
-    uint32_t error;
-
     for (int i = 1; i < 5; i++)
     {
-        error = app_timer_start(m_request_timer, 5, NULL);
-        ASSERT(error == NRF_SUCCESS)
-        nrf_delay_ms(1000);
+        bm_coap_multicast_start_send(bm_start_params);
+        vTaskDelay(APP_TIMER_TICKS(1000));
     }
     otNetworkTimeGet(p_instance, &actual_net_time);
-    nrf_delay_ms((bm_start_params->bm_master_time_stamp + BM_START_DELAY - actual_net_time) / 1000);
+    vTaskDelay(APP_TIMER_TICKS((bm_start_params->bm_master_time_stamp + BM_START_DELAY - actual_net_time) / 1000));
     bm_new_state = BM_STATE_2_MASTER;
 }
 
 static void state_2_master(void)
 {
     otCliOutput("<BENCHMARK_START> \r\n", sizeof("<BENCHMARK_START> \r\n"));
-    nrf_delay_ms(bm_start_params->bm_time * 1000 + BM_END_DELAY);
+    vTaskDelay(APP_TIMER_TICKS(bm_start_params->bm_time * 1000 + BM_END_DELAY));
     bm_new_state = BM_STATE_3_MASTER;
 }
 
@@ -296,11 +302,15 @@ static void state_3_master(void)
 }
 
 /***************************************************************************************************
- * @section State machine Process
+ * @section State machine Task
  **************************************************************************************************/
-void bm_sm_process(void)
+static void state_machine_tsk(void * pvParameter)
 {
-    bm_actual_state = bm_new_state;
+    UNUSED_PARAMETER(pvParameter);
+
+    while (true)
+    {
+        bm_actual_state = bm_new_state;
 
     switch (bm_actual_state)
     {
@@ -341,10 +351,19 @@ void bm_sm_process(void)
             break;
 
         case BM_EMPTY_STATE:
+            if(eTaskGetState(state_machine_task)!=eSuspended)
+            {
+                vTaskSuspend(NULL);
+            }
             break;
 
         default:
+            if(eTaskGetState(state_machine_task)!=eSuspended)
+            {
+                vTaskSuspend(NULL);
+            }
             break;
+    }
     }
 }
 
@@ -353,18 +372,20 @@ void bm_sm_process(void)
  **************************************************************************************************/
 void bm_statemachine_init(void)
 {
-    p_instance = thread_ot_instance_get();
-    uint32_t error;
-    error = app_timer_create(&m_request_timer, APP_TIMER_MODE_SINGLE_SHOT, m_request_handler);
-    ASSERT(error == NRF_SUCCESS);
-    error = app_timer_create(&m_probe_timer, APP_TIMER_MODE_SINGLE_SHOT, m_probe_handler);
-    ASSERT(error == NRF_SUCCESS);
-    error = app_timer_create(&m_result_timer, APP_TIMER_MODE_SINGLE_SHOT, m_result_handler);
-    ASSERT(error == NRF_SUCCESS);
-
-    for (int i = 0; i < 5; i++)
+    // Start execution.
+    if (pdPASS != xTaskCreate(state_machine_tsk, "StMa", STATE_MACHINE_TASK_STACK_SIZE, NULL, STATE_MACHINE_TASK_PRIORITY, &state_machine_task))
     {
-        if (LSB_MAC_Address_TEST[i] == NRF_FICR->DEVICEADDR[0])
+        APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
+    }
+
+    vTaskSuspend(state_machine_task);
+
+    uint32_t error;
+    p_instance = thread_ot_instance_get();
+
+    for (int i = 0; i < 4; i++)
+    {
+        if (LSB_MAC_Address[i] == NRF_FICR->DEVICEADDR[0])
         {
             BM_NODE_ID = i + 1;
         }

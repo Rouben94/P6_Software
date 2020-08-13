@@ -106,7 +106,7 @@ void bsp_board_led_blink(uint32_t led_idx)
     uint32_t error;
     blink_led = led_idx;
     bsp_board_led_on(led_idx);
-    error = app_timer_start(m_blink_timer, APP_TIMER_TICKS(100), NULL);
+    error = app_timer_start(m_blink_timer, APP_TIMER_TICKS(20), NULL);
     ASSERT(error == NRF_SUCCESS);
 }
 

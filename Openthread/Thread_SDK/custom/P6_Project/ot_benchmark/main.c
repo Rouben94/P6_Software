@@ -62,7 +62,7 @@
 #include "bm_coap.h"
 #include "thread_utils.h"
 
-#include <openthread/channel_manager.h>
+//#include <openthread/channel_manager.h>
 #include <openthread/instance.h>
 #include <openthread/network_time.h>
 #include <openthread/platform/time.h>
@@ -72,26 +72,14 @@
 #define THREAD_STACK_TASK_STACK_SIZE     (( 1024 * 8 ) / sizeof(StackType_t))   /**< FreeRTOS task stack size is determined in multiples of StackType_t. */
 #define LOG_TASK_STACK_SIZE              ( 1024 / sizeof(StackType_t))          /**< FreeRTOS task stack size is determined in multiples of StackType_t. */
 #define THREAD_STACK_TASK_PRIORITY       2
-#define LOG_TASK_PRIORITY                1
-#define STATE_MACHINE_TASK_PRIORITY      1
+#define LOG_TASK_PRIORITY                0
 #define LOG_TASK_INTERVAL                10
 
-typedef struct
-{
-    TaskHandle_t thread_stack_task;   /**< Thread stack task handle */
-    TaskHandle_t state_machine_task;  /**< LED1 task handle*/
-    TaskHandle_t logger_task;         /**< Definition of Logger thread. */
-} application_t;
+TaskHandle_t thread_stack_task;   /**< Thread stack task handle */
+TaskHandle_t logger_task;         /**< Definition of Logger thread. */
 
-application_t m_app =
-{
-    .thread_stack_task  = NULL,
-    .state_machine_task = NULL,
-    .logger_task        = NULL,
-};
-
-//#define BM_MASTER
-#define BM_CLIENT
+#define BM_MASTER
+//#define BM_CLIENT
 //#define BM_SERVER
 
 #ifdef BM_CLIENT
@@ -148,12 +136,12 @@ static void bsp_event_handler(bsp_event_t event)
 
 void otTaskletsSignalPending(otInstance * p_instance)
 {
-    if (m_app.thread_stack_task == NULL)
+    if (thread_stack_task == NULL)
     {
         return;
     }
 
-    UNUSED_RETURN_VALUE(xTaskNotifyGive(m_app.thread_stack_task));
+    UNUSED_RETURN_VALUE(xTaskNotifyGive(thread_stack_task));
 }
 
 
@@ -161,12 +149,12 @@ void otSysEventSignalPending(void)
 {
     static BaseType_t xHigherPriorityTaskWoken;
 
-    if (m_app.thread_stack_task == NULL)
+    if (thread_stack_task == NULL)
     {
         return;
     }
 
-    vTaskNotifyGiveFromISR(m_app.thread_stack_task, &xHigherPriorityTaskWoken);
+    vTaskNotifyGiveFromISR(thread_stack_task, &xHigherPriorityTaskWoken);
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
@@ -233,12 +221,15 @@ static void thread_time_sync_callback(void * p_context)
     master_message.bm_time = (uint16_t)atoi(aArgs[0]);
     master_message.bm_nbr_of_msg = (uint16_t)atoi(aArgs[1]);
     master_message.bm_msg_size = (uint16_t)atoi(aArgs[2]);
+    master_message.mode = (uint16_t)atoi(aArgs[3]);
+    master_message.clients = (uint16_t)atoi(aArgs[4]);
     otNetworkTimeGet(p_instance, &tmp);
     master_message.bm_master_time_stamp = tmp;
     master_message.master_address = *otThreadGetMeshLocalEid(p_instance);
 
     bm_start_param_set(&master_message);
     bm_sm_new_state_set(BM_STATE_1_MASTER);
+    bm_start_sm();
 
     otCliOutput("done \r\n", sizeof("done \r\n"));
     }
@@ -341,17 +332,17 @@ static void thread_time_sync_init(void)
     otNetworkTimeSyncSetCallback(thread_ot_instance_get(), thread_time_sync_callback, NULL);
 }
 
-/**@brief Function for initialize the auto channel manager */
-void bm_channel_manager_init(void)
-{
-    otError error;
-    uint32_t bm_channel_mask = 0b11111111111111110000000000;
-    otChannelManagerSetAutoChannelSelectionEnabled(thread_ot_instance_get(), true);
-    otChannelManagerSetSupportedChannels(thread_ot_instance_get(), bm_channel_mask);
-    otChannelManagerSetFavoredChannels(thread_ot_instance_get(), bm_channel_mask);
-    error = otChannelManagerSetAutoChannelSelectionInterval(thread_ot_instance_get(), 60);
-    ASSERT(error == OT_ERROR_NONE);
-}
+///**@brief Function for initialize the auto channel manager */
+//void bm_channel_manager_init(void)
+//{
+//    otError error;
+//    uint32_t bm_channel_mask = 0b11111111111111110000000000;
+//    otChannelManagerSetAutoChannelSelectionEnabled(thread_ot_instance_get(), true);
+//    otChannelManagerSetSupportedChannels(thread_ot_instance_get(), bm_channel_mask);
+//    otChannelManagerSetFavoredChannels(thread_ot_instance_get(), bm_channel_mask);
+//    error = otChannelManagerSetAutoChannelSelectionInterval(thread_ot_instance_get(), 60);
+//    ASSERT(error == OT_ERROR_NONE);
+//}
 
 /**@brief Function for initializing the clock.
  */
@@ -364,24 +355,14 @@ static void clock_init(void)
 /***************************************************************************************************
  * @section Tasks
  **************************************************************************************************/
-static void thread_stack_task(void * arg)
+static void thread_stack_tsk(void * arg)
 {
     UNUSED_PARAMETER(arg);
 
-    while (1)
+    while (true)
     {
         thread_process();
         UNUSED_RETURN_VALUE(ulTaskNotifyTake(pdTRUE, portMAX_DELAY));
-    }
-}
-
-static void state_machine_task(void * pvParameter)
-{
-    UNUSED_PARAMETER(pvParameter);
-
-    while (true)
-    {
-        bm_sm_process();
     }
 }
 
@@ -415,7 +396,7 @@ int main(int argc, char * argv[])
 
 #ifdef BM_MASTER
     bm_custom_cli_init();
-    bm_channel_manager_init();
+//    bm_channel_manager_init();
 #endif // BM_MASTER
 
     thread_bsp_init();
@@ -423,19 +404,13 @@ int main(int argc, char * argv[])
     bm_statemachine_init();
 
     // Start thread stack execution.
-    if (pdPASS != xTaskCreate(thread_stack_task, "THR", THREAD_STACK_TASK_STACK_SIZE, NULL, THREAD_STACK_TASK_PRIORITY, &m_app.thread_stack_task))
+    if (pdPASS != xTaskCreate(thread_stack_tsk, "THR", THREAD_STACK_TASK_STACK_SIZE, NULL, THREAD_STACK_TASK_PRIORITY, &thread_stack_task))
     {
         APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
     }
 
     // Start execution.
-    if (pdPASS != xTaskCreate(state_machine_task, "StMa", configMINIMAL_STACK_SIZE, NULL, STATE_MACHINE_TASK_PRIORITY, &m_app.state_machine_task))
-    {
-        APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
-    }
-
-    // Start execution.
-    if (pdPASS != xTaskCreate(logger_thread, "LOGGER", LOG_TASK_STACK_SIZE, NULL, LOG_TASK_PRIORITY, &m_app.logger_task))
+    if (pdPASS != xTaskCreate(logger_thread, "LOGGER", LOG_TASK_STACK_SIZE, NULL, LOG_TASK_PRIORITY, &logger_task))
     {
         APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
     }
