@@ -33,7 +33,7 @@ extern "C"
 #endif
 
     extern uint32_t bm_rand_32;           // Randomly generated 4 bytes
-    extern uint64_t bm_rand_msg_ts[1000]; // Randomly generated Message Timestamps
+    extern uint64_t bm_rand_msg_ts[600]; // Randomly generated Message Timestamps
 
     /* Initialize Random Data */
     void bm_rand_init();
@@ -48,7 +48,7 @@ extern "C"
 
     /** Defines for Random Transaction Events in Benchmark
      * Gerated by Random.org. Uses a lot of RAM (be aware) **/
-    extern uint16_t rand16_26_1000[26][1000];
+    extern const uint16_t rand16_26_1000[25][1000];
 
 #ifdef __cplusplus
 }
