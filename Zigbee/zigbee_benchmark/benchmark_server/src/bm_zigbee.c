@@ -117,6 +117,7 @@ zb_uint16_t local_node_short_addr;
 
 zb_uint8_t seq_num = 0;
 zb_uint16_t msg_receive_cnt = 0;
+zb_uint8_t def_payload_size = 2;
 
 zb_uint32_t stack_enable_max_delay_ms = STACK_STARTUP_MAX_DELAY;
 zb_uint32_t network_formation_delay = NETWORK_FORMATION_DELAY;
@@ -319,8 +320,8 @@ void bm_receive_message(zb_bufid_t bufid) {
 
   message.net_time = synctimer_getSyncTime();
 
-  message.number_of_hops = 0; /* TODO: Number of hops is not yet available from the ZBOSS API */
-  message.data_size = bm_params.AdditionalPayloadSize;
+  message.number_of_hops = 0;  
+  message.data_size = bm_params.AdditionalPayloadSize + def_payload_size; /* Payload Size is default payload size plus additional payload size from config message. */
   message.ack_net_time = 0;
 
   message.src_addr = zcl_info->addr_data.common_data.source.u.short_addr;
@@ -464,9 +465,9 @@ void bm_zigbee_init(void) {
   zb_set_long_address(ieee_addr);
 
   /* Set short and extended pan id to the default value. */
-//  zb_set_pan_id((zb_uint16_t)DEFAULT_PAN_ID_SHORT);
-//  zb_set_extended_pan_id(ext_pan_id);
-//  zb_secur_setup_nwk_key((zb_uint8_t *)g_key_nwk, 0);
+  //  zb_set_pan_id((zb_uint16_t)DEFAULT_PAN_ID_SHORT);
+  //  zb_set_extended_pan_id(ext_pan_id);
+  //  zb_secur_setup_nwk_key((zb_uint8_t *)g_key_nwk, 0);
 
   /* Set static long IEEE address. */
   zb_set_network_router_role(IEEE_CHANNEL_MASK);
