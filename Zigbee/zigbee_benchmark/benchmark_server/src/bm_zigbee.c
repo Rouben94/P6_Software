@@ -320,7 +320,7 @@ void bm_receive_message(zb_bufid_t bufid) {
 
   message.net_time = synctimer_getSyncTime();
 
-  message.number_of_hops = 0;  
+  message.number_of_hops = 0;                                             /* TODO: Number of hops is not yet available from the ZBOSS API */
   message.data_size = bm_params.AdditionalPayloadSize + def_payload_size; /* Payload Size is default payload size plus additional payload size from config message. */
   message.ack_net_time = 0;
 
