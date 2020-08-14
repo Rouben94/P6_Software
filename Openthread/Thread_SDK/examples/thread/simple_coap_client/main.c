@@ -52,28 +52,18 @@
 #include "app_scheduler.h"
 #include "app_timer.h"
 #include "bsp_thread.h"
-#include "nrf_log.h"
 #include "nrf_log_ctrl.h"
+#include "nrf_log.h"
 #include "nrf_log_default_backends.h"
 
 #include "thread_coap_utils.h"
 #include "thread_utils.h"
 
-#include "bsp_config.h"
-
-
-
 #include <openthread/instance.h>
-#include <openthread/network_time.h>
-#include <openthread/platform/time.h>
 #include <openthread/thread.h>
 
-#define SCHED_QUEUE_SIZE 32                                   /**< Maximum number of events in the scheduler queue. */
-#define SCHED_EVENT_DATA_SIZE APP_TIMER_SCHED_EVENT_DATA_SIZE /**< Maximum app_scheduler event size. */
-
-APP_TIMER_DEF(m_time_sync_timer);
-bool timeSyncGet = false;
-uint64_t netTime = 0;
+#define SCHED_QUEUE_SIZE      32                                                      /**< Maximum number of events in the scheduler queue. */
+#define SCHED_EVENT_DATA_SIZE APP_TIMER_SCHED_EVENT_DATA_SIZE                         /**< Maximum app_scheduler event size. */
 
 static thread_coap_utils_light_command_t m_command = THREAD_COAP_UTILS_LIGHT_CMD_OFF; /**< This variable stores command that has been most recently used. */
 
@@ -81,87 +71,59 @@ static thread_coap_utils_light_command_t m_command = THREAD_COAP_UTILS_LIGHT_CMD
  * @section Buttons
  **************************************************************************************************/
 
-static void bsp_event_handler(bsp_event_t event) {
-  switch (event) {
-  case BSP_EVENT_KEY_0:
-    thread_coap_utils_unicast_light_request_send(THREAD_COAP_UTILS_LIGHT_CMD_TOGGLE);
-    break;
+static void bsp_event_handler(bsp_event_t event)
+{
+    switch (event)
+    {
+        case BSP_EVENT_KEY_0:
+            thread_coap_utils_unicast_light_request_send(THREAD_COAP_UTILS_LIGHT_CMD_TOGGLE);
+            break;
 
-  case BSP_EVENT_KEY_1: {
-//    m_command = ((m_command == THREAD_COAP_UTILS_LIGHT_CMD_OFF) ? THREAD_COAP_UTILS_LIGHT_CMD_ON : THREAD_COAP_UTILS_LIGHT_CMD_OFF);
-//
-//    thread_coap_utils_multicast_light_request_send(m_command,
-//        THREAD_COAP_UTILS_MULTICAST_REALM_LOCAL);
+        case BSP_EVENT_KEY_1:
+        {
+            m_command = ((m_command == THREAD_COAP_UTILS_LIGHT_CMD_OFF) ? THREAD_COAP_UTILS_LIGHT_CMD_ON :
+                                                                          THREAD_COAP_UTILS_LIGHT_CMD_OFF);
 
-    break;
-  }
+            thread_coap_utils_multicast_light_request_send(m_command,
+                                                           THREAD_COAP_UTILS_MULTICAST_REALM_LOCAL);
+            break;
+        }
 
-  case BSP_EVENT_KEY_2: {
-    NRF_LOG_INFO("Button 3 was pressed");
+        case BSP_EVENT_KEY_3:
+            thread_coap_utils_provisioning_request_send();
+            break;
 
-    uint32_t error;
-    error = app_timer_start(m_time_sync_timer, APP_TIMER_TICKS(10000), NULL);
-    ASSERT(error == NRF_SUCCESS);
-    //            otNetworkTimeGet(thread_ot_instance_get(), &netTime);
-    //            NRF_LOG_INFO("Network Time is %u", netTime);
-    break;
-  }
-
-  case BSP_EVENT_KEY_3:
-    thread_coap_utils_provisioning_request_send();
-    break;
-
-  default:
-    return; // no implementation needed
-  }
+        default:
+            return; // no implementation needed
+    }
 }
 
 /***************************************************************************************************
  * @section Callbacks
  **************************************************************************************************/
 
-static void thread_state_changed_callback(uint32_t flags, void *p_context) {
-  if (flags & OT_CHANGED_THREAD_ROLE) {
-    switch (otThreadGetDeviceRole(p_context)) {
-    case OT_DEVICE_ROLE_CHILD:
-    case OT_DEVICE_ROLE_ROUTER:
-    case OT_DEVICE_ROLE_LEADER:
-      break;
+static void thread_state_changed_callback(uint32_t flags, void * p_context)
+{
+    if (flags & OT_CHANGED_THREAD_ROLE)
+    {
+        switch (otThreadGetDeviceRole(p_context))
+        {
+            case OT_DEVICE_ROLE_CHILD:
+            case OT_DEVICE_ROLE_ROUTER:
+            case OT_DEVICE_ROLE_LEADER:
+                break;
 
-    case OT_DEVICE_ROLE_DISABLED:
-    case OT_DEVICE_ROLE_DETACHED:
-    default:
-      thread_coap_utils_peer_addr_clear();
-      break;
+            case OT_DEVICE_ROLE_DISABLED:
+            case OT_DEVICE_ROLE_DETACHED:
+            default:
+                thread_coap_utils_peer_addr_clear();
+                break;
+        }
     }
-  }
 
-  NRF_LOG_INFO("State changed! Flags: 0x%08x Current role: %d\r\n",
-      flags,
-      otThreadGetDeviceRole(p_context));
-}
-
-static void thread_time_sync_callback(void *p_context) {
-  NRF_LOG_INFO("time sync callback");
-}
-
-static void time_sync_handler(void *p_context) {
-  //NRF_LOG_INFO("Should do this every 10 sec");
-  uint64_t temp = 0;
-  switch (timeSyncGet) {
-  case false:
-    otNetworkTimeGet(thread_ot_instance_get(), &netTime);
-    NRF_LOG_INFO("Time 1 get: %u", netTime);
-    timeSyncGet = true;
-    break;
-
-  case true:
-    otNetworkTimeGet(thread_ot_instance_get(), &temp);
-    temp = temp - netTime;
-    NRF_LOG_INFO("Network Time for 10s is: %u", temp);
-    timeSyncGet = false;
-    break;
-  }
+    NRF_LOG_INFO("State changed! Flags: 0x%08x Current role: %d\r\n",
+                 flags,
+                 otThreadGetDeviceRole(p_context));
 }
 
 /***************************************************************************************************
@@ -170,98 +132,98 @@ static void time_sync_handler(void *p_context) {
 
 /**@brief Function for initializing the Thread Board Support Package
  */
-static void thread_bsp_init(void) {
-  uint32_t error_code = bsp_init(BSP_INIT_LEDS | BSP_INIT_BUTTONS, bsp_event_handler);
-  APP_ERROR_CHECK(error_code);
+static void thread_bsp_init(void)
+{
+    uint32_t error_code = bsp_init(BSP_INIT_LEDS | BSP_INIT_BUTTONS, bsp_event_handler);
+    APP_ERROR_CHECK(error_code);
 
-  error_code = bsp_thread_init(thread_ot_instance_get());
-  APP_ERROR_CHECK(error_code);
+    error_code = bsp_thread_init(thread_ot_instance_get());
+    APP_ERROR_CHECK(error_code);
 }
+
 
 /**@brief Function for initializing the Application Timer Module
  */
-static void timer_init(void) {
-  uint32_t error_code = app_timer_init();
-  APP_ERROR_CHECK(error_code);
+static void timer_init(void)
+{
+    uint32_t error_code = app_timer_init();
+    APP_ERROR_CHECK(error_code);
 }
+
 
 /**@brief Function for initializing the nrf log module.
  */
-static void log_init(void) {
-  ret_code_t err_code = NRF_LOG_INIT(NULL);
-  APP_ERROR_CHECK(err_code);
+static void log_init(void)
+{
+    ret_code_t err_code = NRF_LOG_INIT(NULL);
+    APP_ERROR_CHECK(err_code);
 
-  NRF_LOG_DEFAULT_BACKENDS_INIT();
+    NRF_LOG_DEFAULT_BACKENDS_INIT();
 }
+
 
 /**@brief Function for initializing the Thread Stack
  */
-static void thread_instance_init(void) {
-  thread_configuration_t thread_configuration =
-      {
-          .radio_mode = THREAD_RADIO_MODE_RX_ON_WHEN_IDLE,
-          .autocommissioning = true,
-      };
+static void thread_instance_init(void)
+{
+    thread_configuration_t thread_configuration =
+    {
+        .radio_mode        = THREAD_RADIO_MODE_RX_ON_WHEN_IDLE,
+        .autocommissioning = true,
+    };
 
-  thread_init(&thread_configuration);
-  thread_cli_init();
-  thread_state_changed_callback_set(thread_state_changed_callback);
+    thread_init(&thread_configuration);
+    thread_cli_init();
+    thread_state_changed_callback_set(thread_state_changed_callback);
 }
+
 
 /**@brief Function for initializing the Constrained Application Protocol Module
  */
-static void thread_coap_init(void) {
-  thread_coap_utils_configuration_t thread_coap_configuration =
-      {
-          .coap_server_enabled = false,
-          .coap_client_enabled = true,
-          .configurable_led_blinking_enabled = false,
-      };
+static void thread_coap_init(void)
+{
+    thread_coap_utils_configuration_t thread_coap_configuration =
+    {
+        .coap_server_enabled               = false,
+        .coap_client_enabled               = true,
+        .configurable_led_blinking_enabled = false,
+    };
 
-  thread_coap_utils_init(&thread_coap_configuration);
+    thread_coap_utils_init(&thread_coap_configuration);
 }
 
-/**@brief Function for initializing the Thread Time Synchronizationt Package 
-*/
-static void thread_time_sync_init(void) {
-  otNetworkTimeSetSyncPeriod(thread_ot_instance_get(), 60);
-  otNetworkTimeSetXtalThreshold(thread_ot_instance_get(), otPlatTimeGetXtalAccuracy());
-  otNetworkTimeSyncSetCallback(thread_ot_instance_get(), thread_time_sync_callback, NULL);
-}
 
 /**@brief Function for initializing scheduler module.
  */
-static void scheduler_init(void) {
-  APP_SCHED_INIT(SCHED_EVENT_DATA_SIZE, SCHED_QUEUE_SIZE);
+static void scheduler_init(void)
+{
+    APP_SCHED_INIT(SCHED_EVENT_DATA_SIZE, SCHED_QUEUE_SIZE);
 }
 
 /***************************************************************************************************
  * @section Main
  **************************************************************************************************/
 
-int main(int argc, char *argv[]) {
-  log_init();
-  scheduler_init();
-  timer_init();
+int main(int argc, char * argv[])
+{
+    log_init();
+    scheduler_init();
+    timer_init();
 
-  thread_instance_init();
-  thread_coap_init();
-  thread_bsp_init();
-  thread_time_sync_init();
+    thread_instance_init();
+    thread_coap_init();
+    thread_bsp_init();
 
-  uint32_t retval = app_timer_create(&m_time_sync_timer,
-      APP_TIMER_MODE_REPEATED,
-      time_sync_handler);
-  ASSERT(retval == NRF_SUCCESS);
+    while (true)
+    {
+        thread_process();
+        app_sched_execute();
 
-  while (true) {
-    thread_process();
-    app_sched_execute();
-
-    if (NRF_LOG_PROCESS() == false) {
-      thread_sleep();
+        if (NRF_LOG_PROCESS() == false)
+        {
+            thread_sleep();
+        }
     }
-  }
 }
 
 /**

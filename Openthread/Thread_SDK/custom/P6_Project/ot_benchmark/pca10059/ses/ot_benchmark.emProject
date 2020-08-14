@@ -53,6 +53,12 @@
       <file file_name="../../../../../modules/nrfx/mdk/ses_startup_nrf52840.s" />
       <file file_name="../../../../../modules/nrfx/mdk/ses_startup_nrf_common.s" />
       <file file_name="../../../../../modules/nrfx/mdk/system_nrf52840.c" />
+      <file file_name="../../../../../components/libraries/hardfault/hardfault_implementation.c">
+        <configuration Name="Release" build_exclude_from_build="Yes" />
+      </file>
+      <file file_name="../../../../../components/libraries/hardfault/nrf52/handler/hardfault_handler_gcc.c">
+        <configuration Name="Release" build_exclude_from_build="Yes" />
+      </file>
     </folder>
     <folder Name="nRF_Libraries">
       <file file_name="../../../../../components/libraries/button/app_button.c" />
@@ -128,7 +134,9 @@
     </folder>
     <folder Name="Board Support">
       <file file_name="../../../bm_board_support/bm_board_support_thread.c" />
-      <file file_name="../../../bm_board_support/bm_board_support.c" />
+      <file file_name="../../../bm_board_support/bm_board_support.c">
+        <configuration Name="Release" build_exclude_from_build="No" />
+      </file>
     </folder>
     <folder Name="Application">
       <file file_name="../../main.c" />
@@ -151,7 +159,7 @@
         <configuration Name="Release" build_exclude_from_build="No" />
       </file>
       <file file_name="../../../../../external/openthread/lib/nrf52840/gcc/libopenthread-platform-utils.a">
-        <configuration Name="Release" build_exclude_from_build="Yes" />
+        <configuration Name="Release" build_exclude_from_build="No" />
       </file>
       <file file_name="../../../../../external/nrf_security/lib/libmbedcrypto_glue.a">
         <configuration Name="Release" build_exclude_from_build="No" />

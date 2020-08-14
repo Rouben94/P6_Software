@@ -82,6 +82,7 @@
 "Output/ot_benchmark Release/Obj/SEGGER_RTT_printf.o"
 "../../../../../external/openthread/lib/nrf52840/gcc/libopenthread-ftd.a"
 "../../../../../external/openthread/lib/nrf52840/gcc/libopenthread-nrf52840-transport-usb.a"
+"../../../../../external/openthread/lib/nrf52840/gcc/libopenthread-platform-utils.a"
 "../../../../../external/nrf_security/lib/libmbedcrypto_glue.a"
 "../../../../../external/nrf_security/lib/libmbedcrypto_glue_cc310.a"
 "../../../../../external/nrf_security/lib/libmbedcrypto_glue_vanilla.a"

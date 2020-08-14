@@ -5,6 +5,7 @@
 #include "bm_log.h"
 #include "bm_simple_buttons_and_leds.h"
 #include "bm_timesync.h"
+#include "bm_rand.h"
 #include "bm_board_support_thread.h"
 #include "bm_board_support_config.h"
 #include "thread_utils.h"
@@ -20,6 +21,14 @@
 #define MAX_DATA_SIZE 1024
 #define HOP_LIMIT_DEFAULT 64
 #define MAX_NUMBER_OF_NODES 100
+#define BM_OT_START_DELAY_MAX_MS 2000
+
+//Define data here for lower ram usage in handler
+bm_message_info message;
+otMessageInfo coap_message_info;
+otMessage * p_request;
+otInstance * p_instance;
+otError error;
 
 // TID OVerflow Handler -> Allows an Overflow of of the TID when the next TID is dropping by 250...
 // (uint8 overflows at 255 so there is a margin of 5) To Handle such case for all possibel Src.
@@ -87,7 +96,6 @@ static void thread_state_changed_callback(uint32_t flags, void * p_context)
  * @section TID overflow handler
  **************************************************************************************************/
 // Insert the tid and src address to get the merged tid with the tid overlfow cnt -> resulting in a
-// uint16_t
 uint16_t bm_get_overflow_tid_from_overflow_handler(uint8_t tid, uint16_t src_addr)
 {
     // Get the TID in array
@@ -103,7 +111,6 @@ uint16_t bm_get_overflow_tid_from_overflow_handler(uint8_t tid, uint16_t src_add
             // Add the last seen TID
             bm_tid_overflow_handler[i].last_TID_seen = tid;
             return (uint16_t)(bm_tid_overflow_handler[i].TID_OverflowCnt << 8) | (tid & 0xff);
-            // return bm_tid_overflow_handler[i].TID_OverflowCnt;
         }
         else if (bm_tid_overflow_handler[i].src_addr == 0)
         {
@@ -138,9 +145,6 @@ static void coap_default_handler(
 static void bm_probe_message_handler(
     void * p_context, otMessage * p_message, const otMessageInfo * p_message_info)
 {
-    otInstance * p_instance = thread_ot_instance_get();
-    bm_message_info message;
-
     do
     {
         if (otCoapMessageGetType(p_message) != OT_COAP_TYPE_CONFIRMABLE &&
@@ -156,18 +160,13 @@ static void bm_probe_message_handler(
 
         message.data_size = otMessageRead(
             p_message, otMessageGetOffset(p_message), &bm_probe, 3 * sizeof(bm_probe));
-        bm_cli_log("Server: Got probe message");
         message.message_id = bm_get_overflow_tid_from_overflow_handler(
             bm_probe[0], ((bm_probe[1] & 0xff) | (bm_probe[2] << 8)));
-
-
         message.net_time = synctimer_getSyncTime();
         message.rssi = otMessageGetRss(p_message);
         message.number_of_hops = (HOP_LIMIT_DEFAULT - p_message_info->mHopLimit);
         message.src_addr = ((bm_probe[1] & 0xff) | (bm_probe[2] << 8));
-        message.dst_addr = (*otThreadGetMeshLocalEid(p_instance)).mFields.m16[7];
         message.group_addr = bm_group_address.mFields.m16[7];
-        message.ack_net_time = 0;
         bm_log_append_ram(message);
 
         if (otCoapMessageGetType(p_message) == OT_COAP_TYPE_CONFIRMABLE)
@@ -183,20 +182,9 @@ static void bm_probe_message_handler(
 //Function for sending a probe message with the CoAP module
 void bm_coap_probe_message_send(uint16_t payload_len)
 {
-    otError error = OT_ERROR_NONE;
-    otMessage * p_request;
-    otMessageInfo messafe_info;
-    otInstance * p_instance = thread_ot_instance_get();
-    bm_message_info message;
-
     bm_message_ID++;
-
-    message.rssi = 0;
-    message.number_of_hops = 0;
-    message.src_addr = (*otThreadGetMeshLocalEid(thread_ot_instance_get())).mFields.m16[7];
     message.dst_addr = bm_group_address.mFields.m16[7];
     message.group_addr = bm_group_address.mFields.m16[7];
-    message.ack_net_time = 0;
     message.message_id = bm_get_overflow_tid_from_overflow_handler(bm_message_ID, message.src_addr);
     message.net_time = synctimer_getSyncTime();
 
@@ -217,17 +205,10 @@ void bm_coap_probe_message_send(uint16_t payload_len)
 
         otCoapMessageInit(p_request, OT_COAP_TYPE_NON_CONFIRMABLE, OT_COAP_CODE_PUT);
         otCoapMessageGenerateToken(p_request, 2);
-
         error = otCoapMessageAppendUriPathOptions(p_request, "bm_probe");
         ASSERT(error == OT_ERROR_NONE);
-
         error = otCoapMessageSetPayloadMarker(p_request);
         ASSERT(error == OT_ERROR_NONE);
-
-        otCoapMessageInit(p_request, OT_COAP_TYPE_NON_CONFIRMABLE, OT_COAP_CODE_PUT);
-        otCoapMessageGenerateToken(p_request, 2);
-        UNUSED_VARIABLE(otCoapMessageAppendUriPathOptions(p_request, "bm_probe"));
-        UNUSED_VARIABLE(otCoapMessageSetPayloadMarker(p_request));
 
         otRandomNonCryptoFillBuffer(bm_probe, payload_len);
         bm_probe[0] = bm_message_ID;
@@ -242,13 +223,13 @@ void bm_coap_probe_message_send(uint16_t payload_len)
         }
         bm_log_append_ram(message);
 
-        memset(&messafe_info, 0, sizeof(messafe_info));
-        messafe_info.mPeerPort = OT_DEFAULT_COAP_PORT;
-        messafe_info.mAllowZeroHopLimit = false;
-        messafe_info.mHopLimit = HOP_LIMIT_DEFAULT;
-        memcpy(&messafe_info.mPeerAddr, &bm_group_address, sizeof(messafe_info.mPeerAddr));
+        memset(&coap_message_info, 0, sizeof(coap_message_info));
+        coap_message_info.mPeerPort = OT_DEFAULT_COAP_PORT;
+        coap_message_info.mAllowZeroHopLimit = false;
+        coap_message_info.mHopLimit = HOP_LIMIT_DEFAULT;
+        memcpy(&coap_message_info.mPeerAddr, &bm_group_address, sizeof(coap_message_info.mPeerAddr));
 
-        error = otCoapSendRequest(p_instance, p_request, &messafe_info, NULL, p_instance);
+        error = otCoapSendRequest(p_instance, p_request, &coap_message_info, NULL, p_instance);
 
     } while (false);
 
@@ -267,9 +248,9 @@ void bm_send_message() { bm_coap_probe_message_send(bm_params.AdditionalPayloadS
  **************************************************************************************************/
 void thread_coap_utils_init(const thread_coap_utils_configuration_t * p_config)
 {
-    otInstance * p_instance = thread_ot_instance_get();
+    p_instance = thread_ot_instance_get();
 
-    otError error = otCoapStart(p_instance, OT_DEFAULT_COAP_PORT);
+    error = otCoapStart(p_instance, OT_DEFAULT_COAP_PORT);
     ASSERT(error == OT_ERROR_NONE);
 
     otCoapSetDefaultHandler(p_instance, coap_default_handler, NULL);
@@ -311,6 +292,10 @@ static void thread_instance_init(void)
 static void thread_coap_init(void)
 {
 #ifdef BENCHMARK_CLIENT
+    message.src_addr = (*otThreadGetMeshLocalEid(thread_ot_instance_get())).mFields.m16[7];
+    message.rssi = 0;
+    message.ack_net_time = 0;
+    message.number_of_hops = 0;
     thread_coap_utils_configuration_t thread_coap_configuration = {
         .coap_server_enabled = false,
         .coap_client_enabled = true,
@@ -318,6 +303,8 @@ static void thread_coap_init(void)
 #endif // BM_CLIENT
 
 #ifdef BENCHMARK_SERVER
+    message.dst_addr = (*otThreadGetMeshLocalEid(p_instance)).mFields.m16[7];
+    message.ack_net_time = 0;
     thread_coap_utils_configuration_t thread_coap_configuration = {
         .coap_server_enabled = true,
         .coap_client_enabled = false,
@@ -339,6 +326,9 @@ static void thread_coap_init(void)
  **************************************************************************************************/
 void bm_ot_init()
 {
+#if defined BENCHMARK_CLIENT || defined BENCHMARK_SERVER
+    bm_sleep(bm_rand_32%BM_OT_START_DELAY_MAX_MS);
+#endif // BM_CLIENT OR BM_SERVER
     // Init Openthread stack
     thread_instance_init();
     thread_bsp_init();
