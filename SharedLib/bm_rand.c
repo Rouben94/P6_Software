@@ -37,7 +37,8 @@ along with Benchmark-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 #endif
 
 uint32_t bm_rand_32 = 0;       // Randomly generated 4 bytes
-uint64_t bm_rand_msg_ts[600] = {0}; // Randomly generated Message Timestamps
+uint16_t bm_tmp_array[1000] = {0}; //Temporary for random chanaration
+uint64_t bm_rand_msg_ts[1000] = {0}; // Randomly generated Message Timestamps
 
 const uint8_t max_nodes_cnt = 25;
 
@@ -130,7 +131,12 @@ void bm_rand_init_message_ts()
     if (bm_params.Node_Id == 0)
     {
 //      bm_rand_get(rand16_26_1000[bm_params.Node_Id], bm_params.benchmark_packet_cnt * sizeof(uint16_t)); // Genrate Random Values
-        bm_rand_get(bm_rand_msg_ts, bm_params.benchmark_packet_cnt * sizeof(uint64_t)); // Genrate Random Values
+        bm_rand_get(bm_tmp_array, bm_params.benchmark_packet_cnt * sizeof(uint16_t)); // Genrate Random Values
+        //Do not use memcpy because of diffrent data sizes
+        for (int i = 0; i < bm_params.benchmark_packet_cnt; i++)
+        {
+          bm_rand_msg_ts[i] = bm_tmp_array[i];
+        }
     }
     // Copy the Random Data to Timestamp Array
     else 
