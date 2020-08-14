@@ -46,9 +46,17 @@ extern "C"
 
     void bm_rand_init_message_ts();
 
+#if defined ZEPHYR_BLE_MESH || defined NRF_SDK_ZIGBEE
+    /** Defines for Random Transaction Events in Benchmark
+     * Gerated by Random.org. Uses a lot of RAM (be aware) **/
+    extern uint16_t rand16_26_1000[25][1000];
+#endif //defined ZEPHYR_BLE_MESH || defined NRF_SDK_ZIGBEE
+
+#ifdef NRF_SDK_THREAD
     /** Defines for Random Transaction Events in Benchmark
      * Gerated by Random.org. Uses a lot of RAM (be aware) **/
     extern const uint16_t rand16_26_1000[25][1000];
+#endif //NRF_SDK_THREAD
 
 #ifdef __cplusplus
 }

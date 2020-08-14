@@ -5,6 +5,7 @@
 "Output/ot_benchmark Release/Obj/nrf_log_frontend.o"
 "Output/ot_benchmark Release/Obj/nrf_log_str_formatter.o"
 "Output/ot_benchmark Release/Obj/nrf_log_backend_flash.o"
+"Output/ot_benchmark Release/Obj/nrf_log_backend_rtt.o"
 "Output/ot_benchmark Release/Obj/boards.o"
 "Output/ot_benchmark Release/Obj/ses_startup_nrf52840.o"
 "Output/ot_benchmark Release/Obj/ses_startup_nrf_common.o"
