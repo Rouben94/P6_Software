@@ -78,7 +78,7 @@ if not x == 's':
         #if there is something process it
         if len(serdataline) >= 1:
             serdataline_str = serdataline.decode("utf-8")
-            #print(serdataline_str, end = '')            
+            print(serdataline_str, end = '')            
             if 'Ready for Control Message' in serdataline_str:
                 print("Ready for Reporting.. start in 2 seconds")
                 break

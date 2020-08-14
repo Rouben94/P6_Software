@@ -268,12 +268,8 @@ void bm_read_message_info(zb_uint16_t dst_addr_short, zb_uint16_t tsn) {
   zb_get_long_address(ieee_src_addr);
   message.src_addr = zb_address_short_by_ieee(ieee_src_addr);
   message.group_addr = bm_params.GroupAddress + GROUP_ID;
+  message.dst_addr = message.group_addr;
 
-  if (dst_addr_short == 0) {
-    message.dst_addr = message.group_addr;
-  } else {
-    message.dst_addr = dst_addr_short;
-  }
   message.message_id = tsn;
   message.net_time = synctimer_getSyncTime();
 
