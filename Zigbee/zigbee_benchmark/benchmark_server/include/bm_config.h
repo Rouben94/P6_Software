@@ -49,7 +49,7 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 
 #define IEEE_CHANNEL_MASK (1l << ZIGBEE_CHANNEL) /**< Scan only one, predefined channel to find the coordinator. */
 //#define IEEE_CHANNEL_MASK 0x07fff800U
-#define STACK_STARTUP_MAX_DELAY 20000
+#define STACK_STARTUP_MAX_DELAY 30000
 #define NETWORK_FORMATION_DELAY 5000
 #define DEFAULT_PAYLOAD 2
 
