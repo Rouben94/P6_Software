@@ -386,7 +386,7 @@ void bm_zigbee_init(void) {
   /* Register callback for handling ZCL commands. */
   ZB_ZCL_REGISTER_DEVICE_CB(zcl_device_cb);
 
-  /* Initialzie Cluster Attributes */
+  /* Initialize Cluster Attributes */
   bm_client_clusters_attr_init();
 }
 

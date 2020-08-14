@@ -413,8 +413,8 @@ void bm_zigbee_init(void) {
 
   /* Register callback for handling ZCL commands. */
   ZB_AF_SET_ENDPOINT_HANDLER(BENCHMARK_SERVER_ENDPOINT, bm_ep_handler);
-  //  ZB_ZCL_REGISTER_DEVICE_CB(zcl_device_cb);
 
+  /* Initialize Cluster Attributes */
   bm_server_clusters_attr_init();
 }
 
