@@ -25,7 +25,7 @@ along with Benchamrk-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 #include <shell/shell.h>
 #include <stdlib.h>
 #include <zephyr.h>
-#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD || defined NRF_SDK_MESH
 #include "boards.h"
 #include "nrf_log_default_backends.h"
 

@@ -31,7 +31,7 @@ along with Benchmark-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 #include "bm_flash_save.h"
 #include "bm_cli.h"
 #include "bm_config.h"
-#if defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
+#if defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD || defined NRF_SDK_MESH
 #include "fds.h"
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"

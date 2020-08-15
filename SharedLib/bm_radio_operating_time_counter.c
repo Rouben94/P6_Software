@@ -65,10 +65,21 @@ ISR_DIRECT_DECLARE(bm_op_timer_handler) {
   return 1;
 }
 
-#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD 
 
 //NRF SDK WAY
 void TIMER2_IRQHandler(void) {
+  // Overflow Handler
+  if (op_time_counter->EVENTS_COMPARE[0] == true) {
+    op_time_counter->EVENTS_COMPARE[0] = false;
+    OverflowCNT++;
+  }
+}
+
+#elif defined NRF_SDK_MESH
+
+//NRF SDK WAY
+void TIMER3_IRQHandler(void) {
   // Overflow Handler
   if (op_time_counter->EVENTS_COMPARE[0] == true) {
     op_time_counter->EVENTS_COMPARE[0] = false;
@@ -90,6 +101,8 @@ void bm_op_time_counter_init() {
   irq_enable(TIMER2_IRQn);                                 // Enable Timer ISR Zephyr WAY
 #elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
   NVIC_EnableIRQ(TIMER2_IRQn); // Enable Timer ISR NRF SDK WAY
+ #elif defined NRF_SDK_MESH
+  NVIC_EnableIRQ(TIMER3_IRQn); // Enable Timer ISR NRF SDK WAY
 #endif
   nrf_timer_task_trigger(op_time_counter, NRF_TIMER_TASK_CLEAR);
   op_time_counter->CC[0] = 0xFFFFFFFF;  // For Overflow Detection

@@ -32,7 +32,7 @@ along with Benchmark-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 #elif defined NRF_SDK_ZIGBEE
 #include "nrf52840.h"
 #include "zboss_api_core.h"
-#elif defined NRF_SDK_THREAD
+#elif defined NRF_SDK_THREAD || defined NRF_SDK_MESH
 #include "nrf52840.h"
 #endif
 
@@ -42,7 +42,7 @@ uint64_t bm_rand_msg_ts[1000] = {0}; // Randomly generated Message Timestamps
 
 const uint8_t max_nodes_cnt = 25;
 
-#if defined ZEPHYR_BLE_MESH || defined NRF_SDK_ZIGBEE
+#if defined ZEPHYR_BLE_MESH || defined NRF_SDK_ZIGBEE || defined NRF_SDK_MESH
 /** Defines for Random Transaction Events in Benchmark
      * Gerated by Random.org. Uses a lot of RAM (be aware) **/
 uint16_t rand16_26_1000[25][1000] =
