@@ -38,7 +38,7 @@ along with Benchmark-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 
 #ifdef ZEPHYR_BLE_MESH
 #include <zephyr.h>
-#elif defined NRF_SDK_ZIGBEE
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_MESH
 #endif
 
 #if defined(DPPI_PRESENT) || defined(__NRFX_DOXYGEN__)
@@ -90,7 +90,7 @@ ISR_DIRECT_DECLARE(bm_timer_handler) {
   return 1;
 }
 
-#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD || defined NRF_SDK_MESH
 
 //NRF SDK WAY
 void TIMER4_IRQHandler(void) {
@@ -126,7 +126,7 @@ extern void synctimer_init() {
   wakeup_thread_tid = k_current_get();
   IRQ_DIRECT_CONNECT(TIMER4_IRQn, 6, bm_timer_handler, 0); // Connect Timer ISR Zephyr WAY
   irq_enable(TIMER4_IRQn);                                 // Enable Timer ISR Zephyr WAY
-#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD || defined NRF_SDK_MESH
   NVIC_EnableIRQ(TIMER4_IRQn); // Enable Timer ISR NRF SDK WAY
   NVIC_SetPriority(TIMER4_IRQn, 4);
 #endif
@@ -313,7 +313,7 @@ void bm_sleep(uint32_t timeout_ms) {
   while (!(bm_synctimer_timeout_compare_int)) {
 #ifdef ZEPHYR_BLE_MESH
     k_sleep(K_FOREVER); // Zephyr Way
-#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD || defined NRF_SDK_MESH
     __SEV();
     __WFE();
     __WFE(); // Wait for Timer Interrupt nRF5SDK Way

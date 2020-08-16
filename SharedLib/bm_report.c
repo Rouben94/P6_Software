@@ -105,7 +105,7 @@ bool bm_report_msg_subscribe(bm_message_info *message_info) {
             strcat(str_output, buf[a]);
           }
           bm_cli_log("%s", str_output);
-#if defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
+#if defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD || defined NRF_SDK_MESH
           NRF_LOG_FLUSH();
           bm_cli_process();
 #endif

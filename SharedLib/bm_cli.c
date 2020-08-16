@@ -58,7 +58,7 @@ along with Benchamrk-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 #include "nrf_log_ctrl.h"
 
 #include "nrf_mpu_lib.h"
-#include "nrf_stack_guard.h"
+//#include "nrf_stack_guard.h"
 
 #include "nrf_cli_libuarte.h"
 #include "nrf_cli_uart.h"
@@ -74,7 +74,7 @@ void bm_cli_log(const char *fmt, ...) {
   // Zephyr way to Log info
   printk(fmt);
 }
-#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD || defined NRF_SDK_MESH
 #ifdef BENCHMARK_MASTER
 
 #if NRF_LOG_BACKEND_CRASHLOG_ENABLED

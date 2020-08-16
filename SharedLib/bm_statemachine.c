@@ -43,6 +43,10 @@ along with Benchmark-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 #include "bm_ot.h"
 #include "bm_simple_buttons_and_leds.h"
 #include "thread_utils.h"
+#elif defined NRF_SDK_MESH
+#include "bm_ble_mesh.h"
+#include "bm_simple_buttons_and_leds.h"
+#include "sdk_config.h"
 #endif
 
 #include "bm_statemachine.h"
@@ -71,7 +75,7 @@ IV.    if yess -> change to next state*/
 #define ST_TIMESYNC_TIME_MS 5000 // -> Optimized for 50 Nodes, 3 Channels and BLE LR125kBit
 #ifdef NRF_SDK_ZIGBEE
 #define ST_INIT_BENCHMARK_TIME_MS 60000 // Time required to init the Zigbee Mesh Stack
-#elif defined ZEPHYR_BLE_MESH
+#elif defined ZEPHYR_BLE_MESH || defined NRF_SDK_MESH
 #define ST_INIT_BENCHMARK_TIME_MS 10000 // Time required to init the BLE Mesh Stack
 #elif defined NRF_SDK_THREAD
 #define ST_INIT_BENCHMARK_TIME_MS 30000            // Time required to init the OpenThread Stack
@@ -163,18 +167,24 @@ void ST_INIT_fn(void) {
   LSB_MAC_Address = NRF_FICR->DEVICEADDR[0];
   bm_cli_log("Preprogrammed Randomly Static MAC-Address (LSB): 0x%x, %u \n", LSB_MAC_Address, LSB_MAC_Address);
   bm_init_leds();
+  
   bm_radio_init();
+  
   synctimer_init();
   synctimer_start();
   bm_rand_init();
   bm_log_init();
   bm_op_time_counter_init();
 
-#if defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
-  bm_cli_init();
-#endif
+  //bm_ble_mesh_init();
+  
+
+
 
 #ifdef BENCHMARK_MASTER
+#if defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD || defined NRF_SDK_MESH
+  bm_cli_init(); 
+#endif
   bm_cli_log("Master Started\n");
 #elif defined BENCHMARK_CLIENT
   bm_cli_log("Client Started\n");
@@ -250,7 +260,7 @@ void ST_CONTROL_fn(void) {
       bm_cli_log("Benchmark Start initialized\n");
       break;
     }
-#if defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
+#if defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD || defined NRF_SDK_MESH
     bm_cli_process();
     UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
 #endif
@@ -377,6 +387,17 @@ void ST_INIT_BENCHMARK_fn(void) {
     UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
 #endif
   }
+#elif defined NRF_SDK_MESH
+  /* Initialize and Start BLE-Mesh stack. */
+  bm_ble_mesh_init();
+  /* Bluetooth Mesh Stack wait for event */
+  while ((synctimer_getSyncTime() - start_time_ts_us) < ST_INIT_BENCHMARK_TIME_MS * 1000) {
+    (void)sd_app_evt_wait();
+#ifdef BENCHMARK_MASTER
+    bm_cli_process();
+    UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
+#endif
+  }
 #endif
   return;
 }
@@ -420,6 +441,16 @@ void ST_BENCHMARK_fn(void) {
 #endif
   }
   bm_cli_log("Abort Openthread Stack\n");
+  #elif defined NRF_SDK_MESH
+  /* Bluetooth Mesh Stack wait for event */
+  while (currentState == ST_BENCHMARK) {
+    (void)sd_app_evt_wait();
+#ifdef BENCHMARK_MASTER
+    bm_cli_process();
+    UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
+#endif
+  }
+  bm_cli_log("Abort BLE-Mesh Stack\n");
 #endif
   return;
 }
@@ -468,7 +499,7 @@ void ST_WAIT_FOR_TRANSITION_fn() {
   while (!(transition)) {
 #ifdef ZEPHYR_BLE_MESH
     k_sleep(K_FOREVER); // Zephyr Way
-#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD || defined NRF_SDK_MESH
     __SEV();
     __WFE();
     __WFE(); // Wait for Timer Interrupt nRF5SDK Way
