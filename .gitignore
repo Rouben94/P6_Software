@@ -245,6 +245,7 @@ db.sqlite3
 *.swo
 *~
 build*/
+Bluetooth/Zephyr_Mesh/build*/
 !doc/guides/build
 cscope.*
 .dir
