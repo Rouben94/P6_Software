@@ -134,6 +134,7 @@ void bm_log_save_to_flash() {
 /* Callback function to read Benchmark Message Info data from Flash. */
 void bm_log_load_from_flash_cb(bm_message_info *data) {
   message_info[bm_message_cnt] = *((bm_message_info *)data);
+  bm_cli_log("Data: %d %d", data->message_id, data->net_time);
   bm_message_cnt++;
 }
 #endif
