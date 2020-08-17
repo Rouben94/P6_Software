@@ -25,8 +25,6 @@ along with Zigbee-Benchmark. If not, see <http://www.gnu.org/licenses/>.
 int main(void) {
 
 #ifdef NRF_SDK_ZIGBEE
-  /* Function for initializing the nrf log module.*/
-  /* To Enable Loging before the Mesh stack is run change in sdk_config -> NRF_LOG_DEFERRED = 0 (Performance is worse but logging is possibel) */
   bm_cli_log_init(); /* Initialize the Zigbee LOG subsystem */
 #endif
   bm_statemachine();
