@@ -83,7 +83,7 @@ void flash_read(void) {
     ret_code_t rc = fds_record_open(&record_desc, &flash_record);
     if (rc != NRF_SUCCESS) {
       bm_cli_log("FDS open record error: 0x%x\n", rc);
-      if (rc != FDS_ERR_NO_SPACE_IN_FLASH) {
+      if (rc == FDS_ERR_NO_SPACE_IN_FLASH) {
         fds_gc();
       }
     }
@@ -94,7 +94,7 @@ void flash_read(void) {
     rc = fds_record_close(&record_desc);
     if (rc != NRF_SUCCESS) {
       bm_cli_log("FDS close record error: 0x%x\n", rc);
-      if (rc != FDS_ERR_NO_SPACE_IN_FLASH) {
+      if (rc == FDS_ERR_NO_SPACE_IN_FLASH) {
         fds_gc();
       }
     }
@@ -114,7 +114,7 @@ void flash_write(bm_message_info msg) {
   rc = fds_record_write(&record_desc, &record);
   if (rc != NRF_SUCCESS) {
     bm_cli_log("FDS write error: 0x%x\n", rc);
-    if (rc != FDS_ERR_NO_SPACE_IN_FLASH) {
+    if (rc == FDS_ERR_NO_SPACE_IN_FLASH) {
       fds_gc();
     }
   }
@@ -130,11 +130,9 @@ void flash_delete(void) {
 
   while (fds_record_find(FILE_ID, RECORD_KEY, &record_desc, &ftok) == NRF_SUCCESS) {
     ret_code_t rc = fds_record_delete(&record_desc);
+    fds_gc();
     if (rc != NRF_SUCCESS) {
       bm_cli_log("FDS delete error: 0x%x\n", rc);
-      if (rc != FDS_ERR_NO_SPACE_IN_FLASH) {
-        fds_gc();
-      }
     }
   }
 }
