@@ -21,14 +21,14 @@ along with Benchmark-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 #include "bm_radio.h"
 #include "bm_timesync.h"
 
-#include <device.h>
-#include <devicetree.h>
 #include <hal/nrf_radio.h>
-#include <drivers/clock_control.h>
-#include <drivers/clock_control/nrf_clock_control.h>
 #include <string.h>
 
 #ifdef ZEPHYR_BLE_MESH
+#include <device.h>
+#include <devicetree.h>
+#include <drivers/clock_control.h>
+#include <drivers/clock_control/nrf_clock_control.h>
 
 /* ---------------------- RADIO AREA Zephyr ------------------------ */
 
