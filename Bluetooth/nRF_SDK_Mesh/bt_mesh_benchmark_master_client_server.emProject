@@ -117,7 +117,7 @@
       <file file_name="$(SDK)/integration/nrfx/legacy/nrf_drv_rng.c" />
       <file file_name="$(SDK)/integration/nrfx/legacy/nrf_drv_uart.c" />
       <file file_name="$(SDK)/modules/nrfx/hal/nrf_ecb.c">
-        <configuration Name="Debug" build_exclude_from_build="Yes" />
+        <configuration Name="Debug" build_exclude_from_build="No" />
       </file>
       <file file_name="$(SDK)/modules/nrfx/hal/nrf_nvmc.c" />
       <file file_name="$(SDK)/modules/nrfx/soc/nrfx_atomic.c" />

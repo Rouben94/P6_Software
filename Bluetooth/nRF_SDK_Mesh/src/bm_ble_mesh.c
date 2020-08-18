@@ -41,6 +41,7 @@
 #include "bm_config.h"
 #include "bm_cli.h"
 #include "bm_timesync.h"
+#include "bm_simple_buttons_and_leds.h""
 
 /* HAL */
 #include "boards.h"
@@ -152,7 +153,9 @@ static void app_gen_onoff_server_state_set_cb(const generic_onoff_server_t * p_s
 
     bm_cli_log("Setting GPIO value: %d\n", p_in->on_off % 2)
 
-    hal_led_pin_set(ONOFF_SERVER_0_LED, p_in->on_off % 2);
+    //hal_led_pin_set(ONOFF_SERVER_0_LED, p_in->on_off % 2);
+    bm_led3_set(p_in->on_off % 2);
+    
 
     bm_cli_log("DST Addr: %x\n",p_meta->dst.value);
     bm_cli_log("GRP Addr: %x\n",p_meta->dst.value);
@@ -219,6 +222,7 @@ void bm_send_message()
     //status = generic_onoff_client_set(&m_client, &set_params, &transition_params);
     status = generic_onoff_client_set_unack(&m_client, &set_params, NULL, APP_UNACK_MSG_REPEAT_COUNT);
     //hal_led_pin_set(BSP_LED_0, set_params.on_off);
+    bm_led2_set(set_params.on_off % 2);
 
     bm_cli_log("DST Addr: bm_params\n");
     bm_cli_log("GRP Addr: bm_params\n");
@@ -414,4 +418,9 @@ void bm_ble_mesh_init()
     bm_ble_mesh_initialize();
     bm_ble_mesh_start();    
     sd_clock_hfclk_request();
+}
+
+void bm_ble_mesh_deinit()
+{
+    sd_softdevice_disable();
 }

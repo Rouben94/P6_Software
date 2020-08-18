@@ -128,7 +128,7 @@ extern void synctimer_init() {
   irq_enable(TIMER4_IRQn);                                 // Enable Timer ISR Zephyr WAY
 #elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD || defined NRF_SDK_MESH
   NVIC_EnableIRQ(TIMER4_IRQn); // Enable Timer ISR NRF SDK WAY
-  NVIC_SetPriority(TIMER4_IRQn, 3);
+  NVIC_SetPriority(TIMER4_IRQn, 6);
 #endif
   nrf_timer_task_trigger(synctimer, NRF_TIMER_TASK_CLEAR);
   synctimer->CC[1] = 0;

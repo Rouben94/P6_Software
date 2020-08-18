@@ -44,6 +44,10 @@ void bm_ble_mesh_init();
 //Function for sending a probe message
 void bm_send_message();
 
+
+//Function for disabling the Stack
+void bm_ble_mesh_deinit();
+
 /**
  * @}
  */
