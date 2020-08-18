@@ -41,7 +41,7 @@
 #include "bm_config.h"
 #include "bm_cli.h"
 #include "bm_timesync.h"
-#include "bm_simple_buttons_and_leds.h""
+#include "bm_simple_buttons_and_leds.h"
 
 /* HAL */
 #include "boards.h"
@@ -422,5 +422,10 @@ void bm_ble_mesh_init()
 
 void bm_ble_mesh_deinit()
 {
+    retval = proxy_stop();
+    if (retval == NRF_SUCCESS)
+    {
+        retval = nrf_mesh_disable();
+    }
     sd_softdevice_disable();
 }

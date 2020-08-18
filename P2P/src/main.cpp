@@ -28,7 +28,7 @@ along with P2P-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 #include "Timer_sync.h"
 
 /* ------------- Definitions --------------*/
-#define isMaster 1									// Node is the Master (1) or Slave (0)
+#define isMaster 0									// Node is the Master (1) or Slave (0)
 #define CommonMode NRF_RADIO_MODE_BLE_1MBIT		// Common Mode
 #define CommonStartCH 37							// Common Start Channel
 #define CommonEndCH 39								// Common End Channel
