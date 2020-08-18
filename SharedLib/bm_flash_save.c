@@ -190,6 +190,11 @@ void flash_save_init(flash_cb_t evt_handler)
     ret_code_t rc;
     rc = fds_register(fds_evt_handler);
     APP_ERROR_CHECK(rc);
+    
+
+    fds_evt_t test_evt;
+    test_evt.id = FDS_EVT_INIT;
+    fds_evt_handler(&test_evt);
 
     rc = fds_init();
     APP_ERROR_CHECK(rc);

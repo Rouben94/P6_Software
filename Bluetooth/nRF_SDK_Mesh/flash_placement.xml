@@ -24,8 +24,7 @@
     <ProgramSection alignment="4" keep="Yes" load="Yes" name=".log_filter_data"  inputsections="*(SORT(.log_filter_data*))" runin=".log_filter_data_run"/>
     <ProgramSection alignment="4" keep="Yes" load="Yes" name=".cli_sorted_cmd_ptrs"  inputsections="*(.cli_sorted_cmd_ptrs*)" runin=".cli_sorted_cmd_ptrs_run"/>
     <ProgramSection alignment="4" keep="Yes" load="Yes" name=".fs_data"  inputsections="*(.fs_data*)" runin=".fs_data_run"/>
-    <ProgramSection alignment="4" keep="Yes" load="Yes" name=".nrf_mesh_flash"  inputsections="*(SORT(.nrf_mesh_flash.*))" address_symbol="__start_nrf_mesh_flash" end_symbol="__stop_nrf_mesh_flash"/>
-    <ProgramSection alignment="4" keep="Yes" load="Yes" name=".fs_data"  inputsections="*(.fs_data*)" runin=".fs_data_run"/>
+    <ProgramSection alignment="4" keep="Yes" load="Yes" name=".nrf_mesh_flash"  inputsections="*(SORT(.nrf_mesh_flash.*))" address_symbol="__start_nrf_mesh_flash" end_symbol="__stop_nrf_mesh_flash"/>    
     <ProgramSection alignment="4" load="Yes" name=".dtors" />
     <ProgramSection alignment="4" load="Yes" name=".ctors" />
     <ProgramSection alignment="4" load="Yes" name=".rodata" />

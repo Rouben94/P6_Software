@@ -21,7 +21,10 @@ along with Benchmark-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 #include "bm_log.h"
 #include "bm_cli.h"
 #include "bm_config.h"
-#if defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD || defined NRF_SDK_MESH
+#if defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
+#include "bm_flash_save.h"
+#elif defined NRF_SDK_MESH
+#include "nrf_drv_clock.h"
 #include "bm_flash_save.h"
 #elif defined ZEPHYR_BLE_MESH
 #include <device.h>
@@ -163,7 +166,19 @@ uint32_t bm_log_load_from_flash() {
 }
 
 void bm_log_init() {
-#if defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD || defined NRF_SDK_MESH
+#if defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
+  flash_save_init(bm_log_load_from_flash_cb);
+#elif defined NRF_SDK_MESH
+    // Initialize the clock. 
+    /*
+    ret_code_t rc = nrf_drv_clock_init();
+    APP_ERROR_CHECK(rc);
+
+    nrf_drv_clock_lfclk_request(NULL);
+
+    // Wait for the clock to be ready. 
+    while (!nrf_clock_lf_is_running()) {;}
+    */
   flash_save_init(bm_log_load_from_flash_cb);
 #elif defined ZEPHYR_BLE_MESH
   flash_dev = device_get_binding(DT_CHOSEN_ZEPHYR_FLASH_CONTROLLER_LABEL);

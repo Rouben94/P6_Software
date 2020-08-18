@@ -387,14 +387,17 @@ void ST_INIT_BENCHMARK_fn(void) {
 #elif defined NRF_SDK_MESH
   /* Initialize and Start BLE-Mesh stack. */
   bm_ble_mesh_init();
-  /* Bluetooth Mesh Stack wait for event */
+  bm_led0_set(true);
+  bm_cli_log("BLE Stack Init Completed");
+  // Bluetooth Mesh Stack wait for event 
   while ((synctimer_getSyncTime() - start_time_ts_us) < ST_INIT_BENCHMARK_TIME_MS * 1000) {
     (void)sd_app_evt_wait();
 #ifdef BENCHMARK_MASTER
     bm_cli_process();
     UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
 #endif
-  }
+}
+bm_cli_log("End BLE Stack Init Completed");
 #endif
   return;
 }
@@ -440,6 +443,7 @@ void ST_BENCHMARK_fn(void) {
   bm_cli_log("Abort Openthread Stack\n");
   #elif defined NRF_SDK_MESH
   /* Bluetooth Mesh Stack wait for event */
+  
   while (currentState == ST_BENCHMARK) {
     (void)sd_app_evt_wait();
 #ifdef BENCHMARK_MASTER
