@@ -201,7 +201,7 @@ uint32_t mesh_stack_provisioning_data_store(const nrf_mesh_prov_provisioning_dat
         return status;
     }
 
-    __LOG(LOG_SRC_CORE, LOG_LEVEL_DBG3, "iv_index: 0x%08x  flag:ivu: %d\n", p_prov_data->iv_index, p_prov_data->flags.iv_update);
+    //__LOG(LOG_SRC_CORE, LOG_LEVEL_DBG3, "iv_index: 0x%08x  flag:ivu: %d\n", p_prov_data->iv_index, p_prov_data->flags.iv_update);
 
     return status;
 }

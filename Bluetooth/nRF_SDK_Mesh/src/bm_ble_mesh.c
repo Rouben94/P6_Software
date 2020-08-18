@@ -39,7 +39,9 @@
 #include <string.h>
 
 #include "bm_config.h"
+#include "bm_cli.h"
 #include "bm_timesync.h"
+#include "bm_simple_buttons_and_leds.h"
 
 /* HAL */
 #include "boards.h"
@@ -149,17 +151,19 @@ static void app_gen_onoff_server_state_set_cb(const generic_onoff_server_t * p_s
                                              generic_onoff_status_params_t * p_out)
 {
 
-    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Setting GPIO value: %d\n", p_in->on_off % 2)
+    bm_cli_log("Setting GPIO value: %d\n", p_in->on_off % 2)
 
-    hal_led_pin_set(ONOFF_SERVER_0_LED, p_in->on_off % 2);
+    //hal_led_pin_set(ONOFF_SERVER_0_LED, p_in->on_off % 2);
+    bm_led3_set(p_in->on_off % 2);
+    
 
-    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "DST Addr: %x\n",p_meta->dst.value);
-    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "GRP Addr: %x\n",p_meta->dst.value);
-    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "SRC Addr: %x\n",p_meta->src.value);
-    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "TID: %d\n",p_in->tid);
-    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "TTL: %d\n",p_meta->ttl);
-    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "RSSI: %d\n",(int16_t)p_meta->p_core_metadata->params.scanner.rssi);
-    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "SIZE: 2\n");
+    bm_cli_log("DST Addr: %x\n",p_meta->dst.value);
+    bm_cli_log("GRP Addr: %x\n",p_meta->dst.value);
+    bm_cli_log("SRC Addr: %x\n",p_meta->src.value);
+    bm_cli_log("TID: %d\n",p_in->tid);
+    bm_cli_log("TTL: %d\n",p_meta->ttl);
+    bm_cli_log("RSSI: %d\n",(int16_t)p_meta->p_core_metadata->params.scanner.rssi);
+    bm_cli_log("SIZE: 2\n");
 
 }
 
@@ -213,19 +217,20 @@ void bm_send_message()
     set_params.tid = (uint8_t) (tid >> 8); // MSB of TID
     transition_params.delay_ms = 0;
     transition_params.transition_time_ms = 0;
-    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Sending msg: ONOFF SET %d\n", set_params.on_off % 2);
+    bm_cli_log("Sending msg: ONOFF SET %d\n", set_params.on_off % 2);
     (void)access_model_reliable_cancel(m_client.model_handle);
     //status = generic_onoff_client_set(&m_client, &set_params, &transition_params);
     status = generic_onoff_client_set_unack(&m_client, &set_params, NULL, APP_UNACK_MSG_REPEAT_COUNT);
     //hal_led_pin_set(BSP_LED_0, set_params.on_off);
+    bm_led2_set(set_params.on_off % 2);
 
-    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "DST Addr: bm_params\n");
-    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "GRP Addr: bm_params\n");
-    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "SRC Addr: addr\n");
-    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "TID: %d\n",((uint16_t)set_params.tid << 8) | set_params.on_off);
-    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "TTL: %d\n",access_default_ttl_get());
-    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "RSSI: 0\n");
-    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "SIZE: %d\n",m_client.access_message.message.length); // Static Payload is 2 Bytes + Additional Siize
+    bm_cli_log("DST Addr: bm_params\n");
+    bm_cli_log("GRP Addr: bm_params\n");
+    bm_cli_log("SRC Addr: addr\n");
+    bm_cli_log("TID: %d\n",((uint16_t)set_params.tid << 8) | set_params.on_off);
+    bm_cli_log("TTL: %d\n",access_default_ttl_get());
+    bm_cli_log("RSSI: 0\n");
+    bm_cli_log("SIZE: %d\n",m_client.access_message.message.length); // Static Payload is 2 Bytes + Additional Siize
 
 }
 
@@ -234,7 +239,7 @@ void bm_send_message()
 
 static void models_init_cb(void)
 {
-      __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Initializing, and adding models\n");
+      bm_cli_log("Initializing, and adding models\n");
       m_client.settings.p_callbacks = &client_cbs;
       m_client.settings.timeout = 0;
       m_client.settings.force_segmented = APP_FORCE_SEGMENTATION;
@@ -246,7 +251,7 @@ static void models_init_cb(void)
       m_server.settings.transmic_size = APP_MIC_SIZE;
       ERROR_CHECK(generic_onoff_server_init(&m_server, 0));
 
-      __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Do Self Provisioning\n");
+      bm_cli_log("Do Self Provisioning\n");
       uint32_t status;
       
       dsm_local_unicast_address_t local_address;
@@ -274,13 +279,13 @@ static void models_init_cb(void)
 
       access_default_ttl_set(7);
 
-      __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Add Subscription and Publish Addresses\n");
+      bm_cli_log("Add Subscription and Publish Addresses\n");
       dsm_handle_t subscription_address_handle;
       status = dsm_address_subscription_add(0xC001, &subscription_address_handle);
       dsm_handle_t publish_address_handle;
       status = dsm_address_publish_add(0xC001,&publish_address_handle);
       
-      __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Configurate Models\n");
+      bm_cli_log("Configurate Models\n");
       NRF_MESH_ERROR_CHECK(access_model_application_bind(m_client.model_handle,appkey_handle));
       NRF_MESH_ERROR_CHECK(access_model_publish_application_set(m_client.model_handle,appkey_handle));
       NRF_MESH_ERROR_CHECK(access_model_publish_address_set(m_client.model_handle,publish_address_handle));    
@@ -312,8 +317,8 @@ static void mesh_init(void)
     switch (status)
     {
         case NRF_ERROR_INVALID_DATA:
-            __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Data in the persistent memory was corrupted. Device starts as unprovisioned.\n");
-			__LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Reset device before start provisioning.\n");
+            bm_cli_log("Data in the persistent memory was corrupted. Device starts as unprovisioned.\n");
+			bm_cli_log("Reset device before start provisioning.\n");
             break;
         case NRF_SUCCESS:
             break;
@@ -326,8 +331,8 @@ static void bm_ble_mesh_initialize(void)
 {
 
 
-    __LOG_INIT(LOG_SRC_APP | LOG_SRC_ACCESS | LOG_SRC_BEARER, LOG_LEVEL_INFO, LOG_CALLBACK_DEFAULT);
-    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "----- BLE Mesh Light Switch Client Demo -----\n");
+    //__LOG_INIT(LOG_SRC_APP | LOG_SRC_ACCESS | LOG_SRC_BEARER, LOG_LEVEL_INFO, LOG_CALLBACK_DEFAULT);
+    bm_cli_log("----- BLE Mesh Light Switch Client Demo -----\n");
 
 
 
@@ -354,13 +359,13 @@ static void unicast_address_print(void)
 {
     dsm_local_unicast_address_t node_address;
     dsm_local_unicast_addresses_get(&node_address);
-    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Node Address: 0x%04x \n", node_address.address_start);
+    bm_cli_log("Node Address: 0x%04x \n", node_address.address_start);
 }
 
 
 static void provisioning_complete_cb(void)
 {
-    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Successfully provisioned\n");
+    bm_cli_log("Successfully provisioned\n");
 
 #if MESH_FEATURE_GATT_ENABLED
     /* Restores the application parameters after switching from the Provisioning
@@ -370,9 +375,9 @@ static void provisioning_complete_cb(void)
 #endif
 
     unicast_address_print();
-    hal_led_blink_stop();
-    hal_led_mask_set(LEDS_MASK, LED_MASK_STATE_OFF);
-    hal_led_blink_ms(LEDS_MASK, LED_BLINK_INTERVAL_MS, LED_BLINK_CNT_PROV);
+    //hal_led_blink_stop();
+    //hal_led_mask_set(LEDS_MASK, LED_MASK_STATE_OFF);
+    //hal_led_blink_ms(LEDS_MASK, LED_BLINK_INTERVAL_MS, LED_BLINK_CNT_PROV);
 }
 
 
@@ -411,5 +416,16 @@ static void bm_ble_mesh_start(void)
 void bm_ble_mesh_init()
 {
     bm_ble_mesh_initialize();
-    bm_ble_mesh_start();
+    bm_ble_mesh_start();    
+    sd_clock_hfclk_request();
+}
+
+void bm_ble_mesh_deinit()
+{
+    retval = proxy_stop();
+    if (retval == NRF_SUCCESS)
+    {
+        retval = nrf_mesh_disable();
+    }
+    sd_softdevice_disable();
 }

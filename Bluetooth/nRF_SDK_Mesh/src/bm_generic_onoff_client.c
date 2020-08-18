@@ -107,7 +107,7 @@ static uint8_t message_set_packet_create(generic_onoff_set_msg_pkt_t *p_set, con
 }
 
 uint8_t newbuf[Max_Payload_len];
-uint16_t additional_length = 10;
+uint16_t additional_length = 0;
 
 static void message_create(generic_onoff_client_t * p_client, uint16_t tx_opcode, const uint8_t * p_buffer,
                            uint16_t length, access_message_tx_t *p_message)

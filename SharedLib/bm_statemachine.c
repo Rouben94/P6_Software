@@ -84,7 +84,11 @@ IV.    if yess -> change to next state*/
 // The Benchmark time is obtained by the arameters from Timesync
 #define ST_BENCHMARK_MIN_GAP_TIME_US 1000          // Minimal Gap Time to not exit the interrupt context while waiting for another package.
 #define ST_BENCHMARK_ADDITIONAL_WAIT_TIME_MS 15000 // Additional Waittime for finishing the Benchmark State (if all transitions are at the end)
+#ifdef NRF_SDK_MESH
+#define ST_SAVE_FLASH_TIME_MS 5000                 // Time required to Save Log to Flash
+#elif 
 #define ST_SAVE_FLASH_TIME_MS 1000                 // Time required to Save Log to Flash
+#endif
 
 #define ST_MARGIN_TIME_MS 5      // Margin for State Transition (Let the State Terminate)
 #define BM_LED_BLINK_TIME_MS 500 /* Blink Time for LED's */
@@ -107,7 +111,8 @@ static void ST_BENCHMARK_msg_cb(void);
 
 static void ST_transition_cb(void) {
   if (currentState == ST_INIT) {
-    currentState = ST_CONTROL;
+    //currentState = ST_CONTROL;
+    currentState = ST_INIT_BENCHMARK; // For Debug
   } else if (currentState == ST_CONTROL && transition_to_timesync) {
     transition_to_timesync = false;
     currentState = ST_TIMESYNC;
@@ -173,7 +178,9 @@ void ST_INIT_fn(void) {
   synctimer_init();
   synctimer_start();
   bm_rand_init();
+    #ifndef NRF_SDK_MESH
   bm_log_init();
+#endif
   bm_op_time_counter_init();
 
   //bm_ble_mesh_init();
@@ -337,7 +344,7 @@ void ST_TIMESYNC_fn(void) {
 }
 
 void ST_INIT_BENCHMARK_fn(void) {
-#ifdef ZEPHYR_BLE_MESH
+#if defined ZEPHYR_BLE_MESH || defined NRF_SDK_MESH
   next_state_ts_us = (synctimer_getSyncTime() + ST_INIT_BENCHMARK_TIME_MS * 1000 + ST_MARGIN_TIME_MS * 1000);
 #elif defined NRF_SDK_ZIGBEE
   uint64_t next_state_ts_us = (synctimer_getSyncTime() + ST_INIT_BENCHMARK_TIME_MS * 1000 + ST_MARGIN_TIME_MS * 1000 + ZBOSS_MAIN_LOOP_ITERATION_TIME_MARGIN_MS * 1000);
@@ -354,8 +361,9 @@ void ST_INIT_BENCHMARK_fn(void) {
 
   bm_rand_init_message_ts();
   bm_log_clear_ram();
+  #ifndef NRF_SDK_MESH
   bm_log_clear_flash();
-
+#endif
 #ifdef ZEPHYR_BLE_MESH
   bm_blemesh_enable(); // Will return faster than the Stack is realy ready... keep on waiting in the transition.
 #elif defined NRF_SDK_ZIGBEE
@@ -387,14 +395,19 @@ void ST_INIT_BENCHMARK_fn(void) {
 #elif defined NRF_SDK_MESH
   /* Initialize and Start BLE-Mesh stack. */
   bm_ble_mesh_init();
-  /* Bluetooth Mesh Stack wait for event */
+  bm_led0_set(true);
+  bm_cli_log("BLE Stack Init Completed");
+  /*
+  // Bluetooth Mesh Stack wait for event 
   while ((synctimer_getSyncTime() - start_time_ts_us) < ST_INIT_BENCHMARK_TIME_MS * 1000) {
     (void)sd_app_evt_wait();
 #ifdef BENCHMARK_MASTER
     bm_cli_process();
     UNUSED_RETURN_VALUE(NRF_LOG_PROCESS());
 #endif
-  }
+transition = true;
+}
+*/
 #endif
   return;
 }
@@ -440,6 +453,7 @@ void ST_BENCHMARK_fn(void) {
   bm_cli_log("Abort Openthread Stack\n");
   #elif defined NRF_SDK_MESH
   /* Bluetooth Mesh Stack wait for event */
+  /*
   while (currentState == ST_BENCHMARK) {
     (void)sd_app_evt_wait();
 #ifdef BENCHMARK_MASTER
@@ -448,6 +462,8 @@ void ST_BENCHMARK_fn(void) {
 #endif
   }
   bm_cli_log("Abort BLE-Mesh Stack\n");
+  transition = true;
+  */
 #endif
   return;
 }
@@ -483,7 +499,17 @@ void ST_SAVE_FLASH_fn(void) {
   synctimer_setSyncTimeCompareInt(next_state_ts_us, ST_transition_cb); // Schedule the Timestamp event
   start_time_ts_us = synctimer_getSyncTime();                          // Get the current Timestamp
 
+
+  #if defined NRF_SDK_MESH
+  bm_ble_mesh_deinit();
+  bm_sleep(1000);
+  bm_log_init();
+  bm_log_clear_flash();
+  bm_log_save_to_flash();
+  
+  #elif 
   bm_log_save_to_flash(); // Save the log to FLASH;
+  #endif
 
   bm_sleep(1000);
   /* Do a System Reset */
@@ -496,10 +522,18 @@ void ST_WAIT_FOR_TRANSITION_fn() {
   while (!(transition)) {
 #ifdef ZEPHYR_BLE_MESH
     k_sleep(K_FOREVER); // Zephyr Way
-#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD || defined NRF_SDK_MESH
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD 
     __SEV();
     __WFE();
     __WFE(); // Wait for Timer Interrupt nRF5SDK Way
+#elif defined NRF_SDK_MESH
+    if (currentState == ST_INIT_BENCHMARK || currentState == ST_BENCHMARK ){
+      (void)sd_app_evt_wait();
+    } else {
+      __SEV();
+      __WFE();
+      __WFE(); // Wait for Timer Interrupt nRF5SDK Way
+    }    
 #endif
   }
   wait_for_transition = false;
