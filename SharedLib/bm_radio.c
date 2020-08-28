@@ -17,7 +17,6 @@ along with Benchmark-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 
 /* AUTHOR   :   Raffael Anklin        */
 
-
 #include "bm_config.h"
 #include "bm_radio.h"
 #include "bm_timesync.h"
@@ -26,6 +25,10 @@ along with Benchmark-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 #include <string.h>
 
 #ifdef ZEPHYR_BLE_MESH
+#include <device.h>
+#include <devicetree.h>
+#include <drivers/clock_control.h>
+#include <drivers/clock_control/nrf_clock_control.h>
 
 /* ---------------------- RADIO AREA Zephyr ------------------------ */
 
@@ -62,24 +65,59 @@ static uint8_t rx_buf[RADIO_MAX_PAYLOAD_LEN] = {};     // Rx Buffer for BLE oper
 static uint8_t *rx_buf_ptr;
 static uint32_t address; // Storing the Access Address
 
-void bm_radio_clock_init() {
+void bm_radio_clock_init()
+{
+  /*
   NRF_CLOCK->TASKS_HFCLKSTART = 1;    //Start high frequency clock
   NRF_CLOCK->EVENTS_HFCLKSTARTED = 0; //Clear event
+  */
+  int err;
+  struct device *clock;
+  enum clock_control_status clock_status;
+  clock = device_get_binding(DT_INST_0_NORDIC_NRF_CLOCK_LABEL);
+  if (!clock)
+  {
+    printk("Unable to find clock device binding\n");
+    return;
+  }
+  else
+  {
+    clock_status = clock_control_get_status(clock, CLOCK_CONTROL_NRF_SUBSYS_HF);
+    if (clock_status != CLOCK_CONTROL_STATUS_ON)
+    {
+      err = clock_control_on(clock, CLOCK_CONTROL_NRF_SUBSYS_HF);
+      if (err)
+      {
+        printk("Unable to turn on the clock: %d", err);
+      }
+
+      do
+      {
+        clock_status = clock_control_get_status(clock,
+                                                CLOCK_CONTROL_NRF_SUBSYS_HF);
+      } while (clock_status != CLOCK_CONTROL_STATUS_ON);
+
+      printk("Clock has started\n");
+    }
+  }
 }
 
-void bm_radio_disable(void) {
+void bm_radio_disable(void)
+{
   nrf_radio_shorts_set(NRF_RADIO, 0);
   nrf_radio_int_disable(NRF_RADIO, ~0);
   nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_DISABLED);
 
   nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_DISABLE);
-  while (!nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_DISABLED)) {
+  while (!nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_DISABLED))
+  {
     /* Do nothing */
   }
   nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_DISABLED);
 }
 
-void bm_radio_setMode(nrf_radio_mode_t m) {
+void bm_radio_setMode(nrf_radio_mode_t m)
+{
   // Set the desired Radio Mode
   nrf_radio_mode_set(NRF_RADIO, m);
   // Enable Fast Ramp Up (no TIFS) and set Tx Default mode to Center
@@ -100,7 +138,8 @@ void bm_radio_setMode(nrf_radio_mode_t m) {
   packet_conf.big_endian = false;                    // Bit 24: 1 Small endian
   packet_conf.whiteen = true;                        // Bit 25: 1 Whitening enabled
   packet_conf.crcinc = 0;                            // Indicates if LENGTH field contains CRC or not
-  switch (m) {
+  switch (m)
+  {
   case NRF_RADIO_MODE_BLE_1MBIT:
     // Nothing to be done :)
     break;
@@ -135,23 +174,28 @@ void bm_radio_setMode(nrf_radio_mode_t m) {
   nrf_radio_packet_configure(NRF_RADIO, &packet_conf);
 }
 
-void bm_radio_setCH(uint8_t CH) {
+void bm_radio_setCH(uint8_t CH)
+{
   // Accept only numbers within 0-39 for BLE Channels
-  if ((39 >= CH && CH >= 0) && nrf_radio_mode_get(NRF_RADIO) != NRF_RADIO_MODE_IEEE802154_250KBIT) {
+  if ((39 >= CH && CH >= 0) && nrf_radio_mode_get(NRF_RADIO) != NRF_RADIO_MODE_IEEE802154_250KBIT)
+  {
     nrf_radio_frequency_set(NRF_RADIO, BLE_CH_freq[CH]);
     nrf_radio_datawhiteiv_set(NRF_RADIO, CH);
     //bm_cli_log("Set Frequency to %d\n", BLE_CH_freq[CH]);
-  } else if (26 >= CH && CH >= 11) // Accept only numbers within 11-26 for IEEE802.15.4 Channels
+  }
+  else if (26 >= CH && CH >= 11) // Accept only numbers within 11-26 for IEEE802.15.4 Channels
   {
     nrf_radio_frequency_set(NRF_RADIO, IEEE802_15_4_CH_freq[CH - 11]);
   }
 }
 
-void bm_radio_setTxP(nrf_radio_txpower_t TxP) {
+void bm_radio_setTxP(nrf_radio_txpower_t TxP)
+{
   nrf_radio_txpower_set(NRF_RADIO, TxP);
 }
 
-void bm_radio_setAA(uint32_t aa) {
+void bm_radio_setAA(uint32_t aa)
+{
   address = aa; // Store the Access Address
   /* Set the device address 0 to use when transmitting. */
   nrf_radio_txaddress_set(NRF_RADIO, 0);
@@ -210,7 +254,8 @@ void RADIO_IRQHandler(void){
 }
 */
 
-void bm_radio_init() {
+void bm_radio_init()
+{
   // Enable the High Frequency clock on the processor. This is a pre-requisite for
   // the RADIO module. Without this clock, no communication is possible.
   bm_radio_clock_init();
@@ -226,17 +271,21 @@ void bm_radio_init() {
                                               // NVIC_EnableIRQ(RADIO_IRQn);                               // Enable Radio ISR NRF SDK WAY
 }
 
-void bm_radio_send(RADIO_PACKET tx_pkt) {
+void bm_radio_send(RADIO_PACKET tx_pkt)
+{
   bm_radio_disable(); // Disable the Radio
   /* Setup Paket */
-  if (nrf_radio_mode_get(NRF_RADIO) == NRF_RADIO_MODE_IEEE802154_250KBIT) {
+  if (nrf_radio_mode_get(NRF_RADIO) == NRF_RADIO_MODE_IEEE802154_250KBIT)
+  {
     tx_pkt_aligned_IEEE.length = tx_pkt.length + 2 + sizeof(address);                  // Because Length includes CRC Field
     tx_pkt_aligned_IEEE.address = address;                                             // Save  address because IEEE wont transmit it by itself
     memset(tx_pkt_aligned_IEEE.PDU, 0, sizeof(tx_pkt_aligned_IEEE.PDU));               // Initialize Data Structure
     memcpy(tx_pkt_aligned_IEEE.PDU, tx_pkt.PDU, tx_pkt.length);                        // Copy the MAC PDU to the RAM PDU
     tx_buf = (u8_t *)&tx_pkt_aligned_IEEE;                                             // Set the Tx Buffer Pointer
     tx_buf_len = tx_pkt.length + sizeof(address) + sizeof(tx_pkt_aligned_IEEE.length); // Save the Size of the tx_buf
-  } else {
+  }
+  else
+  {
     tx_pkt_aligned.length = tx_pkt.length;
     memset(tx_pkt_aligned.PDU, 0, sizeof(tx_pkt_aligned.PDU));          // Initialize Data Structure
     memcpy(tx_pkt_aligned.PDU, tx_pkt.PDU, tx_pkt.length);              // Copy the MAC PDU to the RAM PDU
@@ -256,22 +305,28 @@ void bm_radio_send(RADIO_PACKET tx_pkt) {
   bm_radio_disable();
 }
 
-void bm_radio_send_burst(RADIO_PACKET tx_pkt,uint32_t burst_time_ms) { 
+void bm_radio_send_burst(RADIO_PACKET tx_pkt, uint32_t burst_time_ms)
+{
   bm_synctimer_timeout_compare_int = false;
-    synctimer_setCompareInt(burst_time_ms); 
-    while (!(bm_synctimer_timeout_compare_int)) {
-      bm_radio_send(tx_pkt);
-    }
-    bm_synctimer_timeout_compare_int = false; // Reset Interrupt Flags
+  synctimer_setCompareInt(burst_time_ms);
+  while (!(bm_synctimer_timeout_compare_int))
+  {
+    bm_radio_send(tx_pkt);
+  }
+  bm_synctimer_timeout_compare_int = false; // Reset Interrupt Flags
 }
 
-bool bm_radio_receive(RADIO_PACKET *rx_pkt, uint32_t timeout_ms) {
+bool bm_radio_receive(RADIO_PACKET *rx_pkt, uint32_t timeout_ms)
+{
   bm_radio_disable();
   /* Initialize Rx Buffer */
-  if (nrf_radio_mode_get(NRF_RADIO) == NRF_RADIO_MODE_IEEE802154_250KBIT) {
+  if (nrf_radio_mode_get(NRF_RADIO) == NRF_RADIO_MODE_IEEE802154_250KBIT)
+  {
     memset(rx_buf_ieee, 0, sizeof(rx_buf_ieee)); // Erase old Rx buffer content
     rx_buf_ptr = rx_buf_ieee;
-  } else {
+  }
+  else
+  {
     memset(rx_buf, 0, sizeof(rx_buf)); // Erase old Rx buffer content
     rx_buf_ptr = rx_buf;
   }
@@ -282,10 +337,12 @@ bool bm_radio_receive(RADIO_PACKET *rx_pkt, uint32_t timeout_ms) {
   bm_synctimer_timeout_compare_int = false;
   bm_radio_crcok_int = false; // Reset Interrupt Flags
   synctimer_setCompareInt(timeout_ms);
-  while (!(bm_synctimer_timeout_compare_int)) {
+  while (!(bm_synctimer_timeout_compare_int))
+  {
     //__SEV();__WFE();__WFE(); // Wait for Timer Interrupt nRF5SDK Way
     __NOP(); // Since the LLL Driver owns the Interrupt we have to Poll
-    if (nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_CRCOK) && nrf_radio_state_get(NRF_RADIO) == NRF_RADIO_STATE_DISABLED && ((PACKET_PDU_ALIGNED *)rx_buf_ptr)->length == rx_pkt->length) {
+    if (nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_CRCOK) && nrf_radio_state_get(NRF_RADIO) == NRF_RADIO_STATE_DISABLED && ((PACKET_PDU_ALIGNED *)rx_buf_ptr)->length == rx_pkt->length)
+    {
       bm_radio_disable();
       rx_pkt->PDU = ((PACKET_PDU_ALIGNED *)rx_buf_ptr)->PDU;
       rx_pkt->length = ((PACKET_PDU_ALIGNED *)rx_buf_ptr)->length;
@@ -302,7 +359,7 @@ bool bm_radio_receive(RADIO_PACKET *rx_pkt, uint32_t timeout_ms) {
   return false;
 }
 
-#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
+#elif defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD || defined NRF_SDK_MESH
 
 /* ---------------------- RADIO AREA NRF5SDK_Zigbee ------------------------ */
 
@@ -339,24 +396,28 @@ static uint8_t rx_buf[RADIO_MAX_PAYLOAD_LEN] = {};     // Rx Buffer for BLE oper
 static uint8_t *rx_buf_ptr;
 static uint32_t address; // Storing the Access Address
 
-void bm_radio_clock_init() {
+void bm_radio_clock_init()
+{
   NRF_CLOCK->TASKS_HFCLKSTART = 1;    //Start high frequency clock
   NRF_CLOCK->EVENTS_HFCLKSTARTED = 0; //Clear event
 }
 
-void bm_radio_disable(void) {
+void bm_radio_disable(void)
+{
   nrf_radio_shorts_set(0);
   nrf_radio_int_disable(~0);
   nrf_radio_event_clear(NRF_RADIO_EVENT_DISABLED);
 
   nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
-  while (!nrf_radio_event_check(NRF_RADIO_EVENT_DISABLED)) {
+  while (!nrf_radio_event_check(NRF_RADIO_EVENT_DISABLED))
+  {
     /* Do nothing */
   }
   nrf_radio_event_clear(NRF_RADIO_EVENT_DISABLED);
 }
 
-void bm_radio_setMode(nrf_radio_mode_t m) {
+void bm_radio_setMode(nrf_radio_mode_t m)
+{
   // Set the desired Radio Mode
   nrf_radio_mode_set(m);
   // Enable Fast Ramp Up (no TIFS) and set Tx Default mode to Center
@@ -377,7 +438,8 @@ void bm_radio_setMode(nrf_radio_mode_t m) {
   packet_conf.big_endian = false;                    // Bit 24: 1 Small endian
   packet_conf.whiteen = true;                        // Bit 25: 1 Whitening enabled
   packet_conf.crcinc = 0;                            // Indicates if LENGTH field contains CRC or not
-  switch (m) {
+  switch (m)
+  {
   case NRF_RADIO_MODE_BLE_1MBIT:
     // Nothing to be done :)
     break;
@@ -412,23 +474,28 @@ void bm_radio_setMode(nrf_radio_mode_t m) {
   nrf_radio_packet_configure(&packet_conf);
 }
 
-void bm_radio_setCH(uint8_t CH) {
+void bm_radio_setCH(uint8_t CH)
+{
   // Accept only numbers within 0-39 for BLE Channels
-  if ((39 >= CH && CH >= 0) && nrf_radio_mode_get() != NRF_RADIO_MODE_IEEE802154_250KBIT) {
+  if ((39 >= CH && CH >= 0) && nrf_radio_mode_get() != NRF_RADIO_MODE_IEEE802154_250KBIT)
+  {
     nrf_radio_frequency_set(BLE_CH_freq[CH]);
     nrf_radio_datawhiteiv_set(CH);
     //bm_cli_log("Set Frequency to %d\n", BLE_CH_freq[CH]);
-  } else if (26 >= CH && CH >= 11) // Accept only numbers within 11-26 for IEEE802.15.4 Channels
+  }
+  else if (26 >= CH && CH >= 11) // Accept only numbers within 11-26 for IEEE802.15.4 Channels
   {
     nrf_radio_frequency_set(IEEE802_15_4_CH_freq[CH - 11]);
   }
 }
 
-void bm_radio_setTxP(nrf_radio_txpower_t TxP) {
+void bm_radio_setTxP(nrf_radio_txpower_t TxP)
+{
   nrf_radio_txpower_set(TxP);
 }
 
-void bm_radio_setAA(uint32_t aa) {
+void bm_radio_setAA(uint32_t aa)
+{
   address = aa; // Store the Access Address
   /* Set the device address 0 to use when transmitting. */
   nrf_radio_txaddress_set(0);
@@ -487,7 +554,8 @@ void RADIO_IRQHandler(void){
 }
 */
 
-void bm_radio_init() {
+void bm_radio_init()
+{
   // Enable the High Frequency clock on the processor. This is a pre-requisite for
   // the RADIO module. Without this clock, no communication is possible.
   bm_radio_clock_init();
@@ -503,17 +571,21 @@ void bm_radio_init() {
                                               // NVIC_EnableIRQ(RADIO_IRQn);                               // Enable Radio ISR NRF SDK WAY
 }
 
-void bm_radio_send(RADIO_PACKET tx_pkt) {
+void bm_radio_send(RADIO_PACKET tx_pkt)
+{
   bm_radio_disable(); // Disable the Radio
   /* Setup Paket */
-  if (nrf_radio_mode_get() == NRF_RADIO_MODE_IEEE802154_250KBIT) {
+  if (nrf_radio_mode_get() == NRF_RADIO_MODE_IEEE802154_250KBIT)
+  {
     tx_pkt_aligned_IEEE.length = tx_pkt.length + 2 + sizeof(address);                  // Because Length includes CRC Field
     tx_pkt_aligned_IEEE.address = address;                                             // Save  address because IEEE wont transmit it by itself
     memset(tx_pkt_aligned_IEEE.PDU, 0, sizeof(tx_pkt_aligned_IEEE.PDU));               // Initialize Data Structure
     memcpy(tx_pkt_aligned_IEEE.PDU, tx_pkt.PDU, tx_pkt.length);                        // Copy the MAC PDU to the RAM PDU
     tx_buf = (uint8_t *)&tx_pkt_aligned_IEEE;                                          // Set the Tx Buffer Pointer
     tx_buf_len = tx_pkt.length + sizeof(address) + sizeof(tx_pkt_aligned_IEEE.length); // Save the Size of the tx_buf
-  } else {
+  }
+  else
+  {
     tx_pkt_aligned.length = tx_pkt.length;
     memset(tx_pkt_aligned.PDU, 0, sizeof(tx_pkt_aligned.PDU));          // Initialize Data Structure
     memcpy(tx_pkt_aligned.PDU, tx_pkt.PDU, tx_pkt.length);              // Copy the MAC PDU to the RAM PDU
@@ -533,25 +605,28 @@ void bm_radio_send(RADIO_PACKET tx_pkt) {
   bm_radio_disable();
 }
 
-
-
-void bm_radio_send_burst(RADIO_PACKET tx_pkt,uint32_t burst_time_ms) { 
+void bm_radio_send_burst(RADIO_PACKET tx_pkt, uint32_t burst_time_ms)
+{
   bm_synctimer_timeout_compare_int = false;
-    synctimer_setCompareInt(burst_time_ms); 
-    while (!(bm_synctimer_timeout_compare_int)) {
-      bm_radio_send(tx_pkt);
-    }
-    bm_synctimer_timeout_compare_int = false; // Reset Interrupt Flags
+  synctimer_setCompareInt(burst_time_ms);
+  while (!(bm_synctimer_timeout_compare_int))
+  {
+    bm_radio_send(tx_pkt);
+  }
+  bm_synctimer_timeout_compare_int = false; // Reset Interrupt Flags
 }
 
-
-bool bm_radio_receive(RADIO_PACKET *rx_pkt, uint32_t timeout_ms) {
+bool bm_radio_receive(RADIO_PACKET *rx_pkt, uint32_t timeout_ms)
+{
   bm_radio_disable();
   /* Initialize Rx Buffer */
-  if (nrf_radio_mode_get() == NRF_RADIO_MODE_IEEE802154_250KBIT) {
+  if (nrf_radio_mode_get() == NRF_RADIO_MODE_IEEE802154_250KBIT)
+  {
     memset(rx_buf_ieee, 0, sizeof(rx_buf_ieee)); // Erase old Rx buffer content
     rx_buf_ptr = rx_buf_ieee;
-  } else {
+  }
+  else
+  {
     memset(rx_buf, 0, sizeof(rx_buf)); // Erase old Rx buffer content
     rx_buf_ptr = rx_buf;
   }
@@ -561,10 +636,12 @@ bool bm_radio_receive(RADIO_PACKET *rx_pkt, uint32_t timeout_ms) {
   nrf_radio_task_trigger(NRF_RADIO_TASK_RXEN);
   bm_synctimer_timeout_compare_int = false;
   synctimer_setCompareInt(timeout_ms);
-  while (!(bm_synctimer_timeout_compare_int)) {
+  while (!(bm_synctimer_timeout_compare_int))
+  {
     //__SEV();__WFE();__WFE(); // Wait for Timer Interrupt nRF5SDK Way
     __NOP(); // Since the LLL Driver owns the Interrupt we have to Poll
-    if (nrf_radio_event_check(NRF_RADIO_EVENT_CRCOK) && nrf_radio_state_get() == NRF_RADIO_STATE_DISABLED && ((PACKET_PDU_ALIGNED *)rx_buf_ptr)->length == rx_pkt->length) {
+    if (nrf_radio_event_check(NRF_RADIO_EVENT_CRCOK) && nrf_radio_state_get() == NRF_RADIO_STATE_DISABLED && ((PACKET_PDU_ALIGNED *)rx_buf_ptr)->length == rx_pkt->length)
+    {
       rx_pkt->PDU = ((PACKET_PDU_ALIGNED *)rx_buf_ptr)->PDU;
       rx_pkt->length = ((PACKET_PDU_ALIGNED *)rx_buf_ptr)->length;
       bm_radio_disable();

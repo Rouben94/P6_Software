@@ -120,10 +120,8 @@ zb_uint16_t msg_receive_cnt = 0;
 
 zb_uint32_t stack_enable_max_delay_ms = STACK_STARTUP_MAX_DELAY;
 zb_uint32_t network_formation_delay = NETWORK_FORMATION_DELAY;
+zb_uint16_t def_payload_size = DEFAULT_PAYLOAD;
 
-static const zb_uint8_t g_key_nwk[16] = {0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89, 0, 0, 0, 0, 0, 0, 0, 0};
-
-static void buttons_handler(bsp_event_t evt);
 void bm_receive_message(zb_bufid_t bufid);
 
 /************************************ Benchmark Client Cluster Attribute Init ***********************************************/
@@ -218,68 +216,6 @@ static void bm_on_off_set_value(zb_bool_t on) {
   }
 }
 
-/************************************ Button Handler Functions ***********************************************/
-
-/**@brief Callback for detecting button press duration.
- *
- * @param[in]   button   BSP Button that was pressed.
- */
-zb_void_t bm_button_handler(zb_uint8_t button) {
-  zb_time_t current_time;
-  zb_bool_t short_expired;
-  zb_bool_t on_off;
-  zb_ret_t zb_err_code;
-
-  bm_cli_log("Button pressed: %d\n", button);
-
-  current_time = ZB_TIMER_GET();
-
-  switch (button) {
-  case DONGLE_BUTTON:
-
-    break;
-
-  default:
-    bm_cli_log("Unhandled BSP Event received: %d\n", button);
-    return;
-  }
-
-  m_device_ctx.button.in_progress = ZB_FALSE;
-}
-
-/**@brief Callback for button events.
- *
- * @param[in]   evt      Incoming event from the BSP subsystem.
- */
-static void buttons_handler(bsp_event_t evt) {
-  zb_ret_t zb_err_code;
-  zb_uint32_t button;
-
-  /* Inform default signal handler about user input at the device. */
-  switch (evt) {
-  case BSP_EVENT_KEY_0:
-    button = DONGLE_BUTTON_ON;
-    bm_cli_log("BUTTON pressed\n");
-    break;
-
-  default:
-    bm_cli_log("Unhandled BSP Event received: %d\n", evt);
-    break;
-  }
-  if (!m_device_ctx.button.in_progress) {
-    m_device_ctx.button.in_progress = ZB_TRUE;
-    m_device_ctx.button.timestamp = ZB_TIMER_GET();
-
-    zb_err_code = ZB_SCHEDULE_APP_ALARM(bm_button_handler, button, LIGHT_SWITCH_BUTTON_SHORT_POLL_TMO);
-    if (zb_err_code == RET_OVERFLOW) {
-      NRF_LOG_WARNING("Can not schedule another alarm, queue is full.\n");
-      m_device_ctx.button.in_progress = ZB_FALSE;
-    } else {
-      ZB_ERROR_CHECK(zb_err_code);
-    }
-  }
-}
-
 /************************************ Benchmark Functions ***********************************************/
 
 /**@brief Function for sending add group request to the local node.
@@ -319,8 +255,8 @@ void bm_receive_message(zb_bufid_t bufid) {
 
   message.net_time = synctimer_getSyncTime();
 
-  message.number_of_hops = 0; /* TODO: Number of hops is not yet available from the ZBOSS API */
-  message.data_size = bm_params.AdditionalPayloadSize;
+  message.number_of_hops = 0;                                             /* TODO: Number of hops is not yet available from the ZBOSS API */
+  message.data_size = bm_params.AdditionalPayloadSize + def_payload_size; /* Payload Size is default payload size plus additional payload size from config message. */
   message.ack_net_time = 0;
 
   message.src_addr = zcl_info->addr_data.common_data.source.u.short_addr;
@@ -444,9 +380,6 @@ void zboss_signal_handler(zb_bufid_t bufid) {
 void bm_zigbee_init(void) {
   zb_ieee_addr_t ieee_addr;
   uint64_t long_address;
-  uint64_t ext_pan_id_64 = DEFAULT_PAN_ID_EXT;
-  zb_ext_pan_id_t ext_pan_id;
-  memcpy(ext_pan_id, &ext_pan_id_64, sizeof(ext_pan_id_64));
 
   /* Initialize timer, logging system and GPIOs. */
   timer_init();
@@ -463,15 +396,13 @@ void bm_zigbee_init(void) {
   bm_get_ieee_eui64(ieee_addr);
   zb_set_long_address(ieee_addr);
 
-  /* Set short and extended pan id to the default value. */
-  zb_set_pan_id((zb_uint16_t)DEFAULT_PAN_ID_SHORT);
-  zb_set_extended_pan_id(ext_pan_id);
-  zb_secur_setup_nwk_key((zb_uint8_t *)g_key_nwk, 0);
-
   /* Set static long IEEE address. */
   zb_set_network_router_role(IEEE_CHANNEL_MASK);
   zb_set_max_children(MAX_CHILDREN);
-  zigbee_erase_persistent_storage(ERASE_PERSISTENT_CONFIG);
+
+  /* Erase persistent config of the device if ACK Param in config message is set true. Else delete persistent storage at startup. */
+  zigbee_erase_persistent_storage(bm_params.Ack);
+
   zb_set_keepalive_timeout(ZB_MILLISECONDS_TO_BEACON_INTERVAL(3000));
 
   /* Initialize application context structure. */
@@ -482,8 +413,8 @@ void bm_zigbee_init(void) {
 
   /* Register callback for handling ZCL commands. */
   ZB_AF_SET_ENDPOINT_HANDLER(BENCHMARK_SERVER_ENDPOINT, bm_ep_handler);
-  //  ZB_ZCL_REGISTER_DEVICE_CB(zcl_device_cb);
 
+  /* Initialize Cluster Attributes */
   bm_server_clusters_attr_init();
 }
 

@@ -60,8 +60,6 @@
 #include <openthread/thread_ftd.h>
 #include <openthread/platform/openthread-system.h>
 #include <openthread/platform/platform-fem.h>
-#include <openthread/network_time.h>
-#include <openthread/platform/time.h>
 
 #include <mbedtls/platform.h>
 #include <openthread/heap.h>
@@ -238,9 +236,6 @@ void thread_init(const thread_configuration_t * p_config)
 
         error = otIp6SetEnabled(mp_ot_instance, true);
         ASSERT(error == OT_ERROR_NONE);
-
-        otNetworkTimeSetSyncPeriod(thread_ot_instance_get(), 30);
-        otNetworkTimeSetXtalThreshold(thread_ot_instance_get(), otPlatTimeGetXtalAccuracy());
 
         if (otDatasetIsCommissioned(mp_ot_instance) || p_config->autocommissioning)
         {

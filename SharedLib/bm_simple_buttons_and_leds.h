@@ -178,6 +178,13 @@ void bm_button0_toggle_state_set(bool newstate);
 #include "boards.h"
 #include "bsp.h"
 
+#elif defined NRF_SDK_MESH
+
+/* HAL */
+#include "boards.h"
+#include "simple_hal.h"
+#include "app_timer.h"
+
 
 #endif
 

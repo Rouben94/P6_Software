@@ -88,7 +88,7 @@ class ParamForm(forms.Form):
     stop_channel = forms.IntegerField(label_suffix='', min_value=1, max_value=40)
     mode = forms.CharField(label_suffix='' , widget=forms.Select(choices=MODE_CHOICES))
     size = forms.IntegerField(label_suffix='' , min_value=1, max_value=250) # 1 - 250
-    ccma_ca = forms.CharField(label_suffix='' , widget=forms.Select(choices=CCA_CA_CHOICES))
+    csma_ca = forms.CharField(label_suffix='' , widget=forms.Select(choices=CCA_CA_CHOICES))
     tx_power = forms.CharField(label_suffix='' , widget=forms.Select(choices=TX_CHOICES))
 
 class PortForm(forms.Form):

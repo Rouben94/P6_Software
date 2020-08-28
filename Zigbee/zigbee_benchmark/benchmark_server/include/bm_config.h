@@ -28,10 +28,10 @@ typedef struct
   uint8_t GroupAddress;
   uint8_t Node_Id;
   uint16_t AdditionalPayloadSize;
-  uint32_t DestMAC_1; // Zigbee Directed Destination 1
-  uint32_t DestMAC_2; // Zigbee Directed Destination 2
-  uint32_t DestMAC_3; // Zigbee Directed Destination 3
-  bool Ack; // 0 = Not Acknowledged / 1 = Ack
+  uint32_t DestMAC_1;                     // Zigbee Directed Destination 1
+  uint32_t DestMAC_2;                     // Zigbee Directed Destination 2
+  uint32_t DestMAC_3;                     // Zigbee Directed Destination 3
+  bool Ack;                               // 0 = Not Acknowledged / 1 = Ack
   bool benchmark_Traffic_Generation_Mode; // 0 = Random, 1 = Sequentialy
 } bm_params_t;
 extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a benchmark is active.
@@ -47,13 +47,11 @@ extern bm_params_t bm_params, bm_params_buf; // The Buffer store changes while a
 #define ZBOSS_MAIN_LOOP_ITERATION_TIME_MARGIN_MS 1000 // Time Margin needed because zboss can block timecheck. note this time will be added to the Stack Init Time
 #define MAX_CHILDREN 10                               /**< The maximum amount of connected devices. Setting this value to 0 disables association to this device.  */
 
-#define ERASE_PERSISTENT_CONFIG ZB_FALSE          /**< Do not erase NVRAM to save the network parameters after device reboot or power-off. */
 #define IEEE_CHANNEL_MASK (1l << ZIGBEE_CHANNEL) /**< Scan only one, predefined channel to find the coordinator. */
 //#define IEEE_CHANNEL_MASK 0x07fff800U
-#define DEFAULT_PAN_ID_EXT 0x11223344
-#define DEFAULT_PAN_ID_SHORT 0x0D13
 #define STACK_STARTUP_MAX_DELAY 30000
 #define NETWORK_FORMATION_DELAY 5000
+#define DEFAULT_PAYLOAD 2
 
 /* Basic cluster attributes initial values. */
 #define BULB_INIT_BASIC_APP_VERSION 01                                   /**< Version of the application software (1 byte). */

@@ -20,7 +20,7 @@ along with Benchamrk-Shared-Library.  If not, see <http://www.gnu.org/licenses/>
 
 #include "bm_config.h"
 #include "bm_log.h"
-#if defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD
+#if defined NRF_SDK_ZIGBEE || defined NRF_SDK_THREAD || defined NRF_SDK_MESH
 
 #include "fds.h"
 

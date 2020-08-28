@@ -56,8 +56,4 @@ void bm_zigbee_enable(void);
 
 void bm_receive_message(zb_bufid_t bufid);
 
-zb_void_t bm_schedule_lqi(zb_bufid_t bufid);
-
-//void bm_report_data(zb_uint8_t param);
-
 #endif //BM_ZIGBEE_H

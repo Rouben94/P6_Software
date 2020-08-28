@@ -25,11 +25,20 @@ extern "C" {
 #ifndef BM_OT_H
 #define BM_OT_H
 
+#include <stdbool.h>
+
+/**@brief Thread CoAP utils configuration structure. */
+typedef struct
+{
+    bool coap_server_enabled;                /**< Indicates if CoAP Server should be enabled. */
+    bool coap_client_enabled;                /**< Indicates if CoAP Client should be enabled. */
+} thread_coap_utils_configuration_t;
+
+//Function for init the Openthread stack
 void bm_ot_init();
 
+//Function for sending a probe message
 void bm_send_message();
-
-
 
 #ifdef __cplusplus
 }

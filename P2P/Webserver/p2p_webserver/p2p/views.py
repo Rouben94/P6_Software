@@ -20,10 +20,10 @@ def write():
         sleep(1.1)
 
 
-def set_params(StartCH, StopCH, Mode, Size, CCMA_CA, Tx_Power):
+def set_params(StartCH, StopCH, Mode, Size, CSMA_CA, Tx_Power):
     serial_command = "setParams {} {} {} {} {} {}\n"
     serial_port.write(bytes(serial_command.format(
-        StartCH, StopCH, Mode, Size, CCMA_CA, Tx_Power).encode('Ascii')))
+        StartCH, StopCH, Mode, Size, CSMA_CA, Tx_Power).encode('Ascii')))
 
 
 def node_list(request):
@@ -36,7 +36,7 @@ def node_list(request):
                            form.cleaned_data['stop_channel'],
                            form.cleaned_data['mode'],
                            form.cleaned_data['size'],
-                           form.cleaned_data['ccma_ca'],
+                           form.cleaned_data['csma_ca'],
                            form.cleaned_data['tx_power'])
             except:
                 messages.success(request, 'Please connect to Master')
