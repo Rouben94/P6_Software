@@ -15,6 +15,8 @@ You should have received a copy of the GNU General Public License
 along with P2P-Benchamrk.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/* Author: Raffael Anklin */
+
 #include <string.h>
 #include <stdlib.h>
 #include <vector>
