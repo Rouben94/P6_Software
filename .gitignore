@@ -1,5 +1,5 @@
 # Special for binaries
-P2P/prebuilt_binaries/*.hex
+!P2P/prebuilt_binaries/*.hex
 
 # C extensions
 *.so
