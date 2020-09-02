@@ -1,5 +1,4 @@
-# Special for binaries
-!P2P/prebuilt_binaries/*.hex
+
 
 # C extensions
 *.so
@@ -294,3 +293,6 @@ Zigbee/zigbee_benchmark/benchmark_master/zigbee_benchmark_master.emSession
 Zigbee/zigbee_benchmark/benchmark_client/zigbee_benchmark_client.emSession
 *.emSession
 *.emSession
+
+# Special for binaries
+!P2P/prebuilt_binaries/*.hex
