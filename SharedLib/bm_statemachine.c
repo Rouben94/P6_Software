@@ -86,7 +86,7 @@ IV.    if yess -> change to next state*/
 #define ST_BENCHMARK_ADDITIONAL_WAIT_TIME_MS 15000 // Additional Waittime for finishing the Benchmark State (if all transitions are at the end)
 #ifdef NRF_SDK_MESH
 #define ST_SAVE_FLASH_TIME_MS 5000                 // Time required to Save Log to Flash
-#elif 
+#else
 #define ST_SAVE_FLASH_TIME_MS 1000                 // Time required to Save Log to Flash
 #endif
 
@@ -111,8 +111,8 @@ static void ST_BENCHMARK_msg_cb(void);
 
 static void ST_transition_cb(void) {
   if (currentState == ST_INIT) {
-    //currentState = ST_CONTROL;
-    currentState = ST_INIT_BENCHMARK; // For Debug
+    currentState = ST_CONTROL;
+    //currentState = ST_INIT_BENCHMARK; // For Debug
   } else if (currentState == ST_CONTROL && transition_to_timesync) {
     transition_to_timesync = false;
     currentState = ST_TIMESYNC;
@@ -178,7 +178,7 @@ void ST_INIT_fn(void) {
   synctimer_init();
   synctimer_start();
   bm_rand_init();
-    #ifndef NRF_SDK_MESH
+#ifndef NRF_SDK_MESH
   bm_log_init();
 #endif
   bm_op_time_counter_init();
@@ -507,7 +507,7 @@ void ST_SAVE_FLASH_fn(void) {
   bm_log_clear_flash();
   bm_log_save_to_flash();
   
-  #elif 
+  #else
   bm_log_save_to_flash(); // Save the log to FLASH;
   #endif
 
